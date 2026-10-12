@@ -28,6 +28,7 @@ import org.joml.Vector3f;
 public class A60Entity extends Mob {
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f;
+    private static final int GRACE_TICKS = 120; // 約6秒の猶予
 
     public A60Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -53,8 +54,8 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 出現後60tick（約3秒）は動かない
-        if (this.tickCount < 60) {
+        // 出現後の猶予時間は動かない
+        if (this.tickCount < GRACE_TICKS) {
             this.setDeltaMovement(Vec3.ZERO);
         } else {
             Vec3 motion = new Vec3(0, 0, 0.9);
@@ -63,13 +64,16 @@ public class A60Entity extends Mob {
         }
 
         if (this.tickCount == 1) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 0.6f, 0.5f);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 0.8f, 0.4f);
         }
-        if (this.tickCount % 40 == 0) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 0.4f, 1.2f);
+        if (this.tickCount == 40) {
+            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSER, SoundSource.HOSTILE, 0.6f, 0.8f);
+        }
+        if (this.tickCount % 40 == 0 && this.tickCount >= GRACE_TICKS) {
+            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 0.5f, 1.0f);
         }
 
-        if (this.tickCount > 180) {
+        if (this.tickCount > 300) {
             this.discard();
             return;
         }
