@@ -173,27 +173,27 @@ public class A60Entity extends Mob {
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
             double dist = this.distanceTo(nearestForSound);
-            // 基本音量：500〜10ブロックで指数関数的に上がる
+            // 基本音量：500〜10ブロックで指数関数的に上がる（全体的に上げた）
             double t = Math.max(0.0, Math.min(1.0, (500.0 - dist) / 490.0)); // 0=遠い, 1=近い
-            float baseVolume = (float) (0.15f + 1.7f * Math.pow(t, 1.8)); // 遠い:0.15, 近い:約1.85
+            float baseVolume = (float) (0.3f + 2.5f * Math.pow(t, 1.6)); // 遠い:0.3, 近い:約2.8
 
             // プレイヤーがA-60の方向を向いているかで補正
             Vec3 look = nearestForSound.getViewVector(1.0f);
             Vec3 toEntity = this.position().subtract(nearestForSound.position()).normalize();
             double facing = look.dot(toEntity); // 1.0 = 真正面、-1.0 = 真後ろ
-            float facingMul = (float) Math.max(0.4f, (facing + 1.0) * 0.5); // 0.4〜1.0
+            float facingMul = (float) Math.max(0.5f, (facing + 1.0) * 0.5); // 0.5〜1.0
 
             float volume = baseVolume * facingMul;
 
             if (this.tickCount == 1) {
                 // 出現時はプレイヤー位置で鳴らす
                 this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
-                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(2.0f, volume * 1.8f), 0.5f);
+                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(3.0f, volume * 1.5f), 0.5f);
             }
             // 持続音もプレイヤー位置で（より頻繁に）
-            if (this.tickCount % 5 == 0) {
+            if (this.tickCount % 4 == 0) {
                 this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
-                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, volume, 0.6f + (float)(0.2 * Math.random()));
+                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, Math.min(3.0f, volume * 1.3f), 0.6f + (float)(0.2 * Math.random()));
             }
         }
 
