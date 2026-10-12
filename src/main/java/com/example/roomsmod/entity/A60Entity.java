@@ -160,11 +160,17 @@ public class A60Entity extends Mob {
         Player nearest = this.level().getNearestPlayer(this, 512);
         if (nearest != null) {
             double ahead = this.getZ() - nearest.getZ();
-            if (ahead > 40.0) {
+            if (ahead > 120.0) {
                 this.discard();
                 return;
             }
-        } else if (this.tickCount > 600) {
+            // デバッグ：10秒に1回位置を出す
+            if (this.tickCount % 200 == 0) {
+                nearest.sendSystemMessage(net.minecraft.network.chat.Component.literal(
+                    "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")"
+                ));
+            }
+        } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
             this.discard();
             return;
