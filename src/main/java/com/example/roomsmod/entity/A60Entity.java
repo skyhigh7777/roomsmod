@@ -169,7 +169,7 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音（プレイヤー位置で鳴らして距離＋向きで音量変化。遠い時も聞こえる）
+        // 音（プレイヤー自身に鳴らして歩いても離れない。距離＋向きで音量変化）
         ServerLevel soundLevel = (ServerLevel) this.level();
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
@@ -187,14 +187,12 @@ public class A60Entity extends Mob {
             float volume = baseVolume * facingMul;
 
             if (this.tickCount == 1) {
-                // 出現時はプレイヤー位置で鳴らす
-                this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
-                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(3.0f, volume * 1.5f), 0.5f);
+                // 出現時
+                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(3.0f, volume * 1.5f), 0.5f);
             }
-            // 持続音もプレイヤー位置で（より頻繁に）
+            // 持続音はプレイヤー自身に鳴らす（歩いても離れない）
             if (this.tickCount % 4 == 0) {
-                this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
-                        RoomsMod.A60_AMBIENCE.get(), SoundSource.HOSTILE, Math.min(3.0f, volume * 1.3f), 0.9f + (float)(0.2 * Math.random()));
+                nearestForSound.playSound(RoomsMod.A60_AMBIENCE.get(), Math.min(3.0f, volume * 1.3f), 0.9f + (float)(0.2 * Math.random()));
             }
         }
 
