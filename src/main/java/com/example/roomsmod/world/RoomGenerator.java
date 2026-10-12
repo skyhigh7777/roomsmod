@@ -2,9 +2,7 @@ package com.example.roomsmod.world;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.world.entity.Display;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.network.chat.Component;
 
 /**
  * 部屋生成ロジック。
@@ -13,7 +11,7 @@ import net.minecraft.network.chat.Component;
  */
 public class RoomGenerator {
 
-    public static void generateLobby(ServerLevel level, BlockPos origin) {
+    public static BlockPos generateLobby(ServerLevel level, BlockPos origin) {
         int width = 20;
         int depth = 32;
         int height = 5;
@@ -50,9 +48,11 @@ public class RoomGenerator {
 
         // 出口と大きめ看板
         placeExitSign(level, origin.offset(10, 3, depth - 2), "A-001");
+
+        return doorPos;
     }
 
-    public static void generateNextRoom(ServerLevel level, BlockPos previousExit, int roomNumber) {
+    public static BlockPos generateNextRoom(ServerLevel level, BlockPos previousExit, int roomNumber) {
         // オフセット計算で入口を合わせる（左右位置は部屋ごとに可変）
         int variant = roomNumber % 5;
         int depth = 28 + (variant * 2); // 極端にかけ離れない範囲で変動
@@ -75,7 +75,6 @@ public class RoomGenerator {
             }
         }
 
-        // 入口は壁を開けておく（前の部屋の出口扉がそのまま入り口になる）
         // 隠れ場所の配置（ルートに対してバリエーション）
         switch (variant) {
             case 0 -> {
@@ -123,6 +122,8 @@ public class RoomGenerator {
         }
 
         placeExitSign(level, roomOrigin.offset(10, 3, depth - 2), "A-" + String.format("%03d", roomNumber + 1));
+
+        return exitDoor;
     }
 
     private static void placeExitSign(ServerLevel level, BlockPos pos, String text) {
