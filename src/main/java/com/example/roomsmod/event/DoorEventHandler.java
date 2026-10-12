@@ -38,10 +38,10 @@ public class DoorEventHandler {
             event.getEntity().sendSystemMessage(net.minecraft.network.chat.Component.literal("次の部屋を生成したわ（A-" + String.format("%03d", currentRoom) + "）"));
 
             if (currentRoom >= 20 && level.random.nextFloat() < 0.4f) {
-                // A-001の中央付近で出現
+                // ロビーの中央で出現
                 double spawnX = 10.5;
                 double spawnY = 2.0;
-                double spawnZ = 46.0;
+                double spawnZ = 16.0;
 
                 A60Entity a60 = RoomsMod.A60.get().create(level);
                 if (a60 != null) {
