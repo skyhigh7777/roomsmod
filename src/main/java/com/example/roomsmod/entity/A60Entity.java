@@ -27,39 +27,41 @@ import org.joml.Vector3f;
  */
 public class A60Entity extends Mob {
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
-    private static final float DAMAGE = 8.0f; // 連続ダメージで致命的に
+    private static final float DAMAGE = 8.0f;
 
     public A60Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
-        this.noPhysics = true; // 壁やロッカーを完全に突き抜ける
+        this.noPhysics = true;
         this.setNoGravity(true);
-        this.setGlowingTag(true); // 光って目立つように
+        this.setGlowingTag(true);
     }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 100.0)
-                .add(Attributes.MOVEMENT_SPEED, 1.5) // 高速
+                .add(Attributes.MOVEMENT_SPEED, 1.5)
                 .add(Attributes.FOLLOW_RANGE, 64.0);
     }
 
     @Override
     public void tick() {
         super.tick();
-        this.noPhysics = true; // 毎tick強制
+        this.noPhysics = true;
 
         if (this.level().isClientSide()) {
-            // クライアント側で赤いパーティクルを大量に
             spawnVisualParticles();
             return;
         }
 
-        // 前方（+Z）に高速移動。noPhysicsなのでロッカーに引っかからない
-        Vec3 motion = new Vec3(0, 0, 0.9);
-        this.setDeltaMovement(motion);
-        this.setPos(this.getX() + motion.x, this.getY() + motion.y, this.getZ() + motion.z);
+        // 出現後60tick（約3秒）は動かない
+        if (this.tickCount < 60) {
+            this.setDeltaMovement(Vec3.ZERO);
+        } else {
+            Vec3 motion = new Vec3(0, 0, 0.9);
+            this.setDeltaMovement(motion);
+            this.setPos(this.getX() + motion.x, this.getY() + motion.y, this.getZ() + motion.z);
+        }
 
-        // 控えめな音（最初はうるさくない）
         if (this.tickCount == 1) {
             this.level().playSound(null, this.blockPosition(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 0.6f, 0.5f);
         }
@@ -67,13 +69,11 @@ public class A60Entity extends Mob {
             this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 0.4f, 1.2f);
         }
 
-        // 一定距離進んだら消滅
         if (this.tickCount > 180) {
             this.discard();
             return;
         }
 
-        // 近くのプレイヤーに視線判定ダメージ
         AABB searchBox = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
         for (Player player : this.level().getEntitiesOfClass(Player.class, searchBox)) {
             if (player.isCreative() || player.isSpectator() || !player.isAlive()) continue;
@@ -88,7 +88,6 @@ public class A60Entity extends Mob {
     }
 
     private void spawnVisualParticles() {
-        // 明るい赤い光の塊のように見せる
         DustParticleOptions redDust = new DustParticleOptions(new Vector3f(1.0f, 0.1f, 0.1f), 2.5f);
         for (int i = 0; i < 12; i++) {
             double ox = (this.random.nextDouble() - 0.5) * 1.8;
@@ -96,7 +95,6 @@ public class A60Entity extends Mob {
             double oz = (this.random.nextDouble() - 0.5) * 1.8;
             this.level().addParticle(redDust, this.getX() + ox, this.getY() + oy, this.getZ() + oz, 0, 0.02, 0);
         }
-        // 炎のパーティクルも少し
         if (this.tickCount % 2 == 0) {
             this.level().addParticle(ParticleTypes.FLAME, this.getX(), this.getY() + 1.0, this.getZ(), 0, 0.05, 0);
             this.level().addParticle(ParticleTypes.LAVA, this.getX(), this.getY() + 0.5, this.getZ(), 0, 0, 0);
@@ -129,16 +127,13 @@ public class A60Entity extends Mob {
                 this
         ));
 
-        // ヒットなし、またはヒット位置がターゲットより遠いなら視線が通っている
         if (hit.getType() == HitResult.Type.MISS) return true;
 
-        // オーク板（隠れ場所）で遮られた場合はダメージなし
         BlockPos hitPos = hit.getBlockPos();
         if (this.level().getBlockState(hitPos).is(Blocks.OAK_PLANKS)) {
             return false;
         }
 
-        // その他のブロックで遮られた場合も通っていない
         double hitDist = start.distanceTo(hit.getLocation());
         double targetDist = start.distanceTo(end);
         return hitDist >= targetDist - 0.5;
