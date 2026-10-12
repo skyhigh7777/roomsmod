@@ -168,19 +168,29 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音（距離で音量変化、近づいてくる感じ。遠い時も聞こえるように）
+        // 音（プレイヤー位置で鳴らして距離＋向きで音量変化。遠い時も聞こえる）
         ServerLevel soundLevel = (ServerLevel) this.level();
-        Player nearestForSound = soundLevel.getNearestPlayer(this, 400);
+        Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
             double dist = this.distanceTo(nearestForSound);
-            // 遠い時でも最低0.6くらい聞こえる。近づくと大きくなる
-            float volume = (float) Math.max(0.6f, Math.min(2.5f, 80.0 / (dist + 20.0)));
+            // 基本音量：遠いほど小さく、近いほど大きい
+            float baseVolume = (float) Math.max(0.15f, Math.min(1.8f, 60.0 / (dist + 15.0)));
+
+            // プレイヤーがA-60の方向を向いているかで補正
+            Vec3 look = nearestForSound.getViewVector(1.0f);
+            Vec3 toEntity = this.position().subtract(nearestForSound.position()).normalize();
+            double facing = look.dot(toEntity); // 1.0 = 真正面、-1.0 = 真後ろ
+            float facingMul = (float) Math.max(0.3f, (facing + 1.0) * 0.5); // 0.3〜1.0
+
+            float volume = baseVolume * facingMul;
+
             if (this.tickCount == 1) {
-                this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(2.0f, volume * 1.8f), 0.5f);
+                // 出現時はプレイヤー位置で鳴らす
+                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, volume * 1.5f, 0.5f);
             }
-            // 頻繁に鳴らして持続感を出す
+            // 持続音もプレイヤー位置で
             if (this.tickCount % 6 == 0) {
-                this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, volume, 0.6f + (float)(0.2 * Math.random()));
+                nearestForSound.playSound(SoundEvents.WARDEN_NEARBY_CLOSE, volume, 0.6f + (float)(0.2 * Math.random()));
             }
         }
 
