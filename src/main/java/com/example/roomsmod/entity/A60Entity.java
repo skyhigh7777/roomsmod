@@ -129,46 +129,38 @@ public class A60Entity extends Mob {
                 buildWaypoints();
             }
         } else {
-            if (waypoints.isEmpty()) {
-                buildWaypoints();
-            }
-
-            Vec3 motion;
             if (waypointIndex < waypoints.size()) {
                 BlockPos target = waypoints.get(waypointIndex);
-                double dx = (target.getX() + 0.5) - this.getX();
-                double dz = (target.getZ() + 0.5) - this.getZ();
-                double dist = Math.sqrt(dx * dx + dz * dz);
-
-                if (dist < 1.5) {
+                Vec3 dir = target.getCenter().subtract(this.position()).normalize();
+                this.setDeltaMovement(dir.scale(0.9));
+                if (this.position().distanceTo(target.getCenter()) < 2.5) {
                     waypointIndex++;
-                    motion = new Vec3(0, 0, 0.9);
-                } else {
-                    double speed = 0.9;
-                    motion = new Vec3(dx / dist * speed, 0, dz / dist * speed);
                 }
             } else {
-                // 経由点を全部通ったら前方へ
-                motion = new Vec3(0, 0, 0.9);
+                this.setDeltaMovement(new Vec3(0, 0, 0.9));
             }
-
-            this.setDeltaMovement(motion);
-            this.setPos(this.getX() + motion.x, this.getY() + motion.y, this.getZ() + motion.z);
         }
+        this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
 
-        // プレイヤーのいる位置より先に一定距離進んだら消滅
-        Player nearest = this.level().getNearestPlayer(this, 512);
-        if (nearest != null) {
-            double ahead = this.getZ() - nearest.getZ();
-            if (ahead > 120.0) {
-                this.discard();
-                return;
-            }
-            // デバッグ：10秒に1回位置を出す
-            if (this.tickCount % 200 == 0) {
+        // デバッグ：10秒ごとに位置を出す
+        if (this.tickCount % 200 == 0) {
+            ServerLevel sl = (ServerLevel) this.level();
+            Player nearest = sl.getNearestPlayer(this, 500);
+            if (nearest != null) {
                 nearest.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                     "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")"
                 ));
+            }
+        }
+
+        // プレイヤーが自分よりも大きく前に進んだら消滅
+        ServerLevel sl2 = (ServerLevel) this.level();
+        Player nearest2 = sl2.getNearestPlayer(this, 500);
+        if (nearest2 != null) {
+            double ahead = this.getZ() - nearest2.getZ();
+            if (ahead > 120.0) {
+                this.discard();
+                return;
             }
         } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
@@ -176,12 +168,12 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 控えめな音
+        // 音
         if (this.tickCount == 1) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 0.6f, 0.5f);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 1.5f, 0.5f);
         }
         if (this.tickCount % 40 == 0) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 0.4f, 1.2f);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 1.0f, 1.2f);
         }
 
         // 近くのプレイヤーに視線判定ダメージ
