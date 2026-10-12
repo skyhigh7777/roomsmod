@@ -1,0 +1,26 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="MIT"
+
+[[mods]]
+modId="roomsmod"
+version="0.1.0"
+displayName="Rooms Mod"
+authors="Grok"
+description='''
+Roblox Rooms recreation attempt for NeoForge 1.21.1
+'''
+
+[[dependencies.roomsmod]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.249,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.roomsmod]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"

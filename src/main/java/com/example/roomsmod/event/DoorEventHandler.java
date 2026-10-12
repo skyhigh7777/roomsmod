@@ -1,0 +1,59 @@
+package com.example.roomsmod.event;
+
+import com.example.roomsmod.RoomsMod;
+import com.example.roomsmod.entity.A60Entity;
+import com.example.roomsmod.world.RoomGenerator;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class DoorEventHandler {
+    public static int currentRoom = 0;
+    public static final Set<BlockPos> generatedDoors = new HashSet<>();
+    public static int baseFloorY = 1;
+
+    @SubscribeEvent
+    public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+        if (event.getLevel().isClientSide()) return;
+
+        BlockState state = event.getLevel().getBlockState(event.getPos());
+        if (state.getBlock() instanceof DoorBlock) {
+            ServerLevel level = (ServerLevel) event.getLevel();
+            BlockPos doorPos = event.getPos();
+
+            if (generatedDoors.contains(doorPos)) {
+                return;
+            }
+
+            currentRoom++;
+            BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, baseFloorY, doorPos.getZ() + 1);
+            RoomGenerator.generateNextRoom(level, nextOrigin, currentRoom);
+            generatedDoors.add(doorPos);
+            event.getEntity().sendSystemMessage(net.minecraft.network.chat.Component.literal("次の部屋を生成したわ（A-" + String.format("%03d", currentRoom) + "）"));
+
+            if (currentRoom >= 20 && level.random.nextFloat() < 0.4f) {
+                BlockPos spawnPos = doorPos.offset(0, 1, -15);
+                A60Entity a60 = RoomsMod.A60.get().create(level);
+                if (a60 != null) {
+                    a60.setPos(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+                    level.addFreshEntity(a60);
+                    event.getEntity().sendSystemMessage(net.minecraft.network.chat.Component.literal("A-60が出現したわ！"));
+                }
+            }
+        }
+    }
+
+    public static void markDoorGenerated(BlockPos pos) {
+        generatedDoors.add(pos);
+    }
+
+    public static void setCurrentRoom(int room) {
+        currentRoom = room;
+    }
+}
