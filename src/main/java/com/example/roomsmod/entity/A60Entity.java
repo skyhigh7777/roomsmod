@@ -168,12 +168,12 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音
+        // 音（目立つものに変更）
         if (this.tickCount == 1) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 1.5f, 0.5f);
+            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, 2.0f, 0.6f);
         }
-        if (this.tickCount % 40 == 0) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 1.0f, 1.2f);
+        if (this.tickCount % 30 == 0) {
+            this.level().playSound(null, this.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.5f, 0.8f);
         }
 
         // 近くのプレイヤーに視線判定ダメージ
