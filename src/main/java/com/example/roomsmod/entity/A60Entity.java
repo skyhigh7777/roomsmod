@@ -169,30 +169,28 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音（プレイヤー自身に鳴らして歩いても離れない。距離＋向きで音量変化）
+        // 音（プレイヤー自身に鳴らして歩いても離れない。音量を大きくして必ず聞こえるように）
         ServerLevel soundLevel = (ServerLevel) this.level();
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
             double dist = this.distanceTo(nearestForSound);
-            // 基本音量：500〜10ブロックで指数関数的に上がる（全体的に上げた）
-            double t = Math.max(0.0, Math.min(1.0, (500.0 - dist) / 490.0)); // 0=遠い, 1=近い
-            float baseVolume = (float) (0.3f + 2.5f * Math.pow(t, 1.6)); // 遠い:0.3, 近い:約2.8
+            // 音量を全体的に大きく（500ブロックでもある程度聞こえる）
+            double t = Math.max(0.0, Math.min(1.0, (500.0 - dist) / 490.0));
+            float baseVolume = (float) (1.2f + 3.5f * Math.pow(t, 1.4)); // 遠くても1.2、近くて約4.7
 
-            // プレイヤーがA-60の方向を向いているかで補正
             Vec3 look = nearestForSound.getViewVector(1.0f);
             Vec3 toEntity = this.position().subtract(nearestForSound.position()).normalize();
-            double facing = look.dot(toEntity); // 1.0 = 真正面、-1.0 = 真後ろ
-            float facingMul = (float) Math.max(0.5f, (facing + 1.0) * 0.5); // 0.5〜1.0
+            double facing = look.dot(toEntity);
+            float facingMul = (float) Math.max(0.7f, (facing + 1.0) * 0.5); // 最低0.7
 
-            float volume = baseVolume * facingMul;
+            float volume = Math.min(5.0f, baseVolume * facingMul);
 
             if (this.tickCount == 1) {
-                // 出現時
-                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(3.0f, volume * 1.5f), 0.5f);
+                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(4.0f, volume), 0.5f);
             }
-            // 持続音はプレイヤー自身に鳴らす（歩いても離れない）
-            if (this.tickCount % 4 == 0) {
-                nearestForSound.playSound(RoomsMod.A60_AMBIENCE.get(), Math.min(3.0f, volume * 1.3f), 0.9f + (float)(0.2 * Math.random()));
+            // より頻繁に鳴らす（歩2tick）
+            if (this.tickCount % 2 == 0) {
+                nearestForSound.playSound(RoomsMod.A60_AMBIENCE.get(), volume, 0.85f + (float)(0.3 * Math.random()));
             }
         }
 
