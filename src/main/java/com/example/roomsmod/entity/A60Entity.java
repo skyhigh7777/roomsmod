@@ -193,7 +193,7 @@ public class A60Entity extends Mob {
             // 持続音もプレイヤー位置で（より頻繁に）
             if (this.tickCount % 4 == 0) {
                 this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
-                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, Math.min(3.0f, volume * 1.3f), 0.6f + (float)(0.2 * Math.random()));
+                        SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, Math.min(3.0f, volume * 1.3f), 0.8f + (float)(0.3 * Math.random()));
             }
         }
 
