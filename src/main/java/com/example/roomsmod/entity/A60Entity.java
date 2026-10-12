@@ -168,12 +168,20 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音（目立つものに変更）
-        if (this.tickCount == 1) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, 2.0f, 0.6f);
-        }
-        if (this.tickCount % 30 == 0) {
-            this.level().playSound(null, this.blockPosition(), SoundEvents.ENDER_DRAGON_GROWL, SoundSource.HOSTILE, 1.5f, 0.8f);
+        // 音（距離で音量変化、近づいてくる感じ。遠い時も聞こえるように）
+        ServerLevel soundLevel = (ServerLevel) this.level();
+        Player nearestForSound = soundLevel.getNearestPlayer(this, 400);
+        if (nearestForSound != null) {
+            double dist = this.distanceTo(nearestForSound);
+            // 遠い時でも最低0.6くらい聞こえる。近づくと大きくなる
+            float volume = (float) Math.max(0.6f, Math.min(2.5f, 80.0 / (dist + 20.0)));
+            if (this.tickCount == 1) {
+                this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(2.0f, volume * 1.8f), 0.5f);
+            }
+            // 頻繁に鳴らして持続感を出す
+            if (this.tickCount % 6 == 0) {
+                this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, volume, 0.6f + (float)(0.2 * Math.random()));
+            }
         }
 
         // 近くのプレイヤーに視線判定ダメージ
