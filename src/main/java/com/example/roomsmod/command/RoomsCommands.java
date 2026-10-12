@@ -52,7 +52,10 @@ public class RoomsCommands {
                             com.example.roomsmod.world.RoomGenerator.generateNextRoom(roomsLevel, nextOrigin, i);
                             int depth = 28 + ((i % 5) * 2);
                             currentExit = nextOrigin.offset(10, 1, depth - 1);
-                            com.example.roomsmod.event.DoorEventHandler.markDoorGenerated(currentExit);
+                            // 最後の部屋の出口扉はマークしない（玩者が開けられるように）
+                            if (i < target) {
+                                com.example.roomsmod.event.DoorEventHandler.markDoorGenerated(currentExit);
+                            }
                         }
 
                         com.example.roomsmod.event.DoorEventHandler.setCurrentRoom(target);
