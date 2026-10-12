@@ -1,6 +1,7 @@
 package com.example.roomsmod.entity;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
@@ -11,6 +12,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.AABB;
@@ -24,11 +26,15 @@ import org.joml.Vector3f;
 /**
  * A-60：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
  * 隠れ場所（オーク板）で視線を遮れば回避可能。
+ * 遠距離でもTickさせ、周囲チャンクを常時読み込みにする。
  */
 public class A60Entity extends Mob {
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f;
     private static final int GRACE_TICKS = 120; // 約6秒の猶予
+    private static final int FORCE_RADIUS = 2; // チャンク半径
+
+    private ChunkPos lastForcedChunk = null;
 
     public A60Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -41,7 +47,12 @@ public class A60Entity extends Mob {
         return Mob.createMobAttributes()
                 .add(Attributes.MAX_HEALTH, 100.0)
                 .add(Attributes.MOVEMENT_SPEED, 1.5)
-                .add(Attributes.FOLLOW_RANGE, 64.0);
+                .add(Attributes.FOLLOW_RANGE, 128.0);
+    }
+
+    @Override
+    public boolean isAlwaysTicking() {
+        return true;
     }
 
     @Override
@@ -53,6 +64,9 @@ public class A60Entity extends Mob {
             spawnVisualParticles();
             return;
         }
+
+        // 周囲チャンクを常時読み込み
+        forceLoadAround();
 
         // 出現後の猶予時間は動かない
         if (this.tickCount < GRACE_TICKS) {
@@ -73,7 +87,7 @@ public class A60Entity extends Mob {
             this.level().playSound(null, this.blockPosition(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 0.5f, 1.0f);
         }
 
-        if (this.tickCount > 300) {
+        if (this.tickCount > 600) {
             this.discard();
             return;
         }
@@ -89,6 +103,47 @@ public class A60Entity extends Mob {
                 player.hurt(this.damageSources().mobAttack(this), DAMAGE);
             }
         }
+    }
+
+    private void forceLoadAround() {
+        if (!(this.level() instanceof ServerLevel serverLevel)) return;
+
+        ChunkPos current = new ChunkPos(this.blockPosition());
+        if (current.equals(lastForcedChunk)) return;
+
+        // 旧いチャンクを解除
+        if (lastForcedChunk != null) {
+            for (int dx = -FORCE_RADIUS; dx <= FORCE_RADIUS; dx++) {
+                for (int dz = -FORCE_RADIUS; dz <= FORCE_RADIUS; dz++) {
+                    ChunkPos pos = new ChunkPos(lastForcedChunk.x + dx, lastForcedChunk.z + dz);
+                    serverLevel.setChunkForced(pos.x, pos.z, false);
+                }
+            }
+        }
+
+        // 新しいチャンクを常時読み込み
+        for (int dx = -FORCE_RADIUS; dx <= FORCE_RADIUS; dx++) {
+            for (int dz = -FORCE_RADIUS; dz <= FORCE_RADIUS; dz++) {
+                ChunkPos pos = new ChunkPos(current.x + dx, current.z + dz);
+                serverLevel.setChunkForced(pos.x, pos.z, true);
+            }
+        }
+
+        lastForcedChunk = current;
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        // 消去時にチャンク読み込みを解除
+        if (!this.level().isClientSide() && lastForcedChunk != null && this.level() instanceof ServerLevel serverLevel) {
+            for (int dx = -FORCE_RADIUS; dx <= FORCE_RADIUS; dx++) {
+                for (int dz = -FORCE_RADIUS; dz <= FORCE_RADIUS; dz++) {
+                    ChunkPos pos = new ChunkPos(lastForcedChunk.x + dx, lastForcedChunk.z + dz);
+                    serverLevel.setChunkForced(pos.x, pos.z, false);
+                }
+            }
+        }
+        super.remove(reason);
     }
 
     private void spawnVisualParticles() {
