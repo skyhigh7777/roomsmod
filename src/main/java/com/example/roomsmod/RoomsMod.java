@@ -4,6 +4,8 @@ import com.example.roomsmod.command.RoomsCommands;
 import com.example.roomsmod.entity.A60Entity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.neoforged.bus.api.IEventBus;
@@ -21,6 +23,10 @@ public class RoomsMod {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
+    public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
+
+    public static final DeferredHolder<SoundEvent, SoundEvent> A60_AMBIENCE = SOUND_EVENTS.register("a60_ambience",
+            () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "a60_ambience")));
 
     public static final DeferredHolder<EntityType<?>, EntityType<A60Entity>> A60 = ENTITIES.register("a60",
             () -> EntityType.Builder.of(A60Entity::new, MobCategory.MONSTER)
@@ -30,6 +36,7 @@ public class RoomsMod {
     public RoomsMod(IEventBus modEventBus) {
         LOGGER.info("Rooms Mod is loading!");
         ENTITIES.register(modEventBus);
+        SOUND_EVENTS.register(modEventBus);
         modEventBus.addListener(RoomsMod::onEntityAttributeCreation);
         NeoForge.EVENT_BUS.addListener(RoomsMod::onRegisterCommands);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DoorEventHandler.class);

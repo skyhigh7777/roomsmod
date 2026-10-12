@@ -1,5 +1,6 @@
 package com.example.roomsmod.entity;
 
+import com.example.roomsmod.RoomsMod;
 import com.example.roomsmod.event.DoorEventHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -193,7 +194,7 @@ public class A60Entity extends Mob {
             // 持続音もプレイヤー位置で（より頻繁に）
             if (this.tickCount % 4 == 0) {
                 this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
-                        SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, Math.min(3.0f, volume * 1.3f), 0.8f + (float)(0.3 * Math.random()));
+                        RoomsMod.A60_AMBIENCE.get(), SoundSource.HOSTILE, Math.min(3.0f, volume * 1.3f), 0.9f + (float)(0.2 * Math.random()));
             }
         }
 

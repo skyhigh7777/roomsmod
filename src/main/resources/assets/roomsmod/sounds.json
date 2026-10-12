@@ -1,0 +1,11 @@
+{
+  "a60_ambience": {
+    "category": "hostile",
+    "sounds": [
+      {
+        "name": "roomsmod:a60_ambience",
+        "stream": true
+      }
+    ]
+  }
+}
