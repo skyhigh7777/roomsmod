@@ -169,28 +169,27 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音（プレイヤー自身に鳴らして歩いても離れない。音量を大きくして必ず聞こえるように）
+        // 音（一旦バニラのウォーデン近くの音を使う。カスタムoggが入っていないため）
         ServerLevel soundLevel = (ServerLevel) this.level();
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
             double dist = this.distanceTo(nearestForSound);
-            // 音量を全体的に大きく（500ブロックでもある程度聞こえる）
             double t = Math.max(0.0, Math.min(1.0, (500.0 - dist) / 490.0));
-            float baseVolume = (float) (1.2f + 3.5f * Math.pow(t, 1.4)); // 遠くても1.2、近くて約4.7
+            float baseVolume = (float) (1.5f + 3.0f * Math.pow(t, 1.3));
 
             Vec3 look = nearestForSound.getViewVector(1.0f);
             Vec3 toEntity = this.position().subtract(nearestForSound.position()).normalize();
             double facing = look.dot(toEntity);
-            float facingMul = (float) Math.max(0.7f, (facing + 1.0) * 0.5); // 最低0.7
+            float facingMul = (float) Math.max(0.6f, (facing + 1.0) * 0.5);
 
             float volume = Math.min(5.0f, baseVolume * facingMul);
 
             if (this.tickCount == 1) {
                 nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(4.0f, volume), 0.5f);
             }
-            // より頻繁に鳴らす（歩2tick）
-            if (this.tickCount % 2 == 0) {
-                nearestForSound.playSound(RoomsMod.A60_AMBIENCE.get(), volume, 0.85f + (float)(0.3 * Math.random()));
+            // ウォーデンの近くの音を頻繁に（カスタム音の代わり）
+            if (this.tickCount % 3 == 0) {
+                nearestForSound.playSound(SoundEvents.WARDEN_NEARBY_CLOSE, volume, 0.8f + (float)(0.2 * Math.random()));
             }
         }
 
