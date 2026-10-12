@@ -59,6 +59,8 @@ public class RoomsCommands {
                         }
 
                         com.example.roomsmod.event.DoorEventHandler.setCurrentRoom(target);
+                        // 最後に生成した扉のZを記録（前の扉判定用）
+                        com.example.roomsmod.event.DoorEventHandler.setLastGeneratedZ(currentExit.getZ());
 
                         int lastDepth = 28 + ((target % 5) * 2);
                         BlockPos lastOrigin = new BlockPos(currentExit.getX() - 10, 1, currentExit.getZ() - lastDepth + 1);
