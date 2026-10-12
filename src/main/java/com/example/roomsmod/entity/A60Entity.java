@@ -187,11 +187,13 @@ public class A60Entity extends Mob {
 
             if (this.tickCount == 1) {
                 // 出現時はプレイヤー位置で鳴らす
-                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(2.0f, volume * 1.8f), 0.5f);
+                this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
+                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(2.0f, volume * 1.8f), 0.5f);
             }
             // 持続音もプレイヤー位置で（より頻繁に）
             if (this.tickCount % 5 == 0) {
-                nearestForSound.playSound(SoundEvents.WARDEN_NEARBY_CLOSE, volume, 0.6f + (float)(0.2 * Math.random()));
+                this.level().playSound(null, nearestForSound.getX(), nearestForSound.getY(), nearestForSound.getZ(),
+                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, volume, 0.6f + (float)(0.2 * Math.random()));
             }
         }
 
