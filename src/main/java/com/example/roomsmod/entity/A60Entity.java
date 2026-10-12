@@ -173,23 +173,24 @@ public class A60Entity extends Mob {
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
             double dist = this.distanceTo(nearestForSound);
-            // 基本音量：遠いほど小さく、近いほど大きい
-            float baseVolume = (float) Math.max(0.15f, Math.min(1.8f, 60.0 / (dist + 15.0)));
+            // 基本音量：500〜10ブロックで指数関数的に上がる
+            double t = Math.max(0.0, Math.min(1.0, (500.0 - dist) / 490.0)); // 0=遠い, 1=近い
+            float baseVolume = (float) (0.15f + 1.7f * Math.pow(t, 1.8)); // 遠い:0.15, 近い:約1.85
 
             // プレイヤーがA-60の方向を向いているかで補正
             Vec3 look = nearestForSound.getViewVector(1.0f);
             Vec3 toEntity = this.position().subtract(nearestForSound.position()).normalize();
             double facing = look.dot(toEntity); // 1.0 = 真正面、-1.0 = 真後ろ
-            float facingMul = (float) Math.max(0.3f, (facing + 1.0) * 0.5); // 0.3〜1.0
+            float facingMul = (float) Math.max(0.4f, (facing + 1.0) * 0.5); // 0.4〜1.0
 
             float volume = baseVolume * facingMul;
 
             if (this.tickCount == 1) {
                 // 出現時はプレイヤー位置で鳴らす
-                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, volume * 1.5f, 0.5f);
+                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(2.0f, volume * 1.8f), 0.5f);
             }
-            // 持続音もプレイヤー位置で
-            if (this.tickCount % 6 == 0) {
+            // 持続音もプレイヤー位置で（より頻繁に）
+            if (this.tickCount % 5 == 0) {
                 nearestForSound.playSound(SoundEvents.WARDEN_NEARBY_CLOSE, volume, 0.6f + (float)(0.2 * Math.random()));
             }
         }
