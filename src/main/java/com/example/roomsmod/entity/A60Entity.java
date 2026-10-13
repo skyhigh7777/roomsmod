@@ -189,8 +189,8 @@ public class A60Entity extends Mob {
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(4.0f, volume), 0.5f);
             }
-            // カスタムのA-60アンビエンスを約2秒(40tick)ごとに再生
-            if (this.tickCount % 40 == 0) {
+            // カスタムのA-60アンビエンスをクリップ長(約2.84秒=57tick)ごとに再生し、重ならないようにする
+            if (this.tickCount % 57 == 0) {
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         RoomsMod.A60_AMBIENCE.get(), SoundSource.HOSTILE, volume, 0.8f + (float)(0.2 * Math.random()));
             }
