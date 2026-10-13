@@ -25,9 +25,6 @@ public class RoomsMod {
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
 
-    public static final DeferredHolder<SoundEvent, SoundEvent> A60_AMBIENCE = SOUND_EVENTS.register("a60_ambience",
-            () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "a60_ambience")));
-
     public static final DeferredHolder<EntityType<?>, EntityType<A60Entity>> A60 = ENTITIES.register("a60",
             () -> EntityType.Builder.of(A60Entity::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.0f)

@@ -1,6 +1,5 @@
 package com.example.roomsmod.entity;
 
-import com.example.roomsmod.RoomsMod;
 import com.example.roomsmod.event.DoorEventHandler;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -169,7 +168,7 @@ public class A60Entity extends Mob {
             return;
         }
 
-        // 音（一旦バニラのウォーデン近くの音を使う。カスタムoggが入っていないため）
+        // 音（バニラのウォーデン近くの音を使う）
         ServerLevel soundLevel = (ServerLevel) this.level();
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
@@ -189,10 +188,10 @@ public class A60Entity extends Mob {
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
                         SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(4.0f, volume), 0.5f);
             }
-            // カスタムのA-60アンビエンスをクリップ長(約2.84秒=57tick)ごとに再生し、重ならないようにする
-            if (this.tickCount % 57 == 0) {
+            // バニラのウォーデン接近音を約2秒(40tick)ごとに再生
+            if (this.tickCount % 40 == 0) {
                 this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                        RoomsMod.A60_AMBIENCE.get(), SoundSource.HOSTILE, volume, 0.8f + (float)(0.2 * Math.random()));
+                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, volume, 0.8f + (float)(0.2 * Math.random()));
             }
         }
 
