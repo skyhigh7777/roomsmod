@@ -22,7 +22,6 @@ public class RoomsCommands {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
                     ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
                     if (roomsLevel != null) {
-                        com.example.roomsmod.event.DoorEventHandler.reset();
                         player.teleportTo(roomsLevel, 10.5, 2, 16.5, 0, 0);
                         com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, new BlockPos(0, 1, 0));
                         player.sendSystemMessage(Component.literal("Roomsディメンションへ移動したわ"));
@@ -42,12 +41,10 @@ public class RoomsCommands {
                         }
 
                         int target = IntegerArgumentType.getInteger(ctx, "room");
-                        com.example.roomsmod.event.DoorEventHandler.reset();
                         BlockPos origin = new BlockPos(0, 1, 0);
                         BlockPos lobbyExit = com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, origin);
-                        if (lobbyExit != null) {
-                            com.example.roomsmod.event.DoorEventHandler.markDoorGenerated(lobbyExit);
-                        }
+                        var state = com.example.roomsmod.world.RoomsState.get(roomsLevel);
+                        state.markDoorGenerated(lobbyExit);
 
                         BlockPos currentExit = lobbyExit != null ? lobbyExit : origin.offset(10, 1, 31);
                         for (int i = 1; i <= target; i++) {
@@ -56,12 +53,13 @@ public class RoomsCommands {
                             if (exitDoor != null) {
                                 currentExit = exitDoor;
                                 if (i < target) {
-                                    com.example.roomsmod.event.DoorEventHandler.markDoorGenerated(exitDoor);
+                                    state.markDoorGenerated(exitDoor);
                                 }
                             }
                         }
 
-                        com.example.roomsmod.event.DoorEventHandler.setCurrentRoom(target);
+                        // 生成器が expectedExitDoor = 最後の部屋の出口 に設定済み
+                        state.setCurrentRoom(target);
 
                         // 最後の部屋の中央付近にワープ（出口扉の手前）
                         player.teleportTo(roomsLevel, currentExit.getX() + 0.5, 2, currentExit.getZ() - 8, 0, 0);

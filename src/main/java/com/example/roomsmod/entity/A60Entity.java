@@ -1,6 +1,7 @@
 package com.example.roomsmod.entity;
 
-import com.example.roomsmod.event.DoorEventHandler;
+import com.example.roomsmod.world.RoomsState;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -38,17 +39,66 @@ public class A60Entity extends Mob {
     private List<BlockPos> waypoints = new ArrayList<>();
     private int waypointIndex = 0;
 
+    private int startRoom = 0;
+    private boolean waypointsBuilt = false;
+    /** 経路終端後に進む方向（最後の区間の水平方向、既定は+Z）。 */
+    private Vec3 exitDirection = new Vec3(0, 0, 1);
+
+    public void setStartRoom(int index) {
+        this.startRoom = index;
+    }
+
+    /** startRoom 以降の各部屋の経路を順に連結して経由点にする。 */
     private void buildWaypoints() {
         waypoints.clear();
-        // generatedDoorsからZ順にソートして経由点にする
-        List<BlockPos> doors = new ArrayList<>(DoorEventHandler.generatedDoors);
-        doors.sort((a, b) -> Integer.compare(a.getZ(), b.getZ()));
-        for (BlockPos door : doors) {
-            if (door.getZ() > this.getZ() - 10) {
-                waypoints.add(door);
+        waypointsBuilt = true;
+        if (!(this.level() instanceof ServerLevel sl)) return;
+        RoomsState rs = RoomsState.get(sl);
+        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) {
+            for (BlockPos p : rs.roomPaths.get(i)) {
+                if (waypoints.isEmpty() || !waypoints.get(waypoints.size() - 1).equals(p)) waypoints.add(p);
             }
         }
-        waypointIndex = 0;
+        if (waypointIndex > waypoints.size()) waypointIndex = waypoints.size();
+        updateExitDirection();
+    }
+
+    private void updateExitDirection() {
+        if (waypoints.size() >= 2) {
+            BlockPos a = waypoints.get(waypoints.size() - 2), b = waypoints.get(waypoints.size() - 1);
+            Vec3 d = new Vec3(b.getX() - a.getX(), 0, b.getZ() - a.getZ());
+            if (d.lengthSqr() > 1.0E-4) exitDirection = d.normalize();
+        }
+    }
+
+    /** 走行中に新しい部屋が生成された場合に経路を延長する。 */
+    private void refreshWaypointsIfGrown() {
+        if (!(this.level() instanceof ServerLevel sl)) return;
+        RoomsState rs = RoomsState.get(sl);
+        int expected = 0;
+        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) expected += rs.roomPaths.get(i).size();
+        if (expected > lastPathPointCount) {
+            lastPathPointCount = expected;
+            int idx = waypointIndex;
+            buildWaypoints();
+            waypointIndex = Math.min(idx, waypoints.size());
+        }
+    }
+    private int lastPathPointCount = 0;
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putInt("StartRoom", startRoom);
+        tag.putInt("WaypointIndex", waypointIndex);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        startRoom = tag.getInt("StartRoom");
+        waypointIndex = tag.getInt("WaypointIndex");
+        waypointsBuilt = false; // 次tickでRoomsStateから再構築
     }
 
     public A60Entity(EntityType<? extends Mob> type, Level level) {
@@ -125,19 +175,31 @@ public class A60Entity extends Mob {
         // 前方に高速移動。猶予中は動かない。扉を経由点として通る
         if (this.tickCount < 80) {
             this.setDeltaMovement(Vec3.ZERO);
-            if (this.tickCount == 1) {
+            if (!waypointsBuilt) {
                 buildWaypoints();
             }
         } else {
+            if (!waypointsBuilt) {
+                int idx = waypointIndex;
+                buildWaypoints();
+                waypointIndex = Math.min(idx, waypoints.size());
+            }
+            if (this.tickCount % 20 == 0) refreshWaypointsIfGrown();
             if (waypointIndex < waypoints.size()) {
                 BlockPos target = waypoints.get(waypointIndex);
-                Vec3 dir = target.getCenter().subtract(this.position()).normalize();
-                this.setDeltaMovement(dir.scale(0.9));
-                if (this.position().distanceTo(target.getCenter()) < 2.5) {
+                Vec3 goal = Vec3.atBottomCenterOf(target);
+                Vec3 delta = goal.subtract(this.position());
+                double dist = delta.length();
+                if (dist < 1.0) {
                     waypointIndex++;
+                    this.setDeltaMovement(Vec3.ZERO);
+                } else {
+                    // 行き過ぎないよう残り距離で速度を制限
+                    this.setDeltaMovement(delta.scale(Math.min(0.9, dist) / dist));
                 }
             } else {
-                this.setDeltaMovement(new Vec3(0, 0, 0.9));
+                // 生成済み経路の終端：出口方向へ進み続ける
+                this.setDeltaMovement(exitDirection.scale(0.9));
             }
         }
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());

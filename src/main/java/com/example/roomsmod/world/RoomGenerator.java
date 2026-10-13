@@ -3,7 +3,6 @@ package com.example.roomsmod.world;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
-import com.example.roomsmod.event.DoorEventHandler;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
@@ -60,8 +59,13 @@ public class RoomGenerator {
         placeExitSign(level, origin.offset(10, 3, depth - 2), "A-001");
 
         // 重なり防止レジストリに登録
-        DoorEventHandler.generatedRooms.add(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
-                origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)));
+        // 状態をロビーから開始し、重なり防止レジストリと経路を登録
+        RoomsState state = RoomsState.get(level);
+        state.reset();
+        List<BlockPos> path = List.of(origin.offset(10, 1, 2), origin.offset(10, 1, depth - 2), doorPos);
+        state.addRoom(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
+                origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)), path);
+        state.setExpectedExitDoor(doorPos);
 
         return doorPos;
     }
@@ -111,7 +115,8 @@ public class RoomGenerator {
         // シード付き乱数で再現性を確保
         Random rand = new Random(level.getSeed() * 31L + roomNumber * 0x9E3779B97F4A7C15L);
 
-        RoomPlan plan = choosePlan(rand, origin, roomNumber);
+        RoomsState state = RoomsState.get(level);
+        RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         buildShell(level, origin, plan);
         placeFurniture(level, origin, plan, rand);
 
@@ -128,12 +133,19 @@ public class RoomGenerator {
 
         placeExitSign(level, origin.offset(plan.exitX, 3, plan.exitZ - 1), "A-" + String.format("%03d", roomNumber + 1));
 
-        DoorEventHandler.generatedRooms.add(toWorldBoxes(origin, plan));
+        // 経路（入口→折れ点→出口扉）を床+1の高さで記録
+        List<BlockPos> path = new ArrayList<>();
+        path.add(origin.offset(ENTRANCE_X, 1, 0));
+        for (int[] w : plan.pathWaypoints) path.add(origin.offset(w[0], 1, w[1]));
+        path.add(exitDoor);
+        state.addRoom(toWorldBoxes(origin, plan), path);
+        state.setExpectedExitDoor(exitDoor);
+        state.setCurrentRoom(roomNumber);
         return exitDoor;
     }
 
     /** 候補を順に試し、既存部屋と重ならない最初のものを採用。最後は必ず通る直線の箱部屋。 */
-    private static RoomPlan choosePlan(Random rand, BlockPos origin, int roomNumber) {
+    private static RoomPlan choosePlan(Random rand, BlockPos origin, List<List<BoundingBox>> rooms) {
         RoomShape[] shapes = RoomShape.values();
         RoomShape shape = shapes[rand.nextInt(shapes.length)];
         // x方向に流れすぎないよう、原点から離れたら中央へ戻る向きを優先
@@ -161,7 +173,7 @@ public class RoomGenerator {
             candidates.add(planStraight(shape, ExitType.CENTER, a, b, c));
         }
         for (RoomPlan p : candidates) {
-            if (isClear(origin, p)) return p;
+            if (isClear(origin, p, rooms)) return p;
         }
         // フォールバック：中央出口の直線箱部屋。出口は常に部屋の最大Z面にあるので、
         // 次の部屋は必ず既存部屋すべてより+Z側に置かれ、重ならない。
@@ -248,10 +260,9 @@ public class RoomGenerator {
      * 重なり判定。全既存部屋と壁込みで交差しないこと、さらに直前の部屋以外とは1ブロックの余白も確保。
      * 加えて出口が部屋全体の最大Z面にあること（+Z進行の不変条件）を要求する。
      */
-    private static boolean isClear(BlockPos origin, RoomPlan p) {
+    private static boolean isClear(BlockPos origin, RoomPlan p, List<List<BoundingBox>> rooms) {
         if (p.exitZ != p.maxZ()) return false;
         List<BoundingBox> mine = toWorldBoxes(origin, p);
-        List<List<BoundingBox>> rooms = DoorEventHandler.generatedRooms;
         for (int i = 0; i < rooms.size(); i++) {
             boolean previous = i == rooms.size() - 1;
             for (BoundingBox other : rooms.get(i)) {
