@@ -40,13 +40,10 @@ public class ClientSetup {
                            MultiBufferSource buffer, int packedLight) {
             float age = entity.tickCount + partialTick;
             poseStack.pushPose();
-            float jx = (Mth.sin(age * 1.7f) * 0.03f) + (Mth.sin(age * 4.3f) * 0.015f);
-            float jy = Mth.cos(age * 2.3f) * 0.03f;
-            poseStack.translate(jx, 1.2f + jy, 0.0f);
+            poseStack.translate(0.0f, 1.2f, 0.0f);
             poseStack.mulPose(this.entityRenderDispatcher.cameraOrientation());
             float s = 2.5f * (1.0f + Mth.sin(age * 0.6f) * 0.06f + Mth.sin(age * 3.1f) * 0.02f);
             poseStack.scale(s, s, s);
-            poseStack.mulPose(com.mojang.math.Axis.ZP.rotationDegrees(Mth.sin(age * 0.9f) * 4.0f));
 
             VertexConsumer vc = buffer.getBuffer(RenderType.entityTranslucentEmissive(TEX));
             PoseStack.Pose pose = poseStack.last();
