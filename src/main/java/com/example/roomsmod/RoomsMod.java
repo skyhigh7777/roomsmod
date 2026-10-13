@@ -37,6 +37,14 @@ public class RoomsMod {
         modEventBus.addListener(RoomsMod::onEntityAttributeCreation);
         NeoForge.EVENT_BUS.addListener(RoomsMod::onRegisterCommands);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DoorEventHandler.class);
+        // 起動時に RoomsState を読み込んでデバッグフラグを復元、停止時にクリア
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStartedEvent e) -> {
+            com.example.roomsmod.util.RoomsDebug.setEnabled(false);
+            var lvl = e.getServer().getLevel(RoomsCommands.ROOMS_DIMENSION);
+            if (lvl != null) com.example.roomsmod.world.RoomsState.get(lvl);
+        });
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppedEvent e) ->
+            com.example.roomsmod.util.RoomsDebug.setEnabled(false));
     }
 
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {

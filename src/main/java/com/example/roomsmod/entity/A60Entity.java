@@ -138,6 +138,7 @@ public class A60Entity extends Mob {
 
     @Override
     public void remove(RemovalReason reason) {
+        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-60 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
         if (this.level() instanceof ServerLevel serverLevel && lastForcedChunk != null) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
@@ -205,14 +206,14 @@ public class A60Entity extends Mob {
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
 
         // デバッグ：10秒ごとに位置を出す
-        if (this.tickCount % 200 == 0) {
+        if (this.tickCount % 200 == 0 && com.example.roomsmod.util.RoomsDebug.isEnabled()) {
             ServerLevel sl = (ServerLevel) this.level();
             Player nearest = sl.getNearestPlayer(this, 500);
-            if (nearest != null) {
-                nearest.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")"
-                ));
-            }
+            double nd = nearest != null ? this.distanceTo(nearest) : -1;
+            com.example.roomsmod.util.RoomsDebug.log(nearest,
+                nearest != null ? "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "A-60 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
         // プレイヤーが自分よりも大きく前に進んだら消滅
@@ -221,11 +222,13 @@ public class A60Entity extends Mob {
         if (nearest2 != null) {
             double ahead = this.getZ() - nearest2.getZ();
             if (ahead > 120.0) {
+                com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
                 this.discard();
                 return;
             }
         } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
+            com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: no player within 500 blocks after {} ticks", this.tickCount);
             this.discard();
             return;
         }

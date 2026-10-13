@@ -5,6 +5,7 @@ import com.example.roomsmod.command.RoomsCommands;
 import com.example.roomsmod.entity.A60Entity;
 import com.example.roomsmod.world.RoomGenerator;
 import com.example.roomsmod.world.RoomsState;
+import com.example.roomsmod.util.RoomsDebug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionHand;
@@ -42,17 +43,35 @@ public class DoorEventHandler {
 
         RoomsState rs = RoomsState.get(level);
         // 現在の部屋の出口扉以外（使用済みの扉など）は普通に開閉するだけ
-        if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos)) return;
-        if (rs.generatedDoors.contains(doorPos)) return;
+        if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos)) {
+            RoomsDebug.log(event.getEntity(), "扉 " + doorPos.toShortString() + " 無視（出口扉ではない）",
+                "door click pos={} hand={} expectedExitDoor={} -> ignored (not expected exit door)", doorPos, event.getHand(), rs.expectedExitDoor);
+            return;
+        }
+        if (rs.generatedDoors.contains(doorPos)) {
+            RoomsDebug.log(event.getEntity(), "扉 " + doorPos.toShortString() + " 無視（生成済み）",
+                "door click pos={} hand={} expectedExitDoor={} -> ignored (already generated)", doorPos, event.getHand(), rs.expectedExitDoor);
+            return;
+        }
 
         rs.markDoorGenerated(doorPos);
         int room = rs.currentRoom + 1;
         BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, baseFloorY, doorPos.getZ() + 1);
-        RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
-        event.getEntity().sendSystemMessage(net.minecraft.network.chat.Component.literal("次の部屋を生成したわ（A-" + String.format("%03d", room) + "）"));
+        try {
+            RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
+        } catch (RuntimeException e) {
+            RoomsDebug.error("room generation failed (room=" + room + ", origin=" + nextOrigin + ")", e);
+            return;
+        }
+        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（A-" + String.format("%03d", room) + "）",
+            "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
 
         if (room >= 10 && level.random.nextFloat() < 0.6f) {
-            spawnA60(level, rs, event.getEntity());
+            try {
+                spawnA60(level, rs, event.getEntity());
+            } catch (RuntimeException e) {
+                RoomsDebug.error("A-60 spawn failed", e);
+            }
         }
     }
 
@@ -62,9 +81,9 @@ public class DoorEventHandler {
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A60_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
-        if (startPath.isEmpty()) return;
+        if (startPath.isEmpty()) { RoomsDebug.warn("A-60 spawn skipped: empty path at room index {}", startIndex); return; }
         A60Entity a60 = RoomsMod.A60.get().create(level);
-        if (a60 == null) return;
+        if (a60 == null) { RoomsDebug.warn("A-60 spawn failed: entity create returned null"); return; }
         BlockPos start = startPath.get(0);
         double spawnX = start.getX() + 0.5, spawnY = start.getY(), spawnZ = start.getZ() + 0.5;
         a60.setPos(spawnX, spawnY, spawnZ);
@@ -80,8 +99,10 @@ public class DoorEventHandler {
         }
 
         level.addFreshEntity(a60);
-        player.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-            "A-60が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")"
-        ));
+        int pathLen = 0;
+        for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.roomPaths.get(i).size();
+        RoomsDebug.log(player,
+            "A-60が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
+            "A-60 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
     }
 }

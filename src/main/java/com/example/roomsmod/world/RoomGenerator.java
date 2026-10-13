@@ -1,5 +1,6 @@
 package com.example.roomsmod.world;
 
+import com.example.roomsmod.util.RoomsDebug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -19,6 +20,8 @@ import java.util.Set;
  * 看板はText Displayで大きめに表示。
  */
 public class RoomGenerator {
+    /** 直近の choosePlan の結果（デバッグ用）。 */
+    private static String lastPlanInfo = "";
 
     public static BlockPos generateLobby(ServerLevel level, BlockPos origin) {
         int width = 20;
@@ -117,6 +120,7 @@ public class RoomGenerator {
 
         RoomsState state = RoomsState.get(level);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
+        String planInfo = lastPlanInfo;
         buildShell(level, origin, plan);
         placeFurniture(level, origin, plan, rand);
 
@@ -141,6 +145,9 @@ public class RoomGenerator {
         state.addRoom(toWorldBoxes(origin, plan), path);
         state.setExpectedExitDoor(exitDoor);
         state.setCurrentRoom(roomNumber);
+        if (RoomsDebug.isEnabled()) {
+            RoomsDebug.log("room generated #{} origin={} {} boxes={} exitDoor={}", roomNumber, origin, planInfo, toWorldBoxes(origin, plan), exitDoor);
+        }
         return exitDoor;
     }
 
@@ -172,9 +179,15 @@ public class RoomGenerator {
             }
             candidates.add(planStraight(shape, ExitType.CENTER, a, b, c));
         }
+        int tried = 0;
         for (RoomPlan p : candidates) {
-            if (isClear(origin, p, rooms)) return p;
+            tried++;
+            if (isClear(origin, p, rooms)) {
+                lastPlanInfo = "shape=" + shape + " exit=" + exit + " candidate=" + tried + "/" + candidates.size() + " fallbacksTried=" + (tried - 1);
+                return p;
+            }
         }
+        lastPlanInfo = "shape=" + shape + " exit=" + exit + " -> all " + candidates.size() + " candidates overlapped, final fallback BOX/CENTER";
         // フォールバック：中央出口の直線箱部屋。出口は常に部屋の最大Z面にあるので、
         // 次の部屋は必ず既存部屋すべてより+Z側に置かれ、重ならない。
         return planStraight(RoomShape.BOX, ExitType.CENTER, 0, 0, 0);

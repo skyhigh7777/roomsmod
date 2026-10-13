@@ -1,5 +1,6 @@
 package com.example.roomsmod.world;
 
+import com.example.roomsmod.util.RoomsDebug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
@@ -34,6 +35,7 @@ public class RoomsState extends SavedData {
     }
 
     public void reset() {
+        RoomsDebug.log("state reset (currentRoom was {}, rooms={})", currentRoom, generatedRooms.size());
         currentRoom = 0;
         expectedExitDoor = null;
         generatedDoors.clear();
@@ -58,6 +60,12 @@ public class RoomsState extends SavedData {
         setDirty();
     }
 
+    /** デバッグフラグを変更して永続化する。 */
+    public void setDebug(boolean on) {
+        RoomsDebug.setEnabled(on);
+        setDirty();
+    }
+
     public void setCurrentRoom(int room) {
         currentRoom = room;
         setDirty();
@@ -65,6 +73,7 @@ public class RoomsState extends SavedData {
 
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+        tag.putBoolean("debug", RoomsDebug.isEnabled());
         tag.putInt("currentRoom", currentRoom);
         if (expectedExitDoor != null) tag.putLong("expectedExitDoor", expectedExitDoor.asLong());
         ListTag doors = new ListTag();
@@ -86,11 +95,14 @@ public class RoomsState extends SavedData {
             paths.add(l);
         }
         tag.put("roomPaths", paths);
+        RoomsDebug.log("state saved: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", currentRoom, generatedRooms.size(), generatedDoors.size(), expectedExitDoor);
         return tag;
     }
 
     public static RoomsState load(CompoundTag tag, HolderLookup.Provider registries) {
         RoomsState s = new RoomsState();
+        try {
+        RoomsDebug.setEnabled(tag.getBoolean("debug"));
         s.currentRoom = tag.getInt("currentRoom");
         if (tag.contains("expectedExitDoor")) s.expectedExitDoor = BlockPos.of(tag.getLong("expectedExitDoor"));
         for (Tag t : tag.getList("generatedDoors", Tag.TAG_LONG)) s.generatedDoors.add(BlockPos.of(((LongTag) t).getAsLong()));
@@ -107,6 +119,10 @@ public class RoomsState extends SavedData {
             for (Tag pt : (ListTag) t) path.add(BlockPos.of(((LongTag) pt).getAsLong()));
             s.roomPaths.add(path);
         }
+        } catch (RuntimeException e) {
+            RoomsDebug.error("failed to load RoomsState", e);
+        }
+        RoomsDebug.log("state loaded: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", s.currentRoom, s.generatedRooms.size(), s.generatedDoors.size(), s.expectedExitDoor);
         return s;
     }
 }
