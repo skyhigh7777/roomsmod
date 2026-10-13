@@ -18,10 +18,13 @@ public class DoorEventHandler {
     public static int currentRoom = 0;
     public static final Set<BlockPos> generatedDoors = new HashSet<>();
     public static int baseFloorY = 1;
+    /** 生成済み部屋のバウンディングボックス（壁込み）。部屋ごとに矩形のリスト。重なり防止用。 */
+    public static final java.util.List<java.util.List<net.minecraft.world.level.levelgen.structure.BoundingBox>> generatedRooms = new java.util.ArrayList<>();
 
     public static void reset() {
         currentRoom = 0;
         generatedDoors.clear();
+        generatedRooms.clear();
     }
 
     @SubscribeEvent
