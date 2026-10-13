@@ -183,15 +183,20 @@ public class A60Entity extends Mob {
 
             float volume = Math.min(5.0f, baseVolume * facingMul);
 
-            // サーバー側で source=null にして、対象プレイヤーを含む全員に届ける
+            // 遠くても聞こえるよう、プレイヤーからA-60方向へ最大8ブロックの位置で鳴らす
+            // （位置で鳴らすと 16×音量 ブロック以内しか届かないため）
+            Vec3 pp = nearestForSound.position();
+            double off = Math.min(dist, 8.0);
+            Vec3 src = pp.add(toEntity.scale(off));
+            // 距離で音量を上げる（150ブロック以内で徐々に大きく）
+            float distVol = (float) Math.max(0.3, Math.min(1.0, 1.0 - dist / 150.0)) * 3.0f;
             if (this.tickCount == 1) {
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(4.0f, volume), 0.5f);
+                this.level().playSound(null, src.x, src.y, src.z,
+                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
             }
-            // バニラのウォーデン接近音を約2秒(40tick)ごとに再生
             if (this.tickCount % 40 == 0) {
-                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
-                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, volume, 0.8f + (float)(0.2 * Math.random()));
+                this.level().playSound(null, src.x, src.y, src.z,
+                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, distVol, 0.8f + (float)(0.2 * Math.random()));
             }
         }
 
