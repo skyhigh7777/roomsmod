@@ -184,12 +184,15 @@ public class A60Entity extends Mob {
 
             float volume = Math.min(5.0f, baseVolume * facingMul);
 
+            // サーバー側で source=null にして、対象プレイヤーを含む全員に届ける
             if (this.tickCount == 1) {
-                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(4.0f, volume), 0.5f);
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.min(4.0f, volume), 0.5f);
             }
-            // ウォーデンの近くの音を頻繁に（カスタム音の代わり）
-            if (this.tickCount % 3 == 0) {
-                nearestForSound.playSound(SoundEvents.WARDEN_NEARBY_CLOSE, volume, 0.8f + (float)(0.2 * Math.random()));
+            // カスタムのA-60アンビエンスを約2秒(40tick)ごとに再生
+            if (this.tickCount % 40 == 0) {
+                this.level().playSound(null, this.getX(), this.getY(), this.getZ(),
+                        RoomsMod.A60_AMBIENCE.get(), SoundSource.HOSTILE, volume, 0.8f + (float)(0.2 * Math.random()));
             }
         }
 
