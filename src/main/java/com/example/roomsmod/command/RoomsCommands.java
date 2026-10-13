@@ -27,6 +27,24 @@ public class RoomsCommands {
         return 1;
     }
 
+    private static int spawnRusher(CommandSourceStack src, boolean a75) {
+        ServerLevel roomsLevel = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (roomsLevel == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        var rs = com.example.roomsmod.world.RoomsState.get(roomsLevel);
+        if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
+        if (com.example.roomsmod.event.DoorEventHandler.isRusherAlive(roomsLevel)) {
+            src.sendFailure(Component.literal("他のラッシャーが生存中よ")); return 0;
+        }
+        var player = src.getPlayer();
+        if (a75) {
+            if (!com.example.roomsmod.event.DoorEventHandler.spawnA75(roomsLevel, rs, player)) { src.sendFailure(Component.literal("A-75の出現に失敗したわ")); return 0; }
+        } else {
+            com.example.roomsmod.event.DoorEventHandler.spawnA60(roomsLevel, rs, player);
+        }
+        src.sendSuccess(() -> Component.literal((a75 ? "A-75" : "A-60") + "を出現させたわ"), true);
+        return 1;
+    }
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rooms")
             .then(Commands.literal("enter")
@@ -86,6 +104,10 @@ public class RoomsCommands {
                     ctx.getSource().sendSuccess(() -> Component.literal("Roomsデバッグ: " + (com.example.roomsmod.util.RoomsDebug.isEnabled() ? "ON" : "OFF")), false);
                     return 1;
                 })))
+            .then(Commands.literal("spawn")
+                .requires(src -> src.hasPermission(2))
+                .then(Commands.literal("a60").executes(ctx -> spawnRusher(ctx.getSource(), false)))
+                .then(Commands.literal("a75").executes(ctx -> spawnRusher(ctx.getSource(), true))))
             .then(Commands.literal("deepest")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();

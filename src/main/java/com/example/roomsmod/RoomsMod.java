@@ -30,6 +30,11 @@ public class RoomsMod {
                     .sized(1.2f, 2.0f)
                     .build("a60"));
 
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.A75Entity>> A75 = ENTITIES.register("a75",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.A75Entity::new, MobCategory.MONSTER)
+                    .sized(1.2f, 2.0f)
+                    .build("a75"));
+
     public RoomsMod(IEventBus modEventBus) {
         LOGGER.info("Rooms Mod is loading!");
         ENTITIES.register(modEventBus);
@@ -49,6 +54,7 @@ public class RoomsMod {
 
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A60.get(), A60Entity.createAttributes().build());
+        event.put(A75.get(), com.example.roomsmod.entity.A75Entity.createAttributes().build());
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {
