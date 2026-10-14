@@ -28,6 +28,18 @@ public class RoomsState extends SavedData {
     public final List<List<BoundingBox>> generatedRooms = new ArrayList<>();
     /** 部屋ごとの経路（入口→折れ点→出口扉、床+1）。generatedRoomsと同じindex。 */
     public final List<List<BlockPos>> roomPaths = new ArrayList<>();
+    /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。既定は A のみ。 */
+    public final List<SectionStart> sections = new ArrayList<>(List.of(new SectionStart("a", 0)));
+
+    public record SectionStart(String themeId, int startRoom) {}
+
+    /** セクションを追加（startRoom 昇順に並べる）。 */
+    public void addSection(String themeId, int startRoom) {
+        sections.removeIf(s -> s.startRoom() == startRoom);
+        sections.add(new SectionStart(themeId, startRoom));
+        sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
+        setDirty();
+    }
 
     public static RoomsState get(ServerLevel level) {
         return level.getDataStorage().computeIfAbsent(
@@ -95,6 +107,14 @@ public class RoomsState extends SavedData {
             paths.add(l);
         }
         tag.put("roomPaths", paths);
+        ListTag secs = new ListTag();
+        for (SectionStart sec : sections) {
+            CompoundTag c = new CompoundTag();
+            c.putString("theme", sec.themeId());
+            c.putInt("start", sec.startRoom());
+            secs.add(c);
+        }
+        tag.put("sections", secs);
         RoomsDebug.log("state saved: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", currentRoom, generatedRooms.size(), generatedDoors.size(), expectedExitDoor);
         return tag;
     }
@@ -118,6 +138,14 @@ public class RoomsState extends SavedData {
             List<BlockPos> path = new ArrayList<>();
             for (Tag pt : (ListTag) t) path.add(BlockPos.of(((LongTag) pt).getAsLong()));
             s.roomPaths.add(path);
+        }
+        if (tag.contains("sections")) {
+            s.sections.clear();
+            for (Tag t : tag.getList("sections", Tag.TAG_COMPOUND)) {
+                CompoundTag c = (CompoundTag) t;
+                s.sections.add(new SectionStart(c.getString("theme"), c.getInt("start")));
+            }
+            if (s.sections.isEmpty()) s.sections.add(new SectionStart("a", 0));
         }
         } catch (RuntimeException e) {
             RoomsDebug.error("failed to load RoomsState", e);

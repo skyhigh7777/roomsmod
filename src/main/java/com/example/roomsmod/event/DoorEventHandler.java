@@ -27,10 +27,7 @@ public class DoorEventHandler {
     public static final int A20_ROOMS_BEHIND = 10;
 
     // ラッシャー出現率（調整用）
-    public static final int A20_MIN_ROOM = 20;
-    public static final float A20_CHANCE = 0.6f;
-    public static final int A40_MIN_ROOM = 40;
-    public static final float A40_CHANCE = 0.25f;
+    // 出現する部屋・確率は SectionTheme.rushers()（Sections.A）
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
@@ -84,19 +81,27 @@ public class DoorEventHandler {
      * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
     private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
-        boolean a20Hit = room >= A20_MIN_ROOM && level.random.nextFloat() < A20_CHANCE;
-        boolean a40Hit = room >= A40_MIN_ROOM && level.random.nextFloat() < A40_CHANCE;
-        boolean a20Alive = isA20Alive(level);
-        boolean a40Alive = isA40Alive(level);
-        RoomsDebug.log("rusher roll room={} A-20={} (room>={}, {}) alive={} | A-40={} (room>={}, {}) alive={}",
-            room, a20Hit, A20_MIN_ROOM, A20_CHANCE, a20Alive, a40Hit, A40_MIN_ROOM, A40_CHANCE, a40Alive);
-        if (a20Hit) {
-            if (a20Alive) RoomsDebug.log("rusher roll room={} A-20 skipped: an A-20 is already alive", room);
-            else spawnA20(level, rs, player);
+        var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
+        var table = theme.rushers();
+        boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
+        // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
+        for (int k = 0; k < table.size(); k++) {
+            var r = table.get(k);
+            hit[k] = room >= r.minRoom() && level.random.nextFloat() < r.chance();
         }
-        if (a40Hit) {
-            if (a40Alive) RoomsDebug.log("rusher roll room={} A-40 skipped: an A-40 is already alive", room);
-            else if (!spawnA40(level, rs, player)) RoomsDebug.log("rusher roll room={} A-40 spawn failed", room);
+        StringBuilder sb = new StringBuilder();
+        for (int k = 0; k < table.size(); k++) {
+            var r = table.get(k);
+            alive[k] = r.alive().test(level);
+            sb.append(k == 0 ? "" : " | ").append(r.name()).append('=').append(hit[k])
+              .append(" (room>=").append(r.minRoom()).append(", ").append(r.chance()).append(") alive=").append(alive[k]);
+        }
+        RoomsDebug.log("rusher roll room={} section={} {}", room, theme.prefix(), sb);
+        for (int k = 0; k < table.size(); k++) {
+            if (!hit[k]) continue;
+            var r = table.get(k);
+            if (alive[k]) RoomsDebug.log("rusher roll room={} {} skipped: already alive", room, r.name());
+            else if (!r.spawn().spawn(level, rs, player)) RoomsDebug.log("rusher roll room={} {} spawn failed", room, r.name());
         }
     }
 

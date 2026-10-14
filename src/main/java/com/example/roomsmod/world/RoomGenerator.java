@@ -20,12 +20,15 @@ import java.util.Set;
  * 看板はText Displayで大きめに表示。
  */
 public class RoomGenerator {
-    /** 隠れ場所のうち机にする割合（残りはロッカー）。 */
-    public static final float TABLE_HIDING_CHANCE = 0.3f;
+    /** 生成中の部屋のセクション（サーバースレッドのみで使用）。値は SectionTheme を参照。 */
+    private static com.example.roomsmod.world.section.SectionTheme theme = com.example.roomsmod.world.section.Sections.A;
+
+    private static net.minecraft.world.level.block.state.BlockState doorLower() { return theme.palette().door().get().defaultBlockState(); }
     /** 直近の choosePlan の結果（デバッグ用）。 */
     private static String lastPlanInfo = "";
 
     public static BlockPos generateLobby(ServerLevel level, BlockPos origin) {
+        theme = com.example.roomsmod.world.section.Sections.forRoom(RoomsState.get(level), 0);
         int width = 20;
         int depth = 32;
         int height = 5;
@@ -33,13 +36,13 @@ public class RoomGenerator {
         // 床・壁・天井
         for (int x = 0; x < width; x++) {
             for (int z = 0; z < depth; z++) {
-                level.setBlockAndUpdate(origin.offset(x, 0, z), Blocks.STONE.defaultBlockState());
+                level.setBlockAndUpdate(origin.offset(x, 0, z), theme.palette().floor().get());
                 if (x == 0 || x == width - 1 || z == 0 || z == depth - 1) {
                     for (int y = 1; y < height; y++) {
-                        level.setBlockAndUpdate(origin.offset(x, y, z), Blocks.STONE_BRICKS.defaultBlockState());
+                        level.setBlockAndUpdate(origin.offset(x, y, z), theme.palette().wall().get());
                     }
                 }
-                level.setBlockAndUpdate(origin.offset(x, height, z), Blocks.STONE.defaultBlockState());
+                level.setBlockAndUpdate(origin.offset(x, height, z), theme.palette().ceiling().get());
             }
         }
 
@@ -51,17 +54,17 @@ public class RoomGenerator {
         // 照明を規則正しく配置（天井に吊るす）
         for (int x = 5; x <= 15; x += 5) {
             for (int z = 8; z <= 24; z += 8) {
-                level.setBlockAndUpdate(origin.offset(x, height - 1, z), Blocks.LANTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LanternBlock.HANGING, true));
+                level.setBlockAndUpdate(origin.offset(x, height - 1, z), theme.palette().light().get());
             }
         }
 
         // 出口扉
         BlockPos doorPos = origin.offset(10, 1, depth - 1);
-        level.setBlockAndUpdate(doorPos, Blocks.OAK_DOOR.defaultBlockState());
-        level.setBlockAndUpdate(doorPos.above(), Blocks.OAK_DOOR.defaultBlockState().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
+        level.setBlockAndUpdate(doorPos, doorLower());
+        level.setBlockAndUpdate(doorPos.above(), doorLower().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
 
         // 出口と大きめ看板
-        placeExitSign(level, origin.offset(10, 3, depth - 2), "A-001");
+        placeExitSign(level, origin.offset(10, 3, depth - 2), com.example.roomsmod.world.section.Sections.formatRoom(RoomsState.get(level), 1));
 
         // 重なり防止レジストリに登録
         // 状態をロビーから開始し、重なり防止レジストリと経路を登録
@@ -122,6 +125,9 @@ public class RoomGenerator {
         Random rand = new Random(level.getSeed() * 31L + roomNumber * 0x9E3779B97F4A7C15L);
 
         RoomsState state = RoomsState.get(level);
+        theme = com.example.roomsmod.world.section.Sections.forRoom(state, roomNumber);
+        var prevTheme = com.example.roomsmod.world.section.Sections.forRoom(state, roomNumber - 1);
+        if (prevTheme != theme) RoomsDebug.log("section change at room {}: {} -> {}", roomNumber, prevTheme.id(), theme.id());
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         String planInfo = lastPlanInfo;
         buildShell(level, origin, plan);
@@ -129,16 +135,16 @@ public class RoomGenerator {
 
         // 出口扉
         BlockPos exitDoor = origin.offset(plan.exitX, 1, plan.exitZ);
-        level.setBlockAndUpdate(exitDoor, Blocks.OAK_DOOR.defaultBlockState());
-        level.setBlockAndUpdate(exitDoor.above(), Blocks.OAK_DOOR.defaultBlockState().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
+        level.setBlockAndUpdate(exitDoor, doorLower());
+        level.setBlockAndUpdate(exitDoor.above(), doorLower().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
 
         // 照明：天井に吊るす（既存ロジックのまま）
-        int lightLevel = Math.max(0, 15 - Math.max(0, roomNumber - 25) / 5);
+        int lightLevel = Math.max(0, 15 - Math.max(0, roomNumber - theme.lightFadeStart()) / theme.lightFadeStep());
         if (lightLevel > 0) {
-            level.setBlockAndUpdate(origin.offset(ENTRANCE_X, plan.height - 1, plan.mainDepth / 2), Blocks.LANTERN.defaultBlockState().setValue(net.minecraft.world.level.block.LanternBlock.HANGING, true));
+            level.setBlockAndUpdate(origin.offset(ENTRANCE_X, plan.height - 1, plan.mainDepth / 2), theme.palette().light().get());
         }
 
-        placeExitSign(level, origin.offset(plan.exitX, 3, plan.exitZ - 1), "A-" + String.format("%03d", roomNumber + 1));
+        placeExitSign(level, origin.offset(plan.exitX, 3, plan.exitZ - 1), com.example.roomsmod.world.section.Sections.formatRoom(state, roomNumber + 1));
 
         // 経路（入口→折れ点→出口扉）を床+1の高さで記録
         List<BlockPos> path = new ArrayList<>();
@@ -149,7 +155,7 @@ public class RoomGenerator {
         state.setExpectedExitDoor(exitDoor);
         state.setCurrentRoom(roomNumber);
         if (RoomsDebug.isEnabled()) {
-            RoomsDebug.log("room generated #{} origin={} {} boxes={} exitDoor={}", roomNumber, origin, planInfo, toWorldBoxes(origin, plan), exitDoor);
+            RoomsDebug.log("room generated #{} section={} origin={} {} boxes={} exitDoor={}", roomNumber, theme.prefix(), origin, planInfo, toWorldBoxes(origin, plan), exitDoor);
         }
         return exitDoor;
     }
@@ -157,7 +163,7 @@ public class RoomGenerator {
     /** 候補を順に試し、既存部屋と重ならない最初のものを採用。最後は必ず通る直線の箱部屋。 */
     private static RoomPlan choosePlan(Random rand, BlockPos origin, List<List<BoundingBox>> rooms) {
         RoomShape[] shapes = RoomShape.values();
-        RoomShape shape = shapes[rand.nextInt(shapes.length)];
+        RoomShape shape = shapes[com.example.roomsmod.world.section.SectionTheme.pickWeighted(rand, theme.shapeWeights())];
         // x方向に流れすぎないよう、原点から離れたら中央へ戻る向きを優先
         boolean preferRight = origin.getX() > 40 ? false : origin.getX() < -40 ? true : rand.nextBoolean();
         ExitType exit = switch (rand.nextInt(5)) {
@@ -309,18 +315,18 @@ public class RoomGenerator {
             for (int x = r.x0(); x <= r.x1(); x++) {
                 for (int z = r.z0(); z <= r.z1(); z++) {
                     if (!done.add(((long) x << 32) ^ (z & 0xffffffffL))) continue;
-                    level.setBlockAndUpdate(origin.offset(x, 0, z), Blocks.STONE.defaultBlockState());
+                    level.setBlockAndUpdate(origin.offset(x, 0, z), theme.palette().floor().get());
                     boolean entrance = z == 0 && x >= ENTRANCE_X - 1 && x <= ENTRANCE_X + 1;
                     if (p.isWall(x, z) && !entrance) {
                         for (int y = 1; y < p.height; y++) {
-                            level.setBlockAndUpdate(origin.offset(x, y, z), Blocks.STONE_BRICKS.defaultBlockState());
+                            level.setBlockAndUpdate(origin.offset(x, y, z), theme.palette().wall().get());
                         }
                     } else {
                         for (int y = 1; y < p.height; y++) {
                             level.setBlockAndUpdate(origin.offset(x, y, z), Blocks.AIR.defaultBlockState());
                         }
                     }
-                    level.setBlockAndUpdate(origin.offset(x, p.height, z), Blocks.STONE.defaultBlockState());
+                    level.setBlockAndUpdate(origin.offset(x, p.height, z), theme.palette().ceiling().get());
                 }
             }
         }
@@ -373,7 +379,7 @@ public class RoomGenerator {
         Set<Long> used = new HashSet<>();
 
         // 隠れ場所：壁際にロッカー。従来と同程度の3〜4個。
-        int hides = 3 + rand.nextInt(2);
+        int hides = theme.hidingMin() + rand.nextInt(theme.hidingExtra());
         for (int[] c : wallSide) {
             if (hides == 0) break;
             Direction facing = facingAwayFromWall(p, c[0], c[1]);
@@ -385,13 +391,9 @@ public class RoomGenerator {
             if (!reserve(used, c[0], c[1], 1)) continue;
             used.add(key(fx, fz));
             if (p.inside(fx2, fz2) && !p.isWall(fx2, fz2)) used.add(key(fx2, fz2));
-            if (rand.nextFloat() < TABLE_HIDING_CHANCE) {
-                level.setBlockAndUpdate(origin.offset(c[0], 1, c[1]), com.example.roomsmod.RoomsMod.HIDING_TABLE.get().defaultBlockState());
-                com.example.roomsmod.util.RoomsDebug.log("hiding spot type=table at {}", origin.offset(c[0], 1, c[1]));
-            } else {
-                placeHidingSpot(level, origin.offset(c[0], 1, c[1]), facing);
-                com.example.roomsmod.util.RoomsDebug.log("hiding spot type=locker at {}", origin.offset(c[0], 1, c[1]));
-            }
+            var type = pickHiding(rand.nextFloat());
+            placeHiding(level, origin.offset(c[0], 1, c[1]), facing, type);
+            com.example.roomsmod.util.RoomsDebug.log("hiding spot type={} at {}", type.name().toLowerCase(), origin.offset(c[0], 1, c[1]));
             hides--;
         }
 
@@ -399,23 +401,23 @@ public class RoomGenerator {
         placeCover(level, origin, p, rand, blocked, used);
 
         // 本棚：壁際に2段
-        int shelves = 2 + rand.nextInt(4);
+        var fu = theme.furniture();
+        int shelves = fu.shelfMin() + rand.nextInt(fu.shelfExtra());
         for (int[] c : wallSide) {
             if (shelves == 0) break;
             if (!reserve(used, c[0], c[1], 0)) continue;
-            place(level, origin, c[0], c[1], 1, Blocks.BOOKSHELF);
-            place(level, origin, c[0], c[1], 2, Blocks.BOOKSHELF);
+            place(level, origin, c[0], c[1], 1, fu.shelf().get());
+            place(level, origin, c[0], c[1], 2, fu.shelf().get());
             shelves--;
         }
 
         // 机：上付きトウヒハーフ＋感圧板
-        int desks = rand.nextInt(3);
+        int desks = rand.nextInt(fu.deskExtra());
         for (int[] c : open) {
             if (desks == 0) break;
             if (!reserve(used, c[0], c[1], 1)) continue;
-            level.setBlockAndUpdate(origin.offset(c[0], 1, c[1]), Blocks.SPRUCE_SLAB.defaultBlockState()
-                    .setValue(net.minecraft.world.level.block.SlabBlock.TYPE, net.minecraft.world.level.block.state.properties.SlabType.TOP));
-            place(level, origin, c[0], c[1], 2, Blocks.OAK_PRESSURE_PLATE);
+            level.setBlockAndUpdate(origin.offset(c[0], 1, c[1]), fu.deskTop().get());
+            place(level, origin, c[0], c[1], 2, fu.deskItem().get());
             desks--;
         }
 
@@ -425,7 +427,7 @@ public class RoomGenerator {
         for (int[] c : open) {
             if (pillars == 0) break;
             if (!reserve(used, c[0], c[1], 2)) continue;
-            var block = rand.nextBoolean() ? Blocks.POLISHED_ANDESITE : Blocks.STONE_BRICKS;
+            var block = rand.nextBoolean() ? fu.pillarA().get() : fu.pillarB().get();
             for (int y = 1; y < p.height; y++) place(level, origin, c[0], c[1], y, block);
             pillars--;
         }
@@ -433,26 +435,12 @@ public class RoomGenerator {
 
     // ===================== 遮蔽物 =====================
 
-    /** 遮蔽物が出る部屋の割合と個数（調整用）。 */
-    public static final float COVER_ROOM_CHANCE = 0.7f;
-    public static final int COVER_MIN = 1;
-    public static final int COVER_MAX = 3;
+    // 遮蔽物の出現率・個数・種類の重み・ブロックは SectionTheme.cover()
     /** 遮蔽の検証距離（ラッシャーの攻撃距離22.5＋余裕）。 */
     private static final double COVER_CHECK_RANGE = 24.0;
     private static final int COVER_ATTEMPTS = 60;
 
     enum CoverKind { BOOKSHELF_ROW, PILLAR_2X2, PARTITION, CRATES }
-
-    /** 部屋の形ごとの出やすさ（BOOKSHELF_ROW, PILLAR_2X2, PARTITION, CRATES の順）。 */
-    private static int[] coverWeights(RoomShape shape) {
-        return switch (shape) {
-            case HALL -> new int[]{2, 3, 2, 2};
-            case TALL -> new int[]{1, 2, 3, 1};
-            case L_SHAPE -> new int[]{2, 0, 1, 3};
-            case CORRIDOR -> new int[]{1, 0, 1, 2};
-            default -> new int[]{3, 1, 2, 2};
-        };
-    }
 
     /** 1つの遮蔽物。structure=置くブロック（高さ付き）、pocket=隠れる床、back=出入り用に空ける床。 */
     private record Cover(CoverKind kind, java.util.Map<Long, net.minecraft.world.level.block.state.BlockState[]> structure, Set<Long> pocket, Set<Long> back) {}
@@ -463,12 +451,13 @@ public class RoomGenerator {
      * 置く前に、通路上のどの点からもポケットが見えないこと（2D視線）を検証する。部屋の床（壁以外）にしか置かない。
      */
     private static void placeCover(ServerLevel level, BlockPos origin, RoomPlan p, Random rand, Set<Long> blocked, Set<Long> used) {
-        if (rand.nextFloat() >= COVER_ROOM_CHANCE) {
+        var cv = theme.cover();
+        if (rand.nextFloat() >= cv.roomChance()) {
             RoomsDebug.log("cover shape={} none (roll)", p.shape);
             return;
         }
-        int want = COVER_MIN + rand.nextInt(COVER_MAX - COVER_MIN + 1);
-        int[] weights = coverWeights(p.shape);
+        int want = cv.min() + rand.nextInt(cv.max() - cv.min() + 1);
+        int[] weights = cv.weightsFor(p.shape.name());
         List<int[]> rusherCells = new ArrayList<>();
         Set<Long> pathSet = pathCells(p);
         for (long k : pathSet) rusherCells.add(new int[]{(int) (k >> 32), (int) k});
@@ -533,12 +522,12 @@ public class RoomGenerator {
                 for (int sv = s0 + 1; sv < s0 + l - 1; sv++) { pocket.add(at.apply(sv, 3)); back.add(at.apply(sv, 4)); }
             }
             case PILLAR_2X2 -> {
-                net.minecraft.world.level.block.state.BlockState[] pil = column(Blocks.POLISHED_ANDESITE.defaultBlockState(), full);
+                net.minecraft.world.level.block.state.BlockState[] pil = column(theme.cover().pillar().get(), full);
                 for (int sv = 0; sv <= 1; sv++) for (int ov = 2; ov <= 3; ov++) st.put(at.apply(sv, ov), pil);
                 // 2x2の両脇から裏へ回り込む袖（ポケットの横を塞ぐ）
                 for (int ov = 3; ov <= 4; ov++) {
-                    st.put(at.apply(-1, ov), column(Blocks.STONE_BRICKS.defaultBlockState(), tall));
-                    st.put(at.apply(2, ov), column(Blocks.STONE_BRICKS.defaultBlockState(), tall));
+                    st.put(at.apply(-1, ov), column(theme.cover().pillarWing().get(), tall));
+                    st.put(at.apply(2, ov), column(theme.cover().pillarWing().get(), tall));
                 }
                 for (int sv = 0; sv <= 1; sv++) { pocket.add(at.apply(sv, 4)); back.add(at.apply(sv, 5)); }
             }
@@ -554,12 +543,12 @@ public class RoomGenerator {
 
     private static net.minecraft.world.level.block.state.BlockState[] coverColumn(CoverKind kind, Random rand, int h) {
         return switch (kind) {
-            case BOOKSHELF_ROW -> column(Blocks.BOOKSHELF.defaultBlockState(), h);
-            case PARTITION -> column(Blocks.STONE_BRICKS.defaultBlockState(), h);
+            case BOOKSHELF_ROW -> column(theme.cover().shelf().get(), h);
+            case PARTITION -> column(theme.cover().partition().get(), h);
             default -> {
                 int hh = Math.max(2, Math.min(h, 2 + rand.nextInt(2)));
                 var col = new net.minecraft.world.level.block.state.BlockState[hh];
-                for (int y = 0; y < hh; y++) col[y] = rand.nextBoolean() ? Blocks.BARREL.defaultBlockState() : Blocks.SPRUCE_PLANKS.defaultBlockState();
+                for (int y = 0; y < hh; y++) col[y] = rand.nextBoolean() ? theme.cover().crateA().get() : theme.cover().crateB().get();
                 yield col;
             }
         };
@@ -619,6 +608,23 @@ public class RoomGenerator {
         return null;
     }
 
+    /** 隠れ場所の種類を theme.hidingMix() から累積判定で選ぶ（f は nextFloat の値）。 */
+    private static com.example.roomsmod.world.section.SectionTheme.HidingType pickHiding(float f) {
+        float total = 0f;
+        for (var w : theme.hidingMix()) total += w.weight();
+        float r = f * total, cum = 0f;
+        for (var w : theme.hidingMix()) { cum += w.weight(); if (r < cum) return w.value(); }
+        return theme.hidingMix().get(theme.hidingMix().size() - 1).value();
+    }
+
+    /** 隠れ場所を種類ごとに置く。新しい種類はここに分岐を足す。 */
+    private static void placeHiding(ServerLevel level, BlockPos pos, Direction facing, com.example.roomsmod.world.section.SectionTheme.HidingType type) {
+        switch (type) {
+            case TABLE -> level.setBlockAndUpdate(pos, com.example.roomsmod.RoomsMod.HIDING_TABLE.get().defaultBlockState());
+            case LOCKER -> placeHidingSpot(level, pos, facing);
+        }
+    }
+
     /**
      * 隠れ場所（2マスのロッカー、正面=facing）を1つ設置する。
      * 将来ロッカーブロックに差し替える際はここだけ変更する。facingは開口側（部屋の内側）。
@@ -655,13 +661,13 @@ public class RoomGenerator {
             RoomsDebug.log("room number sign {} skipped at {} (space occupied or no wall)", text, pos);
             return;
         }
-        level.setBlockAndUpdate(pos, Blocks.OAK_WALL_SIGN.defaultBlockState()
+        level.setBlockAndUpdate(pos, theme.sign().wallSign().get().defaultBlockState()
                 .setValue(net.minecraft.world.level.block.WallSignBlock.FACING, Direction.NORTH));
         if (level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SignBlockEntity sign) {
             var st = new net.minecraft.world.level.block.entity.SignText()
                     .setMessage(1, net.minecraft.network.chat.Component.literal(text))
-                    .setColor(net.minecraft.world.item.DyeColor.WHITE)
-                    .setHasGlowingText(true);
+                    .setColor(theme.sign().color())
+                    .setHasGlowingText(theme.sign().glowing());
             sign.setText(st, true);
             sign.setWaxed(true);
             sign.setChanged();

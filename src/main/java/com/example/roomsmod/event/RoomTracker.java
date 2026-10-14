@@ -29,7 +29,8 @@ public final class RoomTracker {
         return -1;
     }
 
-    public static String format(int index) { return "A-" + String.format("%03d", index); }
+    /** 部屋番号の表示（セクション接頭辞付き）。 */
+    public static String format(RoomsState rs, int index) { return com.example.roomsmod.world.section.Sections.formatRoom(rs, index); }
 
     @SubscribeEvent
     public static void onPlayerTick(PlayerTickEvent.Post event) {
@@ -39,9 +40,10 @@ public final class RoomTracker {
         int idx = roomIndexAt(rs, sp.blockPosition());
         Integer last = LAST.put(sp.getUUID(), idx);
         if (last != null && last == idx) return;
-        String now = idx < 0 ? "outside rooms" : format(idx);
-        RoomsDebug.log(sp, "現在の部屋: " + now, "player {} room {} -> {} (generated up to {})",
-                sp.getGameProfile().getName(), last == null || last < 0 ? "-" : format(last), now, format(rs.currentRoom));
+        String now = idx < 0 ? "outside rooms" : format(rs, idx);
+        String section = idx < 0 ? "-" : com.example.roomsmod.world.section.Sections.forRoom(rs, idx).id();
+        RoomsDebug.log(sp, "現在の部屋: " + now + "（セクション " + section + "）", "player {} section={} room {} -> {} (generated up to {})",
+                sp.getGameProfile().getName(), section, last == null || last < 0 ? "-" : format(rs, last), now, format(rs, rs.currentRoom));
     }
 
     @SubscribeEvent

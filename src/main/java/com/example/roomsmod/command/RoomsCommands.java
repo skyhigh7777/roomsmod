@@ -95,13 +95,23 @@ public class RoomsCommands {
 
                         // 最後の部屋の中央付近にワープ（出口扉の手前）
                         player.teleportTo(roomsLevel, currentExit.getX() + 0.5, 2, currentExit.getZ() - 8, 0, 0);
-                        player.sendSystemMessage(Component.literal("A-" + String.format("%03d", target) + " まで生成してワープしたわ"));
+                        player.sendSystemMessage(Component.literal(com.example.roomsmod.world.section.Sections.formatRoom(state, target) + " まで生成してワープしたわ"));
                         return 1;
                     })))
             .then(Commands.literal("debug")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("on").executes(ctx -> setDebug(ctx.getSource(), true)))
                 .then(Commands.literal("off").executes(ctx -> setDebug(ctx.getSource(), false)))
+                .then(Commands.literal("section").executes(ctx -> {
+                    ServerLevel lv = ctx.getSource().getServer().getLevel(ROOMS_DIMENSION);
+                    if (lv == null) return 0;
+                    var rs = com.example.roomsmod.world.RoomsState.get(lv);
+                    var cur = com.example.roomsmod.world.section.Sections.forRoom(rs, rs.currentRoom);
+                    String msg = "section current=" + cur.id() + " (prefix " + cur.prefix() + ") room=" + cur.formatRoom(rs.currentRoom) + " table=" + rs.sections;
+                    com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] " + msg);
+                    ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
+                    return 1;
+                }))
                 .then(Commands.literal("status").executes(ctx -> {
                     ctx.getSource().sendSuccess(() -> Component.literal("Roomsデバッグ: " + (com.example.roomsmod.util.RoomsDebug.isEnabled() ? "ON" : "OFF")), false);
                     return 1;
