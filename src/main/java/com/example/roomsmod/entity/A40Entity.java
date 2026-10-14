@@ -231,13 +231,9 @@ public class A40Entity extends Mob {
         if (moving) {
             AABB box = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
             for (Player player : this.level().getEntitiesOfClass(Player.class, box)) {
-                if (player.isCreative() || player.isSpectator() || !player.isAlive()) continue;
+                if (player.isSpectator() || !player.isAlive()) continue;
                 if (this.distanceTo(player) > MAX_RAYCAST_DISTANCE) continue;
-                if (com.example.roomsmod.hiding.HidingRules.isProtectedFrom(this, player)) {
-                    if (this.tickCount % 20 == 0) RoomsDebug.log("A-40 spared hiding player={}", player.getName().getString());
-                    continue;
-                }
-                if (hasLineOfSight(player)) player.hurt(this.damageSources().mobAttack(this), DAMAGE);
+                com.example.roomsmod.hiding.RusherHits.tryHit(this, "A-40", player, hasLineOfSight(player), DAMAGE);
             }
         }
     }
