@@ -1,7 +1,7 @@
 package com.example.roomsmod.entity;
 
-import com.example.roomsmod.RoomsMod;
-import com.example.roomsmod.event.DoorEventHandler;
+import com.example.roomsmod.world.RoomsState;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.ChunkPos;
@@ -39,17 +39,66 @@ public class A60Entity extends Mob {
     private List<BlockPos> waypoints = new ArrayList<>();
     private int waypointIndex = 0;
 
+    private int startRoom = 0;
+    private boolean waypointsBuilt = false;
+    /** 経路終端後に進む方向（最後の区間の水平方向、既定は+Z）。 */
+    private Vec3 exitDirection = new Vec3(0, 0, 1);
+
+    public void setStartRoom(int index) {
+        this.startRoom = index;
+    }
+
+    /** startRoom 以降の各部屋の経路を順に連結して経由点にする。 */
     private void buildWaypoints() {
         waypoints.clear();
-        // generatedDoorsからZ順にソートして経由点にする
-        List<BlockPos> doors = new ArrayList<>(DoorEventHandler.generatedDoors);
-        doors.sort((a, b) -> Integer.compare(a.getZ(), b.getZ()));
-        for (BlockPos door : doors) {
-            if (door.getZ() > this.getZ() - 10) {
-                waypoints.add(door);
+        waypointsBuilt = true;
+        if (!(this.level() instanceof ServerLevel sl)) return;
+        RoomsState rs = RoomsState.get(sl);
+        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) {
+            for (BlockPos p : rs.roomPaths.get(i)) {
+                if (waypoints.isEmpty() || !waypoints.get(waypoints.size() - 1).equals(p)) waypoints.add(p);
             }
         }
-        waypointIndex = 0;
+        if (waypointIndex > waypoints.size()) waypointIndex = waypoints.size();
+        updateExitDirection();
+    }
+
+    private void updateExitDirection() {
+        if (waypoints.size() >= 2) {
+            BlockPos a = waypoints.get(waypoints.size() - 2), b = waypoints.get(waypoints.size() - 1);
+            Vec3 d = new Vec3(b.getX() - a.getX(), 0, b.getZ() - a.getZ());
+            if (d.lengthSqr() > 1.0E-4) exitDirection = d.normalize();
+        }
+    }
+
+    /** 走行中に新しい部屋が生成された場合に経路を延長する。 */
+    private void refreshWaypointsIfGrown() {
+        if (!(this.level() instanceof ServerLevel sl)) return;
+        RoomsState rs = RoomsState.get(sl);
+        int expected = 0;
+        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) expected += rs.roomPaths.get(i).size();
+        if (expected > lastPathPointCount) {
+            lastPathPointCount = expected;
+            int idx = waypointIndex;
+            buildWaypoints();
+            waypointIndex = Math.min(idx, waypoints.size());
+        }
+    }
+    private int lastPathPointCount = 0;
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag tag) {
+        super.addAdditionalSaveData(tag);
+        tag.putInt("StartRoom", startRoom);
+        tag.putInt("WaypointIndex", waypointIndex);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag tag) {
+        super.readAdditionalSaveData(tag);
+        startRoom = tag.getInt("StartRoom");
+        waypointIndex = tag.getInt("WaypointIndex");
+        waypointsBuilt = false; // 次tickでRoomsStateから再構築
     }
 
     public A60Entity(EntityType<? extends Mob> type, Level level) {
@@ -89,6 +138,7 @@ public class A60Entity extends Mob {
 
     @Override
     public void remove(RemovalReason reason) {
+        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-60 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
         if (this.level() instanceof ServerLevel serverLevel && lastForcedChunk != null) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
@@ -126,32 +176,44 @@ public class A60Entity extends Mob {
         // 前方に高速移動。猶予中は動かない。扉を経由点として通る
         if (this.tickCount < 80) {
             this.setDeltaMovement(Vec3.ZERO);
-            if (this.tickCount == 1) {
+            if (!waypointsBuilt) {
                 buildWaypoints();
             }
         } else {
+            if (!waypointsBuilt) {
+                int idx = waypointIndex;
+                buildWaypoints();
+                waypointIndex = Math.min(idx, waypoints.size());
+            }
+            if (this.tickCount % 20 == 0) refreshWaypointsIfGrown();
             if (waypointIndex < waypoints.size()) {
                 BlockPos target = waypoints.get(waypointIndex);
-                Vec3 dir = target.getCenter().subtract(this.position()).normalize();
-                this.setDeltaMovement(dir.scale(0.9));
-                if (this.position().distanceTo(target.getCenter()) < 2.5) {
+                Vec3 goal = Vec3.atBottomCenterOf(target);
+                Vec3 delta = goal.subtract(this.position());
+                double dist = delta.length();
+                if (dist < 1.0) {
                     waypointIndex++;
+                    this.setDeltaMovement(Vec3.ZERO);
+                } else {
+                    // 行き過ぎないよう残り距離で速度を制限
+                    this.setDeltaMovement(delta.scale(Math.min(0.9, dist) / dist));
                 }
             } else {
-                this.setDeltaMovement(new Vec3(0, 0, 0.9));
+                // 生成済み経路の終端：出口方向へ進み続ける
+                this.setDeltaMovement(exitDirection.scale(0.9));
             }
         }
         this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
 
         // デバッグ：10秒ごとに位置を出す
-        if (this.tickCount % 200 == 0) {
+        if (this.tickCount % 200 == 0 && com.example.roomsmod.util.RoomsDebug.isEnabled()) {
             ServerLevel sl = (ServerLevel) this.level();
             Player nearest = sl.getNearestPlayer(this, 500);
-            if (nearest != null) {
-                nearest.sendSystemMessage(net.minecraft.network.chat.Component.literal(
-                    "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")"
-                ));
-            }
+            double nd = nearest != null ? this.distanceTo(nearest) : -1;
+            com.example.roomsmod.util.RoomsDebug.log(nearest,
+                nearest != null ? "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "A-60 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
         // プレイヤーが自分よりも大きく前に進んだら消滅
@@ -160,16 +222,18 @@ public class A60Entity extends Mob {
         if (nearest2 != null) {
             double ahead = this.getZ() - nearest2.getZ();
             if (ahead > 120.0) {
+                com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
                 this.discard();
                 return;
             }
         } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
+            com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: no player within 500 blocks after {} ticks", this.tickCount);
             this.discard();
             return;
         }
 
-        // 音（一旦バニラのウォーデン近くの音を使う。カスタムoggが入っていないため）
+        // 音（バニラのウォーデン近くの音を使う）
         ServerLevel soundLevel = (ServerLevel) this.level();
         Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
         if (nearestForSound != null) {
@@ -184,12 +248,20 @@ public class A60Entity extends Mob {
 
             float volume = Math.min(5.0f, baseVolume * facingMul);
 
+            // 遠くても聞こえるよう、プレイヤーからA-60方向へ最大8ブロックの位置で鳴らす
+            // （位置で鳴らすと 16×音量 ブロック以内しか届かないため）
+            Vec3 pp = nearestForSound.position();
+            double off = Math.min(dist, 8.0);
+            Vec3 src = pp.add(toEntity.scale(off));
+            // 距離で音量を上げる（150ブロック以内で徐々に大きく）
+            float distVol = (float) Math.max(0.3, Math.min(1.0, 1.0 - dist / 150.0)) * 3.0f;
             if (this.tickCount == 1) {
-                nearestForSound.playSound(SoundEvents.WARDEN_SONIC_BOOM, Math.min(4.0f, volume), 0.5f);
+                this.level().playSound(null, src.x, src.y, src.z,
+                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
             }
-            // ウォーデンの近くの音を頻繁に（カスタム音の代わり）
-            if (this.tickCount % 3 == 0) {
-                nearestForSound.playSound(SoundEvents.WARDEN_NEARBY_CLOSE, volume, 0.8f + (float)(0.2 * Math.random()));
+            if (this.tickCount % 40 == 0) {
+                this.level().playSound(null, src.x, src.y, src.z,
+                        com.example.roomsmod.RoomsMod.A60_APPROACH.get(), SoundSource.HOSTILE, distVol, 1.0f);
             }
         }
 
