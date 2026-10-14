@@ -32,10 +32,15 @@ import net.minecraft.world.level.Level;
  */
 public class V25BuffedEntity extends VSearcherEntity {
     public static final int COUNTDOWN_SECONDS = 5;
-    public static final int ANNOUNCE_TICKS = 20;
-    public static final double FAST_WALK_SPEED = 0.45; // V-25 は 0.14
-    public static final int FAST_CHECK_TICKS = 12;     // V-25 は 40
-    public static final int FAST_STEP_INTERVAL = 4;
+    /** 指示文を表示してから姿を現すまで（tick）。この間は調べも攻撃もしない（読んで隠れ直す猶予）。 */
+    public static final int ANNOUNCE_TICKS = 40;
+    public static final double FAST_WALK_SPEED = 0.6;  // V-25 は 0.14（スプリント約0.28の2倍強）
+    public static final int FAST_CHECK_TICKS = 6;      // V-25 は 40
+    public static final int FAST_STEP_INTERVAL = 3;
+    /** 捜索する部屋数の上限（プレイヤーが先へ進むと延長、ただしこの数まで）。寿命 VEntity.MAX_LIFE_TICKS も別に効く。 */
+    public static final int MAX_SEARCH_ROOMS = 12;
+    /** 調べている部屋にいる隠れていないプレイヤーへの攻撃間隔（tick）。視線・距離は問わない。 */
+    public static final int OPEN_HIT_INTERVAL = 5;
     /** lang に連番が見つからない時の上限保険。 */
     private static final int MAX_MESSAGES = 200;
 
@@ -113,6 +118,10 @@ public class V25BuffedEntity extends VSearcherEntity {
         }
         if (phase == 1) {
             if (++phaseTicks >= ANNOUNCE_TICKS) {
+                RoomsState rs = RoomsState.get(level);
+                int fr = furthestPlayerRoom(rs);
+                if (fr >= 0 && fr != startRoom && relocateTo(rs, fr))
+                    RoomsDebug.log("V25-BUFFED reveal retarget -> furthest player room {} ({})", fr, com.example.roomsmod.event.RoomTracker.format(rs, fr));
                 enter(2, "search");
                 entityData.set(REVEALED, true);
                 for (ServerPlayer p : level.players()) p.playNotifySound(RoomsMod.V25B_REVEAL.get(), SoundSource.HOSTILE, 1.0f, 1.0f);
@@ -123,6 +132,41 @@ public class V25BuffedEntity extends VSearcherEntity {
     }
 
     private boolean forced = false;
+
+    /** 最も先の部屋にいるプレイヤーの部屋 index（いなければ -1）。 */
+    /** テスト用（ハーネス）：>=0 なら「最も先のプレイヤーの部屋」として使う。通常は -1。 */
+    public static int testPlayerRoom = -1;
+
+    private int furthestPlayerRoom(RoomsState rs) {
+        int best = testPlayerRoom;
+        for (ServerPlayer p : ((ServerLevel) level()).players())
+            if (!p.isSpectator() && p.isAlive()) best = Math.max(best, com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()));
+        return best;
+    }
+
+    /** 最低でも「起点の部屋＋次の部屋」、プレイヤーが先にいればその部屋まで延長（上限 MAX_SEARCH_ROOMS）。 */
+    @Override
+    protected boolean continueSearch(ServerLevel level, RoomsState rs, int nextRoom) {
+        if (nextRoom >= rs.roomPaths.size() || nextRoom - startRoom >= MAX_SEARCH_ROOMS) return false;
+        int fr = furthestPlayerRoom(rs);
+        boolean go = nextRoom <= Math.max(startRoom + ROOMS_TO_SEARCH - 1, fr);
+        if (go && nextRoom > startRoom + ROOMS_TO_SEARCH - 1) RoomsDebug.log("V25-BUFFED route extended to room {} (furthest player room {})", nextRoom, fr);
+        return go;
+    }
+
+    /** 調べている部屋にいる隠れていないプレイヤーは視線・距離に関係なく被弾。その他は通常ルール。 */
+    @Override
+    protected void openHits(ServerLevel level) {
+        if (life % OPEN_HIT_INTERVAL != 0) return;
+        RoomsState rs = RoomsState.get(level);
+        int room = currentRoom();
+        for (ServerPlayer p : level.players()) {
+            if (p.isSpectator() || !p.isAlive() || LockerManager.getSpot(p) != null) continue;
+            boolean inRoom = com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()) == room;
+            if (inRoom) com.example.roomsmod.hiding.RusherHits.tryHit(this, vName(), p, true, OPEN_DAMAGE);
+            else if (distanceTo(p) <= OPEN_RANGE) com.example.roomsmod.hiding.RusherHits.tryHit(this, vName(), p, canSee(p), OPEN_DAMAGE);
+        }
+    }
 
     @Override
     protected boolean retargetWhenNoSpots() {

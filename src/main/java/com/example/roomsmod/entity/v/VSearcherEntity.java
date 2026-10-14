@@ -53,6 +53,29 @@ public abstract class VSearcherEntity extends VEntity {
     protected int stepInterval() { return STEP_INTERVAL; }
     /** 出現時に入口で軋み音を鳴らすか。 */
     protected boolean entrySound() { return true; }
+    /** 今調べている部屋 index。 */
+    protected int currentRoom() { return startRoom + roomOffset; }
+    /** 部屋を調べ終えた後、次の部屋 nextRoom も調べるか。既定は ROOMS_TO_SEARCH 部屋まで。 */
+    protected boolean continueSearch(ServerLevel level, RoomsState rs, int nextRoom) {
+        return roomOffset < ROOMS_TO_SEARCH && nextRoom < rs.roomPaths.size();
+    }
+    /** 捜索の起点を room に移し、その部屋の入口に立つ（経路は作り直し）。 */
+    protected boolean relocateTo(RoomsState rs, int room) {
+        List<BlockPos> p = VSpawns.path(rs, room);
+        if (p.isEmpty()) return false;
+        startRoom = room; roomOffset = 0; targets.clear(); targetIdx = 0; checking = -1;
+        BlockPos s = p.get(0);
+        // 遠くへ移るので、先に移動先のチャンクを確保・同期読み込み（未読込セクションへ入って保存行きになるのを防ぐ）
+        if (level() instanceof ServerLevel sl) com.example.roomsmod.entity.RusherChunks.prepareSpawn(sl, this, new net.minecraft.world.level.ChunkPos(s));
+        setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
+        return true;
+    }
+    /** 隠れていないプレイヤーへの攻撃。既定は10tickごと、OPEN_RANGE 内、視線あり。 */
+    protected void openHits(ServerLevel level) {
+        if (life % 10 == 0)
+            for (Player p : playersNear(OPEN_RANGE)) if (!LockerManager.isInLocker(p) && !LockerManager.isUnderTable(p))
+                RusherHits.tryHit(this, vName(), p, canSee(p), OPEN_DAMAGE);
+    }
     /** 捜索開始前の保留フェーズ（true の間は捜索も当たり判定もしない）。 */
     protected boolean holdTick(ServerLevel level) { return false; }
     protected abstract SoundEvent stepSound();
@@ -122,10 +145,7 @@ public abstract class VSearcherEntity extends VEntity {
         if (holdTick(level)) return;
         if (grace < enterGraceTicks()) { grace++; if (grace >= enterGraceTicks()) planRoom(level, rs); return; }
         if (targets.isEmpty()) planRoom(level, rs); // ロード直後
-        // 見えている・隠れていないプレイヤー（10tickごと）
-        if (life % 10 == 0)
-            for (Player p : playersNear(OPEN_RANGE)) if (!LockerManager.isInLocker(p) && !LockerManager.isUnderTable(p))
-                RusherHits.tryHit(this, vName(), p, canSee(p), OPEN_DAMAGE);
+        openHits(level);
 
         if (checking >= 0) {
             if (++checking >= checkTicks()) { finishCheck(level); checking = -1; targetIdx++; }
@@ -133,7 +153,7 @@ public abstract class VSearcherEntity extends VEntity {
         }
         if (targetIdx >= targets.size()) {
             roomOffset++;
-            if (roomOffset >= ROOMS_TO_SEARCH || startRoom + roomOffset >= rs.roomPaths.size()) { leave("searched " + roomOffset + " room(s)"); return; }
+            if (!continueSearch(level, rs, startRoom + roomOffset)) { leave("searched " + roomOffset + " room(s)"); return; }
             planRoom(level, rs);
             if (targets.isEmpty()) { leave("no path in next room"); return; }
         }
