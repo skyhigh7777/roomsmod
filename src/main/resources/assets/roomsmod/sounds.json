@@ -41,17 +41,17 @@
     ],
     "subtitle": "subtitles.roomsmod.v25l_check"
   },
-  "v35_knock": {
+  "v100_knock": {
     "sounds": [
-      "roomsmod:v35_knock"
+      "roomsmod:v100_knock"
     ],
-    "subtitle": "subtitles.roomsmod.v35_knock"
+    "subtitle": "subtitles.roomsmod.v100_knock"
   },
-  "v35_scream": {
+  "v100_scream": {
     "sounds": [
-      "roomsmod:v35_scream"
+      "roomsmod:v100_scream"
     ],
-    "subtitle": "subtitles.roomsmod.v35_scream"
+    "subtitle": "subtitles.roomsmod.v100_scream"
   },
   "v50_approach": {
     "sounds": [

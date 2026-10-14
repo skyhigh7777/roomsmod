@@ -30,32 +30,35 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * V-35：窓（板ガラス＋外側の黒コンクリート）の外に現れる覗き魔。
+ * V-100：窓（板ガラス＋外側の黒コンクリート）の外に現れる覗き魔。
  * 先にノック音（KNOCK_TICKS）→姿を見せて PEEK_TICKS 覗く→消える。
- * 覗いている間、プレイヤーが視線（視野円錐＋遮るものなし）を 累計 GAZE_KILL_TICKS より長く向けると攻撃（目を逸らしても数え直さない）。
+ * 覗いている間（ノック後 REACT_TICKS の猶予の後）、見張っている部屋のプレイヤーはしゃがむか止まっていなければならない。
+ * しゃがまずに動いた（ジャンプ含む）tick が累計 MOVE_KILL_TICKS に達すると攻撃。首振り・しゃがみ歩きは可。
  * 出口扉と同じ壁（+Z 側の壁）の窓には出ない（出口を見ないと進めない＝詰みを防ぐ）。
  */
-public class V35Entity extends VEntity {
+public class V100Entity extends VEntity {
     public static final int KNOCK_TICKS = 30;        // ノック〜出現（1.5秒）
     public static final int PEEK_TICKS = 20 * 12;    // 覗いている時間
-    /** 見た時間の累計（tick）がこれを超えると攻撃。目を逸らしてもリセットしない（この個体が生きている間ずっと累積）。 */
-    public static final int GAZE_KILL_TICKS = 10;
-    /** 視線（画面中央）から V-35 の顔のどこか（顔の中心までの角度 − 見かけの半径 atan(FACE_RADIUS/距離)）までがこの半角以内なら「見ている」＝視界の中央付近に入っていれば数える。 */
-    public static final double GAZE_CONE_DEG = 30.0;
-    /** 顔の中心の高さ（足元から。描画のビルボード 1.1 の中心）と、見かけの大きさに使う半径。 */
-    public static final double FACE_HEIGHT = 0.55, FACE_RADIUS = 0.55;
-    public static final double RANGE = 24.0;
+    /** ノックが終わってから判定が始まるまでの反応の猶予（tick）。 */
+    public static final int REACT_TICKS = 20;
+    /** しゃがまずに動いた tick の累計がこれに達すると攻撃（V-100 1体・プレイヤーごと、減らない）。 */
+    public static final int MOVE_KILL_TICKS = 3;
+    /** 1tick の水平移動がこれ以下なら「止まっている」（揺れ・押され対策、ブロック）。歩き 0.216/tick、しゃがみ歩き 0.065。 */
+    public static final double MOVE_EPSILON = 0.03;
+    /** ジャンプとみなす上向きの移動（ブロック/tick、接地していない時）。 */
+    public static final double JUMP_EPSILON = 0.05;
     public static final float DAMAGE = 40.0f;        // ほぼ即死
 
-    private static final EntityDataAccessor<Boolean> PEEKING = SynchedEntityData.defineId(V35Entity.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Boolean> PEEKING = SynchedEntityData.defineId(V100Entity.class, EntityDataSerializers.BOOLEAN);
     private BlockPos window = null;
     private Direction windowOut = null;
     private int knockStart = 0;
-    private final Map<UUID, Integer> gaze = new HashMap<>();
+    private final Map<UUID, Integer> moves = new HashMap<>();
+    private final Map<UUID, Vec3> lastPos = new HashMap<>();
 
-    public V35Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
+    public V100Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
 
-    @Override public String vName() { return "V-35"; }
+    @Override public String vName() { return "V-100"; }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder b) {
@@ -120,7 +123,7 @@ public class V35Entity extends VEntity {
     private boolean pickWindow(ServerLevel level, RoomsState rs, int room) {
         startRoom = room;
         List<Object[]> ws = windows(level, rs, room);
-        if (ws.isEmpty()) { window = null; RoomsDebug.log("V-35: room {} ({}) has no eligible window -> waiting", room, com.example.roomsmod.event.RoomTracker.format(rs, room)); return false; }
+        if (ws.isEmpty()) { window = null; RoomsDebug.log("V-100: room {} ({}) has no eligible window -> waiting", room, com.example.roomsmod.event.RoomTracker.format(rs, room)); return false; }
         Object[] w = ws.get(level.random.nextInt(ws.size()));
         window = (BlockPos) w[0];
         windowOut = (Direction) w[1];
@@ -129,7 +132,7 @@ public class V35Entity extends VEntity {
         setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5); // 足元＝ポケットのブロック（描画中心 y+0.55 がガラスの高さ）
         faceTowards(Vec3.atCenterOf(window.relative(windowOut.getOpposite())));
         knockStart = life;
-        RoomsDebug.log("V-35 chose window {} pocket {} in room {} ({}) of {} candidates", window, at, room, com.example.roomsmod.event.RoomTracker.format(rs, room), ws.size());
+        RoomsDebug.log("V-100 chose window {} pocket {} in room {} ({}) of {} candidates", window, at, room, com.example.roomsmod.event.RoomTracker.format(rs, room), ws.size());
         return true;
     }
 
@@ -154,91 +157,56 @@ public class V35Entity extends VEntity {
         // プレイヤーが別の部屋へ移ったら、その部屋の窓に移り直す（ノックからやり直し）
         int fr = furthestPlayerRoom(level, rs);
         if (fr >= 0 && fr != startRoom) {
-            RoomsDebug.log("V-35 player moved room {} -> {}: re-pick window", startRoom, fr);
+            RoomsDebug.log("V-100 player moved room {} -> {}: re-pick window", startRoom, fr);
             if (isPeeking()) entityData.set(PEEKING, false);
             pickWindow(level, rs, fr);
         }
         // 窓が壊れた・無効になった
         if (window != null && !isValidWindow(level, rs, startRoom, window, windowOut)) {
-            RoomsDebug.log("V-35 window {} no longer valid: re-pick", window);
+            RoomsDebug.log("V-100 window {} no longer valid: re-pick", window);
             if (isPeeking()) entityData.set(PEEKING, false);
             pickWindow(level, rs, startRoom);
         }
         if (window == null && life % 20 == 0) pickWindow(level, rs, startRoom); // 古いセーブ等
         if (window == null) { if (isPeeking()) entityData.set(PEEKING, false); return; } // 窓のない部屋：見えないまま待つ（寿命で消える）
         int t = life - knockStart;
-        if (t == 1 || t == 12) level.playSound(null, window, RoomsMod.V35_KNOCK.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
+        if (t == 1 || t == 12) level.playSound(null, window, RoomsMod.V100_KNOCK.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
         if (t < KNOCK_TICKS) return;
-        if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-35 peeking at window {} room {} inPocket={}", window, startRoom, isInPocket(level)); }
+        if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-100 peeking at window {} room {} inPocket={}", window, startRoom, isInPocket(level)); }
         if (t > KNOCK_TICKS + PEEK_TICKS) { leave("peek time over"); return; }
-        for (Player p : playersNear(RANGE)) if (gazeTick(level, p)) return;
+        if (t < KNOCK_TICKS + REACT_TICKS) { for (Player p : level.players()) lastPos.put(p.getUUID(), p.position()); return; } // 反応の猶予
+        for (Player p : level.players()) if (moveTick(level, rs, p)) return;
     }
 
     public BlockPos window() { return window; }
     public Direction windowOut() { return windowOut; }
 
-    /** 顔の中心（描画の中心＝足元 + FACE_HEIGHT）。 */
-    public Vec3 faceCenter() { return position().add(0, FACE_HEIGHT, 0); }
-
     /**
-     * 1プレイヤー分の視線判定（毎tick）。見ていれば累計+1、GAZE_KILL_TICKS で攻撃（クリエイティブはログのみ）。
+     * 1プレイヤー分の動き判定（毎tick）。見張っている部屋にいて、しゃがまずに動いた（水平移動 > MOVE_EPSILON、またはジャンプ）tick を累計し、
+     * MOVE_KILL_TICKS で攻撃（クリエイティブ・観戦者はログのみ）。視線の向き（首振り）は関係ない。
      * @return 攻撃して消えたら true
      */
-    public boolean gazeTick(ServerLevel level, Player p) {
-        if (!isPeeking() || isRemoved()) return false;
-        String why = HidingRules.isProtectedFrom(this, p) ? "hiding" : lookFailReason(p, faceCenter());
-        if (why != null) {
-            if (RoomsDebug.isEnabled() && life % 10 == 0) RoomsDebug.log("V-35 not looking player={} reason={}", p.getGameProfile().getName(), why);
-            return false;
-        }
-        int g = gaze.getOrDefault(p.getUUID(), 0) + 1; // 累積（逸らしても減らない）
-        gaze.put(p.getUUID(), g);
-        RoomsDebug.log(p, "V-35 gaze " + g + "/" + GAZE_KILL_TICKS, "V-35 gaze {}/{} player={}", g, GAZE_KILL_TICKS, p.getGameProfile().getName());
-        if (g < GAZE_KILL_TICKS) return false;
-        level.playSound(null, getX(), getY(), getZ(), RoomsMod.V35_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
+    public boolean moveTick(ServerLevel level, RoomsState rs, Player p) {
+        Vec3 now = p.position(), prev = lastPos.put(p.getUUID(), now);
+        if (!isPeeking() || isRemoved() || prev == null || !p.isAlive()) return false;
+        if (com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()) != startRoom) return false;
+        if (HidingRules.isHiding(p)) return false; // 隠れ場所の中は動けない
+        double dx = now.x - prev.x, dz = now.z - prev.z, dy = now.y - prev.y;
+        boolean jumped = dy > JUMP_EPSILON && !p.onGround();
+        boolean walked = Math.sqrt(dx * dx + dz * dz) > MOVE_EPSILON && !p.isShiftKeyDown();
+        if (!jumped && !walked) return false;
+        int n = moves.getOrDefault(p.getUUID(), 0) + 1; // 累積
+        moves.put(p.getUUID(), n);
+        RoomsDebug.log(p, "V-100 move " + n + "/" + MOVE_KILL_TICKS + (jumped ? "（ジャンプ）" : ""), "V-100 move {}/{} player={} jumped={} dxz={}",
+                n, MOVE_KILL_TICKS, p.getGameProfile().getName(), jumped, String.format("%.3f", Math.sqrt(dx * dx + dz * dz)));
+        if (n < MOVE_KILL_TICKS) return false;
+        level.playSound(null, getX(), getY(), getZ(), RoomsMod.V100_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
         boolean immune = p.isCreative() || p.isSpectator();
-        RoomsDebug.log(p, immune ? "V-35: would kill（クリエイティブ）" : "V-35 に見つかったわ",
-                "V-35 attack player={} after gaze {} ticks creative={}{}", p.getGameProfile().getName(), g, p.isCreative(), immune ? " -> would kill" : "");
+        RoomsDebug.log(p, immune ? "V-100: would kill（クリエイティブ）" : "V-100 に見つかったわ",
+                "V-100 attack player={} after {} moving ticks creative={}{}", p.getGameProfile().getName(), n, p.isCreative(), immune ? " -> would kill" : "");
         if (!immune) p.hurt(damageSources().mobAttack(this), DAMAGE);
         leave("attacked");
         return true;
-    }
-
-    /** 見ていれば null、見ていなければ理由。視野円錐（顔の見かけの大きさも足す）＋ガラス・板ガラスを透過する視線。 */
-    public String lookFailReason(Player p, Vec3 face) {
-        Vec3 eye = p.getEyePosition();
-        Vec3 to = face.subtract(eye);
-        double dist = to.length();
-        if (dist < 1.0E-3) return null;
-        double ang = Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, p.getViewVector(1.0f).dot(to.normalize())))));
-        double allowed = GAZE_CONE_DEG + Math.toDegrees(Math.atan(FACE_RADIUS / dist));
-        if (ang > allowed) return String.format("cone %.1f>%.1f", ang, allowed);
-        // 窓は1ブロック幅なので、斜めから見ると顔の中心への線は窓の横の壁に当たる。
-        // 窓（板ガラス）まで見通せればその奥の V-35 も見えているとみなす。
-        if (lineOfSight(eye, face, p)) return null;
-        if (window != null && lineOfSight(eye, Vec3.atCenterOf(window), p)) return null;
-        return "blocked";
-    }
-
-    private boolean lineOfSight(Vec3 eye, Vec3 face, Player p) {
-        Vec3 to = face.subtract(eye);
-        // 板ガラス・ガラスは透明扱い：当たったら少し先から撃ち直す
-        Vec3 from = eye;
-        for (int i = 0; i < 8; i++) {
-            BlockHitResult hit = level().clip(new ClipContext(from, face, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
-            if (hit.getType() == HitResult.Type.MISS) return true;
-            BlockPos h = hit.getBlockPos();
-            if (h.equals(blockPosition()) || (h.equals(window) && face.distanceTo(Vec3.atCenterOf(window)) < 0.01)) return true;
-            var s = level().getBlockState(h);
-            if (!(s.getBlock() instanceof net.minecraft.world.level.block.IronBarsBlock) && !(s.getBlock() instanceof net.minecraft.world.level.block.TransparentBlock)) {
-                if (RoomsDebug.isEnabled() && life % 10 == 0) RoomsDebug.log("V-35 sight blocked by {} at {}", s.getBlock(), h);
-                return false;
-            }
-            from = hit.getLocation().add(to.normalize().scale(0.05));
-            // ガラスブロックの中から出るまで進める
-            while (level().getBlockState(BlockPos.containing(from)).equals(s) && from.distanceTo(face) > 0.1) from = from.add(to.normalize().scale(0.1));
-        }
-        return false;
     }
 
     @Override
@@ -248,7 +216,7 @@ public class V35Entity extends VEntity {
     }
 
     @Override
-    protected String debugState() { return "window=" + window + " peeking=" + isPeeking() + " gaze=" + gaze.values(); }
+    protected String debugState() { return "window=" + window + " peeking=" + isPeeking() + " moves=" + moves.values(); }
 
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {

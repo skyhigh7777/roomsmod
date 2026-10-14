@@ -180,7 +180,8 @@ public class RoomsCommands {
                 .then(Commands.literal("v25buffed").executes(ctx -> spawnV(ctx.getSource(), "v25buffed"))
                     .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
-                .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v35")))
+                .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
+                .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v100"))) // 旧名の別名
                 .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50"))))
             .then(Commands.literal("section")
                 .requires(src -> src.hasPermission(2))

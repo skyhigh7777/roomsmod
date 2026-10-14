@@ -33,7 +33,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.V25T.get(), c -> new VRenderer<>(c, "v25t", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.V25L.get(), c -> new VRenderer<>(c, "v25l", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.V25_BUFFED.get(), c -> new VRenderer<>(c, "v25_buffed", 2.6f, 0.15f));
-        event.registerEntityRenderer(RoomsMod.V35.get(), c -> new VRenderer<>(c, "v35", 1.1f, 0.05f).withEyes("v35_eyes"));
+        event.registerEntityRenderer(RoomsMod.V100.get(), c -> new VRenderer<>(c, "v100", 1.1f, 0.05f).withEyes("v100_eyes"));
         event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
     }
 
@@ -122,7 +122,7 @@ public class ClientSetup {
         }
     }
 
-    /** V エンティティ共通：カメラを向く板（テクスチャで区別、仮）。V-35 はノック中は描画しない。 */
+    /** V エンティティ共通：カメラを向く板（テクスチャで区別、仮）。V-100 はノック中は描画しない。 */
     private static class VRenderer<T extends com.example.roomsmod.entity.v.VEntity> extends EntityRenderer<T> {
         private final ResourceLocation tex;
         private final float size, wobble;
@@ -138,7 +138,7 @@ public class ClientSetup {
 
         @Override
         public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
-            if (entity instanceof com.example.roomsmod.entity.v.V35Entity v && !v.isPeeking()) return;
+            if (entity instanceof com.example.roomsmod.entity.v.V100Entity v && !v.isPeeking()) return;
             if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
             float age = entity.tickCount + pt;
             ps.pushPose();
