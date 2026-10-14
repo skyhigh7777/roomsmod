@@ -1,4 +1,62 @@
 {
-  "a20_approach": { "sounds": ["roomsmod:a20_approach"], "subtitle": "subtitles.roomsmod.a20_approach" },
-  "a40_approach": { "sounds": ["roomsmod:a40_approach"], "subtitle": "subtitles.roomsmod.a40_approach" }
+  "a20_approach": {
+    "sounds": [
+      "roomsmod:a20_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.a20_approach"
+  },
+  "a40_approach": {
+    "sounds": [
+      "roomsmod:a40_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.a40_approach"
+  },
+  "v10_approach": {
+    "sounds": [
+      "roomsmod:v10_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.v10_approach"
+  },
+  "v25t_step": {
+    "sounds": [
+      "roomsmod:v25t_step"
+    ],
+    "subtitle": "subtitles.roomsmod.v25t_step"
+  },
+  "v25t_check": {
+    "sounds": [
+      "roomsmod:v25t_check"
+    ],
+    "subtitle": "subtitles.roomsmod.v25t_check"
+  },
+  "v25l_step": {
+    "sounds": [
+      "roomsmod:v25l_step"
+    ],
+    "subtitle": "subtitles.roomsmod.v25l_step"
+  },
+  "v25l_check": {
+    "sounds": [
+      "roomsmod:v25l_check"
+    ],
+    "subtitle": "subtitles.roomsmod.v25l_check"
+  },
+  "v35_knock": {
+    "sounds": [
+      "roomsmod:v35_knock"
+    ],
+    "subtitle": "subtitles.roomsmod.v35_knock"
+  },
+  "v35_scream": {
+    "sounds": [
+      "roomsmod:v35_scream"
+    ],
+    "subtitle": "subtitles.roomsmod.v35_scream"
+  },
+  "v50_approach": {
+    "sounds": [
+      "roomsmod:v50_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_approach"
+  }
 }

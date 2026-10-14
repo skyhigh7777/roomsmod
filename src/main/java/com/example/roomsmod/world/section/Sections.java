@@ -45,7 +45,7 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 
-    /** V（Village）区画。部屋の形・家具は VillageRooms（小さな民家、2階建てあり）。shapeWeights/furniture は未使用、cover は遮蔽物のブロック。ラッシャーなし。 */
+    /** V（Village）区画。部屋の形・家具は VillageRooms（小さな民家、2階建てあり）。shapeWeights/furniture は未使用、cover は遮蔽物のブロック。エンティティは V-10/V-25-T/V-25-L/V-35/V-50。 */
     public static final SectionTheme V = register(new SectionTheme(
             "v", "V",
             new SectionTheme.Palette(
@@ -63,11 +63,21 @@ public final class Sections {
             List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.6f),
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.4f)),
             3, 2,
-            List.of(),
+            // V のエンティティ（minRoom はセクション内番号）。上から独立抽選、同種は1体まで、V-25-T/L は排他グループ。
+            List.of(
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V10, 10, 0.35f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25T, 25, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25L, 25, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V35, 35, 0.15f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V50, 50, 0.12f)),
             new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
             1, 7));
 
     private Sections() {}
+
+    private static SectionTheme.RusherSpawn vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind k, int minRoom, float chance) {
+        return new SectionTheme.RusherSpawn(k.display, minRoom, chance, k::alive, k::spawn);
+    }
 
     public static SectionTheme register(SectionTheme t) {
         if (THEMES.putIfAbsent(t.id(), t) != null) throw new IllegalStateException("duplicate section " + t.id());

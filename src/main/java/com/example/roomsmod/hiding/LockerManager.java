@@ -48,6 +48,13 @@ public final class LockerManager {
         return h == null ? null : h.spot;
     }
 
+    /** 隠れている場所のブロック座標（ロッカーは下半分、隠れていなければ null）。サーバー側のみ。 */
+    public static BlockPos getSpotPos(Player player) {
+        if (player.level().isClientSide()) return null;
+        Hide h = HIDING.get(player.getUUID());
+        return h == null ? null : h.pos;
+    }
+
     public static boolean isInLocker(Player player) { return getSpot(player) == Spot.LOCKER; }
 
     public static boolean isUnderTable(Player player) { return getSpot(player) == Spot.TABLE; }

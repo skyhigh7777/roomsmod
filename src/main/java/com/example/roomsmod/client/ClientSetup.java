@@ -29,6 +29,11 @@ public class ClientSetup {
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(RoomsMod.A20.get(), A20Renderer::new);
         event.registerEntityRenderer(RoomsMod.A40.get(), A40Renderer::new);
+        event.registerEntityRenderer(RoomsMod.V10.get(), c -> new VRenderer<>(c, "v10", 2.0f, 0.5f));
+        event.registerEntityRenderer(RoomsMod.V25T.get(), c -> new VRenderer<>(c, "v25t", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.V25L.get(), c -> new VRenderer<>(c, "v25l", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.V35.get(), c -> new VRenderer<>(c, "v35", 2.0f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
     }
 
     private static class A20Renderer extends EntityRenderer<A20Entity> {
@@ -114,5 +119,42 @@ public class ClientSetup {
         public ResourceLocation getTextureLocation(com.example.roomsmod.entity.A40Entity entity) {
             return TEX;
         }
+    }
+
+    /** V エンティティ共通：カメラを向く板（テクスチャで区別、仮）。V-35 はノック中は描画しない。 */
+    private static class VRenderer<T extends com.example.roomsmod.entity.v.VEntity> extends EntityRenderer<T> {
+        private final ResourceLocation tex;
+        private final float size, wobble;
+
+        VRenderer(EntityRendererProvider.Context context, String name, float size, float wobble) {
+            super(context);
+            this.tex = ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/" + name + ".png");
+            this.size = size; this.wobble = wobble;
+            this.shadowRadius = 0.0f;
+        }
+
+        @Override
+        public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
+            if (entity instanceof com.example.roomsmod.entity.v.V35Entity v && !v.isPeeking()) return;
+            float age = entity.tickCount + pt;
+            ps.pushPose();
+            ps.translate(0.0f, size * 0.5f, 0.0f);
+            ps.mulPose(this.entityRenderDispatcher.cameraOrientation());
+            float s = size * (1.0f + Mth.sin(age * 0.5f) * wobble * 0.2f);
+            ps.scale(s, s, s);
+            VertexConsumer vc = buf.getBuffer(RenderType.entityTranslucentEmissive(tex));
+            PoseStack.Pose pose = ps.last();
+            Matrix4f m = pose.pose();
+            int l = 15728880;
+            vc.addVertex(m, -0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, 0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, 0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, -0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            ps.popPose();
+            super.render(entity, yaw, pt, ps, buf, light);
+        }
+
+        @Override
+        public ResourceLocation getTextureLocation(T entity) { return tex; }
     }
 }

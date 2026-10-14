@@ -59,6 +59,31 @@ public class RoomsMod {
                     .clientTrackingRange(12) // 192ブロック：接近音(160ブロック)が届く距離まで同期
                     .updateInterval(1) // 高速移動するので毎tick位置同期（追従サウンド用）
                     .build("a40"));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V10_APPROACH = SOUND_EVENTS.register("v10_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v10_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V25T_STEP = SOUND_EVENTS.register("v25t_step", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25t_step")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V25T_CHECK = SOUND_EVENTS.register("v25t_check", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25t_check")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V25L_STEP = SOUND_EVENTS.register("v25l_step", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25l_step")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V25L_CHECK = SOUND_EVENTS.register("v25l_check", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25l_check")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V35_KNOCK = SOUND_EVENTS.register("v35_knock", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v35_knock")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V35_SCREAM = SOUND_EVENTS.register("v35_scream", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v35_scream")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V50_APPROACH = SOUND_EVENTS.register("v50_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_approach")));
+
+    // ---- V（Village）区画のエンティティ（仮名。改名は id・VSpawns.Kind・lang・テクスチャ名）----
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V10Entity>> V10 = ENTITIES.register("v10",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V10Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 1.8f).clientTrackingRange(12).updateInterval(1).build("v10"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V25TEntity>> V25T = ENTITIES.register("v25t",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V25TEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("v25t"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V25LEntity>> V25L = ENTITIES.register("v25l",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V25LEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("v25l"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V35Entity>> V35 = ENTITIES.register("v35",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V35Entity::new, MobCategory.MONSTER)
+                    .sized(0.9f, 1.9f).clientTrackingRange(12).updateInterval(1).build("v35"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V50Entity>> V50 = ENTITIES.register("v50",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V50Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.4f).clientTrackingRange(12).updateInterval(1).build("v50"));
 
     public RoomsMod(IEventBus modEventBus) {
         LOGGER.info("Rooms Mod is loading!");
@@ -92,6 +117,8 @@ public class RoomsMod {
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
+        for (var t : java.util.List.of(V10, V25T, V25L, V35, V50))
+            event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

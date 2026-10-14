@@ -47,6 +47,20 @@ public class RoomsCommands {
         return 1;
     }
 
+    /** V エンティティの強制出現（同種・排他グループの生存チェックあり）。プレイヤーのいる部屋（RCON なら最新の1つ手前）基準。 */
+    private static int spawnV(CommandSourceStack src, String id) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        var rs = com.example.roomsmod.world.RoomsState.get(lv);
+        if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
+        var k = com.example.roomsmod.entity.v.VSpawns.Kind.byId(id);
+        if (k.alive(lv)) { src.sendFailure(Component.literal(k.display + "（または同じ排他グループ）はすでに生存中よ")); return 0; }
+        com.example.roomsmod.util.RoomsDebug.log("force spawn {} by {}", k.display, src.getTextName());
+        if (!k.spawn(lv, rs, src.getPlayer())) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
+        src.sendSuccess(() -> Component.literal(k.display + "を出現させたわ"), true);
+        return 1;
+    }
+
     private static int addSection(CommandSourceStack src, String id, Integer startRoom) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
@@ -150,7 +164,12 @@ public class RoomsCommands {
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
-                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true))))
+                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
+                .then(Commands.literal("v10").executes(ctx -> spawnV(ctx.getSource(), "v10")))
+                .then(Commands.literal("v25t").executes(ctx -> spawnV(ctx.getSource(), "v25t")))
+                .then(Commands.literal("v25l").executes(ctx -> spawnV(ctx.getSource(), "v25l")))
+                .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v35")))
+                .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50"))))
             .then(Commands.literal("section")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("reset").executes(ctx -> resetSections(ctx.getSource())))
