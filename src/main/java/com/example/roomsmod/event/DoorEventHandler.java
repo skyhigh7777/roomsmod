@@ -31,8 +31,6 @@ public class DoorEventHandler {
     public static final float A60_CHANCE = 0.6f;
     public static final int A75_MIN_ROOM = 15;
     public static final float A75_CHANCE = 0.25f;
-    /** 当選したが出せなかった A-75（メモリのみ。サーバー再起動で消える）。 */
-    private static boolean pendingA75 = false;
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
@@ -74,7 +72,6 @@ public class DoorEventHandler {
         RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（A-" + String.format("%03d", room) + "）",
             "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
 
-        // 同時に複数のラッシャーは出さない
         try {
             rollRushers(level, rs, event.getEntity(), room);
         } catch (RuntimeException e) {
@@ -83,52 +80,36 @@ public class DoorEventHandler {
     }
 
     /**
-     * ラッシャー抽選。A-60 と A-75 はそれぞれ独立に抽選し、両方当たったら50/50で片方。
-     * A-75 が当たったのに他のラッシャー生存中で出せなかった場合は保留し、次の部屋でラッシャーがいなければ出す。
+     * ラッシャー抽選。A-60 と A-75 はそれぞれ独立に抽選し、同じ部屋で両方出ることもある。
+     * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
     private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
-        boolean alive = isRusherAlive(level);
-        if (pendingA75) {
-            if (alive) {
-                RoomsDebug.log("rusher room={} A-75 pending still blocked: another rusher is alive", room);
-            } else {
-                RoomsDebug.log("rusher room={} spawning pending A-75", room);
-                if (spawnA75(level, rs, player)) pendingA75 = false;
-                return; // 保留分を出した部屋では新規抽選しない
-            }
-        }
-
         boolean a60Hit = room >= A60_MIN_ROOM && level.random.nextFloat() < A60_CHANCE;
         boolean a75Hit = room >= A75_MIN_ROOM && level.random.nextFloat() < A75_CHANCE;
-        RoomsDebug.log("rusher roll room={} A-60={} (room>={}, {}) A-75={} (room>={}, {}) rusherAlive={}",
-            room, a60Hit, A60_MIN_ROOM, A60_CHANCE, a75Hit, A75_MIN_ROOM, A75_CHANCE, alive);
-        if (a60Hit && a75Hit) {
-            if (level.random.nextBoolean()) a75Hit = false; else a60Hit = false;
-            RoomsDebug.log("rusher roll room={} both hit -> picked {}", room, a60Hit ? "A-60" : "A-75");
-        }
-        if (!a60Hit && !a75Hit) return;
-
-        if (alive) {
-            if (a75Hit) {
-                pendingA75 = true;
-                RoomsDebug.log("rusher roll room={} A-75 blocked by alive rusher -> pending", room);
-            } else {
-                RoomsDebug.log("rusher roll room={} A-60 skipped: another rusher is alive", room);
-            }
-            return;
-        }
+        boolean a60Alive = isA60Alive(level);
+        boolean a75Alive = isA75Alive(level);
+        RoomsDebug.log("rusher roll room={} A-60={} (room>={}, {}) alive={} | A-75={} (room>={}, {}) alive={}",
+            room, a60Hit, A60_MIN_ROOM, A60_CHANCE, a60Alive, a75Hit, A75_MIN_ROOM, A75_CHANCE, a75Alive);
         if (a60Hit) {
-            spawnA60(level, rs, player);
-        } else if (!spawnA75(level, rs, player)) {
-            pendingA75 = true;
-            RoomsDebug.log("rusher roll room={} A-75 spawn failed -> pending", room);
+            if (a60Alive) RoomsDebug.log("rusher roll room={} A-60 skipped: an A-60 is already alive", room);
+            else spawnA60(level, rs, player);
+        }
+        if (a75Hit) {
+            if (a75Alive) RoomsDebug.log("rusher roll room={} A-75 skipped: an A-75 is already alive", room);
+            else if (!spawnA75(level, rs, player)) RoomsDebug.log("rusher roll room={} A-75 spawn failed", room);
         }
     }
 
-    /** A-60 または A-75 が生存中か。 */
-    public static boolean isRusherAlive(ServerLevel level) {
+    public static boolean isA60Alive(ServerLevel level) {
         for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
-            if ((e instanceof A60Entity || e instanceof com.example.roomsmod.entity.A75Entity) && e.isAlive()) return true;
+            if (e instanceof A60Entity && e.isAlive()) return true;
+        }
+        return false;
+    }
+
+    public static boolean isA75Alive(ServerLevel level) {
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
+            if (e instanceof com.example.roomsmod.entity.A75Entity && e.isAlive()) return true;
         }
         return false;
     }

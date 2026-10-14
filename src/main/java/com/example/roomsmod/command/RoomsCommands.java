@@ -32,8 +32,10 @@ public class RoomsCommands {
         if (roomsLevel == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(roomsLevel);
         if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
-        if (com.example.roomsmod.event.DoorEventHandler.isRusherAlive(roomsLevel)) {
-            src.sendFailure(Component.literal("他のラッシャーが生存中よ")); return 0;
+        boolean sameAlive = a75 ? com.example.roomsmod.event.DoorEventHandler.isA75Alive(roomsLevel)
+                                : com.example.roomsmod.event.DoorEventHandler.isA60Alive(roomsLevel);
+        if (sameAlive) {
+            src.sendFailure(Component.literal((a75 ? "A-75" : "A-60") + "はすでに生存中よ")); return 0;
         }
         var player = src.getPlayer();
         if (a75) {
