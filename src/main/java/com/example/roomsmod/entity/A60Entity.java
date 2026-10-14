@@ -260,8 +260,11 @@ public class A60Entity extends Mob {
                         SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
             }
             if (this.tickCount % 40 == 0) {
-                this.level().playSound(null, src.x, src.y, src.z,
-                        com.example.roomsmod.RoomsMod.A60_APPROACH.get(), SoundSource.HOSTILE, distVol, 1.0f);
+                float approachVol = approachVolume(dist);
+                if (approachVol > MIN_APPROACH_VOLUME) {
+                    this.level().playSound(null, src.x, src.y, src.z,
+                            com.example.roomsmod.RoomsMod.A60_APPROACH.get(), SoundSource.HOSTILE, approachVol, 1.0f);
+                }
             }
         }
 
@@ -334,5 +337,17 @@ public class A60Entity extends Mob {
         double hitDist = start.distanceTo(hit.getLocation());
         double targetDist = start.distanceTo(end);
         return hitDist >= targetDist - 0.5;
+    }
+
+    /** 接近ループ音のフェードイン：MAX_RANGE以遠で0、FULL_RANGE以内で最大、間はsmoothstep。 */
+    public static final double APPROACH_MAX_RANGE = 56.0;
+    public static final double APPROACH_FULL_RANGE = 4.0;
+    public static final float APPROACH_MAX_VOLUME = 3.0f;
+    public static final float MIN_APPROACH_VOLUME = 0.02f;
+
+    public static float approachVolume(double dist) {
+        double t = (APPROACH_MAX_RANGE - dist) / (APPROACH_MAX_RANGE - APPROACH_FULL_RANGE);
+        t = Math.max(0.0, Math.min(1.0, t));
+        return (float) (t * t * (3.0 - 2.0 * t)) * APPROACH_MAX_VOLUME;
     }
 }

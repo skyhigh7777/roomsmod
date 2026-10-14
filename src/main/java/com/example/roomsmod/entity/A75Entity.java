@@ -213,7 +213,7 @@ public class A75Entity extends Mob {
 
         boolean moving = phase == 1 || phase == 3 || phase == 5;
         if (this.tickCount == 1) playNearPlayer(sl, SoundEvents.WARDEN_SONIC_BOOM, 0.6f);
-        if (moving && this.tickCount % 20 == 0) playNearPlayer(sl, com.example.roomsmod.RoomsMod.A75_APPROACH.get(), 1.0f);
+        if (moving && this.tickCount % 20 == 0) playApproachNearPlayer(sl, com.example.roomsmod.RoomsMod.A75_APPROACH.get());
 
         if (moving) {
             AABB box = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
@@ -239,6 +239,19 @@ public class A75Entity extends Mob {
         Vec3 src = p.position().add(to.scale(Math.min(dist, 8.0)));
         float vol = (float) Math.max(0.3, Math.min(1.0, 1.0 - dist / 150.0)) * 3.0f;
         sl.playSound(null, src.x, src.y, src.z, sound, SoundSource.HOSTILE, Math.max(0.9f, vol), pitch);
+    }
+
+    /** 接近ループ音：playNearPlayerと同じ位置決め、音量はA60Entity.approachVolume（距離フェードイン）。 */
+    private void playApproachNearPlayer(ServerLevel sl, SoundEvent sound) {
+        Player p = sl.getNearestPlayer(this, 500);
+        if (p == null) return;
+        double dist = this.distanceTo(p);
+        float vol = A60Entity.approachVolume(dist);
+        if (vol <= A60Entity.MIN_APPROACH_VOLUME) return;
+        Vec3 to = this.position().subtract(p.position());
+        to = to.lengthSqr() > 1.0E-6 ? to.normalize() : Vec3.ZERO;
+        Vec3 src = p.position().add(to.scale(Math.min(dist, 8.0)));
+        sl.playSound(null, src.x, src.y, src.z, sound, SoundSource.HOSTILE, vol, 1.0f);
     }
 
     private void spawnVisualParticles() {
