@@ -32,9 +32,31 @@ public final class LockerClient {
         return st.getBlock() instanceof LockerBlock && st.getValue(LockerBlock.HALF) == DoubleBlockHalf.LOWER;
     }
 
+    /** 足元が机なら机の下にいる（立った姿勢では天板に当たって入れないため）。 */
+    public static boolean isLocalPlayerUnderTable() {
+        LocalPlayer p = Minecraft.getInstance().player;
+        return p != null && p.level().getBlockState(p.blockPosition()).getBlock() instanceof com.example.roomsmod.block.HidingTableBlock;
+    }
+
+    private static boolean forcedByUs = false;
+
+    /** クライアント側でも這い姿勢を合わせ、サーバーとの姿勢ずれでガタつかないようにする。 */
+    @SubscribeEvent
+    public static void onClientTick(net.neoforged.neoforge.client.event.ClientTickEvent.Post event) {
+        LocalPlayer p = Minecraft.getInstance().player;
+        if (p == null) { forcedByUs = false; return; }
+        if (isLocalPlayerUnderTable()) {
+            p.setForcedPose(net.minecraft.world.entity.Pose.SWIMMING);
+            forcedByUs = true;
+        } else if (forcedByUs) {
+            p.setForcedPose(null);
+            forcedByUs = false;
+        }
+    }
+
     @SubscribeEvent
     public static void onMovementInput(MovementInputUpdateEvent event) {
-        if (!isLocalPlayerInLocker()) return;
+        if (!isLocalPlayerInLocker() && !isLocalPlayerUnderTable()) return;
         Input in = event.getInput();
         in.forwardImpulse = 0;
         in.leftImpulse = 0;
@@ -46,6 +68,24 @@ public final class LockerClient {
     public static void registerLayers(RegisterGuiLayersEvent event) {
         event.registerAbove(VanillaGuiLayers.CAMERA_OVERLAYS,
                 ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "locker_overlay"), LockerClient::renderOverlay);
+        event.registerAbove(VanillaGuiLayers.CAMERA_OVERLAYS,
+                ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "table_overlay"), LockerClient::renderTableOverlay);
+    }
+
+    /** 机の下：ロッカーより明るめ。上は天板の影、中央に横長の視界、下（床側）を暗く。 */
+    private static void renderTableOverlay(GuiGraphics g, DeltaTracker delta) {
+        if (!isLocalPlayerUnderTable() || Minecraft.getInstance().options.hideGui) return;
+        int w = g.guiWidth(), h = g.guiHeight();
+        int top = (int) (h * 0.30), bottom = (int) (h * 0.62);
+        g.fill(0, 0, w, top, 0xC0080604);          // 天板
+        g.fill(0, bottom, w, h, 0xA0000000);       // 下側
+        for (int i = 0; i < 6; i++) {              // スリット上下のぼかし
+            int a = 0x14 * (6 - i);
+            g.fill(0, top + i * 3, w, top + i * 3 + 3, a << 24);
+            g.fill(0, bottom - (i + 1) * 3, w, bottom - i * 3, a << 24);
+        }
+        g.fill(0, top, w / 12, bottom, 0x70000000); // 左右の脚の影
+        g.fill(w - w / 12, top, w, bottom, 0x70000000);
     }
 
     private static void renderOverlay(GuiGraphics g, DeltaTracker delta) {

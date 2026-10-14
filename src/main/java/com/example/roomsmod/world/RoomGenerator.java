@@ -20,6 +20,8 @@ import java.util.Set;
  * 看板はText Displayで大きめに表示。
  */
 public class RoomGenerator {
+    /** 隠れ場所のうち机にする割合（残りはロッカー）。 */
+    public static final float TABLE_HIDING_CHANCE = 0.3f;
     /** 直近の choosePlan の結果（デバッグ用）。 */
     private static String lastPlanInfo = "";
 
@@ -380,7 +382,13 @@ public class RoomGenerator {
             if (!reserve(used, c[0], c[1], 1)) continue;
             used.add(key(fx, fz));
             if (p.inside(fx2, fz2) && !p.isWall(fx2, fz2)) used.add(key(fx2, fz2));
-            placeHidingSpot(level, origin.offset(c[0], 1, c[1]), facing);
+            if (rand.nextFloat() < TABLE_HIDING_CHANCE) {
+                level.setBlockAndUpdate(origin.offset(c[0], 1, c[1]), com.example.roomsmod.RoomsMod.HIDING_TABLE.get().defaultBlockState());
+                com.example.roomsmod.util.RoomsDebug.log("hiding spot type=table at {}", origin.offset(c[0], 1, c[1]));
+            } else {
+                placeHidingSpot(level, origin.offset(c[0], 1, c[1]), facing);
+                com.example.roomsmod.util.RoomsDebug.log("hiding spot type=locker at {}", origin.offset(c[0], 1, c[1]));
+            }
             hides--;
         }
 

@@ -21,16 +21,59 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** サーバー側のロッカー入退室管理。NeoForge.EVENT_BUS に登録する。 */
 public final class LockerManager {
-    private record Hide(ServerLevel level, BlockPos pos, Direction facing, boolean sneakReleased) {
-        Hide withSneakReleased() { return new Hide(level, pos, facing, true); }
+    /**
+     * 隠れ場所の種類。safety は将来「机はロッカーより危ない」等のルール用（1.0=常に守られる）。
+     * 例：HidingRules.addExposure((rusher, p) -> LockerManager.getSpot(p) == Spot.TABLE && rnd > Spot.TABLE.safety)
+     * 現在はどちらも1.0で、どこからも参照していない。
+     */
+    public enum Spot {
+        LOCKER(1.0f), TABLE(1.0f);
+        public final float safety;
+        Spot(float safety) { this.safety = safety; }
+    }
+
+    /** exitPos: 出るときに立たせる位置。 */
+    private record Hide(Spot spot, ServerLevel level, BlockPos pos, BlockPos exitPos, boolean sneakReleased) {
+        Hide withSneakReleased() { return new Hide(spot, level, pos, exitPos, true); }
     }
 
     private static final Map<UUID, Hide> HIDING = new ConcurrentHashMap<>();
 
     private LockerManager() {}
 
-    public static boolean isInLocker(Player player) {
-        return !player.level().isClientSide() && HIDING.containsKey(player.getUUID());
+    /** サーバー側で隠れている場所の種類（隠れていなければ null）。 */
+    public static Spot getSpot(Player player) {
+        if (player.level().isClientSide()) return null;
+        Hide h = HIDING.get(player.getUUID());
+        return h == null ? null : h.spot;
+    }
+
+    public static boolean isInLocker(Player player) { return getSpot(player) == Spot.LOCKER; }
+
+    public static boolean isUnderTable(Player player) { return getSpot(player) == Spot.TABLE; }
+
+    private static boolean occupied(ServerPlayer player, BlockPos pos) {
+        for (Hide h : HIDING.values()) if (h.level == player.serverLevel() && h.pos.equals(pos)) return true;
+        return false;
+    }
+
+    /** 机の下に潜る／出る。這い姿勢（SWIMMING）を強制し、机の中央に固定する。 */
+    public static void toggleTable(ServerPlayer player, BlockPos pos) {
+        if (HIDING.containsKey(player.getUUID())) { exit(player, "right-click"); return; }
+        if (player.isSpectator() || !player.isAlive()) return;
+        if (occupied(player, pos)) {
+            RoomsDebug.log(player, "机の下は使用中よ", "table enter denied pos={} player={} (occupied)", pos, player.getGameProfile().getName());
+            return;
+        }
+        BlockPos exitPos = player.blockPosition().equals(pos) ? pos.relative(player.getDirection().getOpposite()) : player.blockPosition().immutable();
+        HIDING.put(player.getUUID(), new Hide(Spot.TABLE, player.serverLevel(), pos.immutable(), exitPos, !player.isShiftKeyDown()));
+        player.stopRiding();
+        player.setForcedPose(net.minecraft.world.entity.Pose.SWIMMING);
+        player.setPose(net.minecraft.world.entity.Pose.SWIMMING);
+        player.setDeltaMovement(Vec3.ZERO);
+        Vec3 c = inside(pos);
+        player.teleportTo(player.serverLevel(), c.x, c.y, c.z, player.getYRot(), 0f);
+        RoomsDebug.log(player, "机の下に隠れたわ", "table enter pos={} exit={} player={}", pos, exitPos, player.getGameProfile().getName());
     }
 
     public static void toggle(ServerPlayer player, BlockPos base, Direction facing) {
@@ -40,13 +83,11 @@ public final class LockerManager {
             return;
         }
         if (player.isSpectator() || !player.isAlive()) return;
-        for (Hide h : HIDING.values()) {
-            if (h.level == player.serverLevel() && h.pos.equals(base)) {
-                RoomsDebug.log(player, "ロッカーは使用中よ", "locker enter denied pos={} player={} (occupied)", base, player.getGameProfile().getName());
-                return;
-            }
+        if (occupied(player, base)) {
+            RoomsDebug.log(player, "ロッカーは使用中よ", "locker enter denied pos={} player={} (occupied)", base, player.getGameProfile().getName());
+            return;
         }
-        HIDING.put(player.getUUID(), new Hide(player.serverLevel(), base.immutable(), facing, !player.isShiftKeyDown()));
+        HIDING.put(player.getUUID(), new Hide(Spot.LOCKER, player.serverLevel(), base.immutable(), base.relative(facing), !player.isShiftKeyDown()));
         player.stopRiding();
         player.setDeltaMovement(Vec3.ZERO);
         Vec3 c = inside(base);
@@ -62,11 +103,13 @@ public final class LockerManager {
     public static void exit(ServerPlayer player, String reason) {
         Hide h = HIDING.remove(player.getUUID());
         if (h == null) return;
-        BlockPos out = h.pos.relative(h.facing);
+        if (h.spot == Spot.TABLE) player.setForcedPose(null);
+        BlockPos out = h.exitPos;
         if (player.level() == h.level && player.isAlive()) {
             player.teleportTo(h.level, out.getX() + 0.5, out.getY(), out.getZ() + 0.5, player.getYRot(), player.getXRot());
         }
-        RoomsDebug.log(player, "ロッカーから出たわ（" + reason + "）", "locker exit pos={} reason={} player={}", h.pos, reason, player.getGameProfile().getName());
+        String what = h.spot == Spot.TABLE ? "机の下" : "ロッカー";
+        RoomsDebug.log(player, what + "から出たわ（" + reason + "）", "{} exit pos={} reason={} player={}", h.spot, h.pos, reason, player.getGameProfile().getName());
     }
 
     @SubscribeEvent
@@ -75,8 +118,9 @@ public final class LockerManager {
         Hide h = HIDING.get(player.getUUID());
         if (h == null) return;
         BlockState st = h.level.getBlockState(h.pos);
-        if (player.level() != h.level || !(st.getBlock() instanceof LockerBlock)) {
-            exit(player, "locker gone");
+        boolean present = h.spot == Spot.TABLE ? st.getBlock() instanceof com.example.roomsmod.block.HidingTableBlock : st.getBlock() instanceof LockerBlock;
+        if (player.level() != h.level || !present) {
+            exit(player, "spot gone");
             return;
         }
         // 入る時にスニークしていた場合は、一度離すまでスニーク退出しない
@@ -86,6 +130,8 @@ public final class LockerManager {
             exit(player, "sneak");
             return;
         }
+        if (h.spot == Spot.TABLE && player.getForcedPose() != net.minecraft.world.entity.Pose.SWIMMING)
+            player.setForcedPose(net.minecraft.world.entity.Pose.SWIMMING);
         Vec3 c = inside(h.pos);
         player.setDeltaMovement(Vec3.ZERO);
         if (player.position().distanceToSqr(c) > 0.01) {
@@ -113,14 +159,18 @@ public final class LockerManager {
 
     @SubscribeEvent
     public static void onChangedDimension(PlayerEvent.PlayerChangedDimensionEvent event) {
-        if (HIDING.remove(event.getEntity().getUUID()) != null)
-            RoomsDebug.log("locker exit reason=dimension change player={}", event.getEntity().getName().getString());
+        Hide h = HIDING.remove(event.getEntity().getUUID());
+        if (h != null && h.spot == Spot.TABLE) event.getEntity().setForcedPose(null);
+        if (h != null)
+            RoomsDebug.log("hiding exit reason=dimension change player={}", event.getEntity().getName().getString());
     }
 
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event) {
-        if (event.getEntity() instanceof Player p && HIDING.remove(p.getUUID()) != null)
-            RoomsDebug.log("locker exit reason=death player={}", p.getName().getString());
+        if (event.getEntity() instanceof Player p && HIDING.containsKey(p.getUUID())) {
+            if (HIDING.remove(p.getUUID()).spot == Spot.TABLE) p.setForcedPose(null);
+            RoomsDebug.log("hiding exit reason=death player={}", p.getName().getString());
+        }
     }
 
     @SubscribeEvent
