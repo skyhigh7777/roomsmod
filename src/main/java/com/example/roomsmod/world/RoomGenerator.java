@@ -381,14 +381,10 @@ public class RoomGenerator {
                     if (!done.add(((long) x << 32) ^ (z & 0xffffffffL))) continue;
                     level.setBlockAndUpdate(origin.offset(x, 0, z), theme.palette().floor().get());
                     boolean entrance = z == 0 && x >= ENTRANCE_X - 1 && x <= ENTRANCE_X + 1;
-                    if (p.isWall(x, z) && !entrance) {
-                        for (int y = 1; y < p.height; y++) {
-                            level.setBlockAndUpdate(origin.offset(x, y, z), theme.palette().wall().get());
-                        }
-                    } else {
-                        for (int y = 1; y < p.height; y++) {
-                            level.setBlockAndUpdate(origin.offset(x, y, z), Blocks.AIR.defaultBlockState());
-                        }
+                    for (int y = 1; y < p.height; y++) {
+                        // 入口の開口は扉の高さ（y=1..2）まで。それより上は前の部屋の天井より高くなりうるので塞ぐ（外の空の光が入らないように）
+                        boolean solid = p.isWall(x, z) && !(entrance && y <= 2);
+                        level.setBlockAndUpdate(origin.offset(x, y, z), solid ? theme.palette().wall().get() : Blocks.AIR.defaultBlockState());
                     }
                     level.setBlockAndUpdate(origin.offset(x, p.height, z), theme.palette().ceiling().get());
                 }
