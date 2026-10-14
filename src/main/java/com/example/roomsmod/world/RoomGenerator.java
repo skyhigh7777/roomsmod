@@ -367,7 +367,7 @@ public class RoomGenerator {
         Collections.shuffle(open, rand);
         Set<Long> used = new HashSet<>();
 
-        // 隠れ場所：壁際に単体のオーク板（将来ロッカーに差し替え予定）。従来と同程度の3〜4個。
+        // 隠れ場所：壁際にロッカー。従来と同程度の3〜4個。
         int hides = 3 + rand.nextInt(2);
         for (int[] c : wallSide) {
             if (hides == 0) break;
@@ -429,11 +429,16 @@ public class RoomGenerator {
     }
 
     /**
-     * 隠れ場所を1つ設置する。現在はOAK_PLANKS単体（A-20の視線遮蔽判定に使用）。
+     * 隠れ場所（2マスのロッカー、正面=facing）を1つ設置する。
      * 将来ロッカーブロックに差し替える際はここだけ変更する。facingは開口側（部屋の内側）。
      */
     public static void placeHidingSpot(ServerLevel level, BlockPos pos, Direction facing) {
-        level.setBlockAndUpdate(pos, Blocks.OAK_PLANKS.defaultBlockState());
+        var lower = com.example.roomsmod.RoomsMod.LOCKER.get().defaultBlockState()
+                .setValue(com.example.roomsmod.block.LockerBlock.FACING, facing);
+        level.setBlock(pos, lower, 2);
+        level.setBlock(pos.above(), lower.setValue(com.example.roomsmod.block.LockerBlock.HALF,
+                net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER), 2);
+        level.blockUpdated(pos, lower.getBlock());
     }
 
     /** 周囲spacingマス以内が未使用なら確保する。 */

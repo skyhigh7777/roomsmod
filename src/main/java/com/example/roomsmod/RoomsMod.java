@@ -23,6 +23,17 @@ public class RoomsMod {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
+    public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks(MOD_ID);
+    public static final DeferredRegister.Items ITEMS = DeferredRegister.createItems(MOD_ID);
+    public static final net.neoforged.neoforge.registries.DeferredBlock<com.example.roomsmod.block.LockerBlock> LOCKER = BLOCKS.registerBlock("locker",
+            com.example.roomsmod.block.LockerBlock::new,
+            net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                    .mapColor(net.minecraft.world.level.material.MapColor.METAL)
+                    .strength(3.0f, 6.0f)
+                    .sound(net.minecraft.world.level.block.SoundType.METAL)
+                    .noOcclusion()
+                    .pushReaction(net.minecraft.world.level.material.PushReaction.BLOCK));
+    public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.BlockItem> LOCKER_ITEM = ITEMS.registerSimpleBlockItem("locker", LOCKER);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
     public static final DeferredHolder<SoundEvent, SoundEvent> A20_APPROACH = SOUND_EVENTS.register("a20_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a20_approach")));
     public static final DeferredHolder<SoundEvent, SoundEvent> A40_APPROACH = SOUND_EVENTS.register("a40_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a40_approach")));
@@ -43,7 +54,13 @@ public class RoomsMod {
 
     public RoomsMod(IEventBus modEventBus) {
         LOGGER.info("Rooms Mod is loading!");
+        BLOCKS.register(modEventBus);
+        ITEMS.register(modEventBus);
         ENTITIES.register(modEventBus);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);
+        modEventBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) e.accept(LOCKER_ITEM.get());
+        });
         SOUND_EVENTS.register(modEventBus);
         modEventBus.addListener(RoomsMod::onEntityAttributeCreation);
         NeoForge.EVENT_BUS.addListener(RoomsMod::onRegisterCommands);

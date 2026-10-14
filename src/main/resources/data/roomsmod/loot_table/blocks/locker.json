@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [{ "type": "minecraft:item", "name": "roomsmod:locker" }],
+      "conditions": [
+        { "condition": "minecraft:block_state_property", "block": "roomsmod:locker", "properties": { "half": "lower" } },
+        { "condition": "minecraft:survives_explosion" }
+      ]
+    }
+  ]
+}

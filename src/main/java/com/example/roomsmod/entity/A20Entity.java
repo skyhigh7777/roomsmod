@@ -274,6 +274,10 @@ public class A20Entity extends Mob {
             if (dist > MAX_RAYCAST_DISTANCE) continue;
 
             if (hasLineOfSight(player)) {
+                if (com.example.roomsmod.hiding.HidingRules.isProtectedFrom(this, player)) {
+                    if (this.tickCount % 20 == 0) com.example.roomsmod.util.RoomsDebug.log("A-20 spared hiding player={}", player.getName().getString());
+                    continue;
+                }
                 player.hurt(this.damageSources().mobAttack(this), DAMAGE);
             }
         }
