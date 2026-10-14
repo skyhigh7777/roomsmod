@@ -39,7 +39,8 @@ public class A40Entity extends Mob {
     public static final int DEFAULT_ROOMS_BACK = 6;
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f;
-    private static final double SPEED = 0.75;
+    /** 移動速度（ブロック/tick、全フェーズ共通。調整用）。旧0.75の1.5倍。 */
+    public static final double SPEED = 1.125;
     private static final int GRACE_TICKS = 80;
     private static final int TURN_PAUSE = 20;
     private static final int RETURN_PAUSE = 12;

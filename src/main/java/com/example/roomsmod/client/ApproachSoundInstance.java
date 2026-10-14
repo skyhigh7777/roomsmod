@@ -12,7 +12,7 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * Approach loop sound that follows its entity every tick. Loudness is driven entirely by
- * A20Entity.approachVolume (t^0.75 curve, 0 at >=120 blocks, full at <=4), so attenuation is NONE
+ * A20Entity.approachVolume (t^0.75 curve, 0 at >=160 blocks, full at <=4), so attenuation is NONE
  * (OpenAL rolloff off; the source position is still used for left/right panning).
  */
 public class ApproachSoundInstance extends AbstractTickableSoundInstance {
