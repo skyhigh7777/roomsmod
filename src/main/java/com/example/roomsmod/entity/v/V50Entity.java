@@ -33,6 +33,10 @@ public class V50Entity extends VPathWalker {
     public static final double HIT_RANGE = 16.0;
     public static final float DAMAGE = 8.0f;
     public static final float WARN_VOLUME = 1.0f;
+    /** 待機位置：最新の部屋の出口扉からさらに奥（扉の向こう、まだ生成されていない側）へ何ブロック下がるか。扉越しに見えないように。 */
+    public static final double HIDE_BEHIND_DOOR = 4.0;
+    /** 警告・ブザー中に潜んでいる部屋の扉（入口または出口）を開けたプレイヤーへのダメージ（隠れ・視線は無視）。 */
+    public static final float OPEN_DOOR_DAMAGE = 40.0f;
 
     /** 0=待機前, 1=警告, 2=ブザー, 3=突進 */
     private int phase = 0;
@@ -52,7 +56,48 @@ public class V50Entity extends VPathWalker {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         int ahead = rs.roomPaths.size() - 1; // 扉を開けて生成された次の部屋（最も前方）
         if (ahead <= playerRoom) return null; // 前方に部屋がない
-        return placeAtStart(rs, ahead, Math.max(0, playerRoom - ROOMS_BEHIND));
+        BlockPos door = placeAtStart(rs, ahead, Math.max(0, playerRoom - ROOMS_BEHIND));
+        if (door == null) return null;
+        // 出口扉の向こう側（部屋の最後の区間の延長線上）へ下がる。経路の先頭は出口扉なので、突進開始時にまず扉まで来る。
+        java.util.List<BlockPos> p = VSpawns.path(rs, ahead);
+        if (p.size() >= 2) {
+            BlockPos prev = p.get(p.size() - 2);
+            net.minecraft.world.phys.Vec3 dir = new net.minecraft.world.phys.Vec3(door.getX() - prev.getX(), 0, door.getZ() - prev.getZ());
+            if (dir.lengthSqr() > 1.0E-4) {
+                dir = dir.normalize().scale(HIDE_BEHIND_DOOR);
+                setPos(door.getX() + 0.5 + dir.x, door.getY(), door.getZ() + 0.5 + dir.z);
+            }
+        }
+        RoomsDebug.log("V-50 hides behind exit door {} at ({}, {}, {})", door, f(getX()), f(getY()), f(getZ()));
+        return blockPosition();
+    }
+
+    /** 潜んでいる部屋の扉（入口・出口）か。経路の最初／最後の経由点（床+1）と比べる。 */
+    private boolean isWaitingDoor(RoomsState rs, BlockPos door) {
+        java.util.List<BlockPos> p = VSpawns.path(rs, startRoom);
+        if (p.isEmpty()) return false;
+        for (BlockPos q : new BlockPos[]{p.get(0), p.get(p.size() - 1)})
+            if (Math.abs(q.getX() - door.getX()) <= 1 && Math.abs(q.getZ() - door.getZ()) <= 1 && Math.abs(q.getY() - door.getY()) <= 1) return true;
+        return false;
+    }
+
+    /** DoorEventHandler から：扉が開けられた。警告／ブザー中で、潜んでいる部屋の扉なら罰して即突進。 */
+    public static void onDoorOpened(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, BlockPos door) {
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
+            if (!(e instanceof V50Entity v) || !v.isAlive() || v.phase >= 3 || !v.isWaitingDoor(rs, door)) continue;
+            RoomsDebug.log(player, "V-50: 扉を開けるのが早すぎたわ",
+                    "V-50 door opened early -> punish player={} door={} phase={} creative={}", player.getGameProfile().getName(), door, v.phase, player.isCreative());
+            if (!player.isCreative() && !player.isSpectator()) player.hurt(v.damageSources().mobAttack(v), OPEN_DOOR_DAMAGE);
+            v.burst(level);
+        }
+    }
+
+    private void burst(ServerLevel level) {
+        enter(3, "burst");
+        notifyAll(level, RoomsMod.V50_EXPLODE.get());
+        level.playSound(null, getX(), getY(), getZ(), RoomsMod.V50_EXPLODE.get(), SoundSource.HOSTILE, 4.0f, 0.9f);
+        level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1, getZ(), 1, 0, 0, 0, 0);
+        RoomsDebug.log("V-50 phase rush (speed {}, hits enabled)", RUSH_SPEED);
     }
 
     /** 警告音はプレイヤーの位置で（非定位で）鳴らし、どこにいても確実に聞こえるようにする。 */
@@ -74,13 +119,7 @@ public class V50Entity extends VPathWalker {
             return true;
         }
         if (phase == 2) {
-            if (++phaseTicks >= BUZZER_TICKS) {
-                enter(3, "burst");
-                notifyAll(level, RoomsMod.V50_EXPLODE.get());
-                level.playSound(null, getX(), getY(), getZ(), RoomsMod.V50_EXPLODE.get(), SoundSource.HOSTILE, 4.0f, 0.9f);
-                level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1, getZ(), 1, 0, 0, 0, 0);
-                RoomsDebug.log("V-50 phase rush (speed {}, hits enabled)", RUSH_SPEED);
-            }
+            if (++phaseTicks >= BUZZER_TICKS) burst(level);
             return true;
         }
         return false; // 突進中：移動＋当たり判定

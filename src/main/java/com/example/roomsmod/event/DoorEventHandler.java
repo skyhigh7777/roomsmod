@@ -47,6 +47,9 @@ public class DoorEventHandler {
         if (state.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER) doorPos = doorPos.below();
 
         RoomsState rs = RoomsState.get(level);
+        // V-50 の待機中に、潜んでいる部屋の扉を開けたら罰（隠れ・視線無視）
+        if (!state.getValue(DoorBlock.OPEN))
+            com.example.roomsmod.entity.v.V50Entity.onDoorOpened(level, rs, event.getEntity(), doorPos);
         // 現在の部屋の出口扉以外（使用済みの扉など）は普通に開閉するだけ
         if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos)) {
             RoomsDebug.log(event.getEntity(), "扉 " + doorPos.toShortString() + " 無視（出口扉ではない）",
