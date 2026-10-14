@@ -47,6 +47,37 @@ public class RoomsCommands {
         return 1;
     }
 
+    private static int addSection(CommandSourceStack src, String id, Integer startRoom) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        id = id.toLowerCase(java.util.Locale.ROOT);
+        var theme = com.example.roomsmod.world.section.Sections.find(id);
+        if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
+        var rs = com.example.roomsmod.world.RoomsState.get(lv);
+        int start = startRoom != null ? startRoom : rs.currentRoom + 1;
+        rs.addSection(id, start);
+        boolean relabeled = start == rs.currentRoom + 1 && com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
+        String label = com.example.roomsmod.world.section.Sections.formatRoom(rs, start);
+        com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] section {} added at global room {} ({}) by {} table={}", id, start, label, src.getTextName(), rs.sections);
+        String msg = "セクション " + theme.prefix() + " を部屋 " + start + " から開始するわ（その部屋は " + label + "）"
+                + (start <= rs.currentRoom ? "。※生成済みの部屋は変わらないわ" : "")
+                + (relabeled ? "。次の扉の番号も書き換えたわ" : "");
+        src.sendSuccess(() -> Component.literal(msg), true);
+        return 1;
+    }
+
+    private static int resetSections(CommandSourceStack src) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        var rs = com.example.roomsmod.world.RoomsState.get(lv);
+        rs.sections.clear();
+        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("a", 0));
+        rs.setDirty();
+        com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
+        src.sendSuccess(() -> Component.literal("セクション表を A のみに戻したわ"), true);
+        return 1;
+    }
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rooms")
             .then(Commands.literal("enter")
@@ -120,6 +151,16 @@ public class RoomsCommands {
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
                 .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true))))
+            .then(Commands.literal("section")
+                .requires(src -> src.hasPermission(2))
+                .then(Commands.literal("reset").executes(ctx -> resetSections(ctx.getSource())))
+                .then(Commands.argument("id", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(com.example.roomsmod.world.section.Sections.ids(), b))
+                    .executes(ctx -> addSection(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "id"), null))
+                    .then(Commands.literal("now")
+                        .executes(ctx -> addSection(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "id"), null)))
+                    .then(Commands.argument("startRoom", IntegerArgumentType.integer(1))
+                        .executes(ctx -> addSection(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "id"), IntegerArgumentType.getInteger(ctx, "startRoom"))))))
             .then(Commands.literal("deepest")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();

@@ -2,8 +2,8 @@
 
 A *section* is a run of rooms that share a look and a rusher table. It's defined in Java as a
 `SectionTheme` record (`world/section/SectionTheme.java`) and registered in `world/section/Sections.java`.
-Right now there is one section, `A` (`Sections.A`), holding the values that used to be hardcoded in
-`RoomGenerator` / `DoorEventHandler`.
+Registered sections: `A` (`Sections.A`), holding the values that used to be hardcoded in
+`RoomGenerator` / `DoorEventHandler`, and `V` (`Sections.V`, Village, trial: no rushers, A's room geometry).
 
 Records were chosen over JSON because a theme references blocks, entity spawners and code
 (`RusherSpawn.spawn`), and this way the A output stays bit-for-bit identical with no codec/registry-order issues.
@@ -40,7 +40,16 @@ A-20 (`minRoom 20`) and A-40 (`minRoom 40`) can roll from `X-020` / `X-040` of w
 For A this is identical to before (local == global). Add a switch with `state.addSection("v", 100)`.
 Debug: `/rooms debug section` prints the current section and table; generation logs `section change at room N`.
 
-## Example: V (Village) skeleton (NOT registered)
+## Commands (op)
+- `/rooms section <id>` or `/rooms section <id> now`: the next room to be generated (`currentRoom + 1`) starts section `<id>`;
+  the already placed number sign over the next exit door is rewritten (e.g. `V-001`).
+- `/rooms section <id> <startRoom>`: section `<id>` starts at global room `startRoom`.
+- `/rooms section reset`: back to A only. The table is saved with the world and is **not** cleared by `/rooms enter`.
+- Try V from scratch: `/rooms enter`, `/rooms section v now`, open the lobby door.
+
+Light fade (`lightFadeStart/Step`) uses the section-local number (identical for A).
+
+## V (Village), as registered
 ```java
 // in Sections.java
 public static final SectionTheme V = register(new SectionTheme(
@@ -63,7 +72,7 @@ public static final SectionTheme V = register(new SectionTheme(
         List.of(/* new SectionTheme.RusherSpawn("V-xx", minRoom, chance, alive, spawn) */),
         new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
         0, 5));
-// and somewhere when a run starts / reaches the section: RoomsState.get(level).addSection("v", 100);
+// rushers: List.of() for now. Start it with /rooms section v now, or RoomsState.get(level).addSection("v", 100);
 ```
 Checklist for a new section:
 1. Add the theme to `Sections` (unique `id`).

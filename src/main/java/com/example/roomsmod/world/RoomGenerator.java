@@ -139,7 +139,7 @@ public class RoomGenerator {
         level.setBlockAndUpdate(exitDoor.above(), doorLower().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
 
         // 照明：天井に吊るす（既存ロジックのまま）
-        int lightLevel = Math.max(0, 15 - Math.max(0, roomNumber - theme.lightFadeStart()) / theme.lightFadeStep());
+        int lightLevel = Math.max(0, 15 - Math.max(0, com.example.roomsmod.world.section.Sections.localRoom(state, roomNumber) - theme.lightFadeStart()) / theme.lightFadeStep());
         if (lightLevel > 0) {
             level.setBlockAndUpdate(origin.offset(ENTRANCE_X, plan.height - 1, plan.mainDepth / 2), theme.palette().light().get());
         }
@@ -674,5 +674,24 @@ public class RoomGenerator {
             level.sendBlockUpdated(pos, sign.getBlockState(), sign.getBlockState(), 3);
         }
         RoomsDebug.log("room number sign {} at {}", text, pos);
+    }
+
+    /**
+     * 次に開ける出口扉（expectedExitDoor）の上の番号プレートを、今のセクション表で書き直す。
+     * /rooms section ... now の後、既に生成済みの扉の表示を V-001 等に合わせるため。看板の種類はそのまま。
+     */
+    public static boolean relabelNextExitSign(ServerLevel level, RoomsState state) {
+        if (state.expectedExitDoor == null) return false;
+        BlockPos pos = state.expectedExitDoor.offset(0, 2, -1);
+        if (!(level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SignBlockEntity sign)) return false;
+        var nextTheme = com.example.roomsmod.world.section.Sections.forRoom(state, state.currentRoom + 1);
+        String text = com.example.roomsmod.world.section.Sections.formatRoom(state, state.currentRoom + 1);
+        var st = sign.getFrontText().setMessage(1, net.minecraft.network.chat.Component.literal(text))
+                .setColor(nextTheme.sign().color()).setHasGlowingText(nextTheme.sign().glowing());
+        sign.setText(st, true);
+        sign.setChanged();
+        level.sendBlockUpdated(pos, sign.getBlockState(), sign.getBlockState(), 3);
+        RoomsDebug.log("room number sign relabeled to {} at {}", text, pos);
+        return true;
     }
 }

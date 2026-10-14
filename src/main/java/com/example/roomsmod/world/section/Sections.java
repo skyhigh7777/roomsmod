@@ -45,6 +45,28 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             25, 5));
 
+    /** V（Village）区画。お試し用：見た目と隠れ場所の比率だけ変更、ラッシャーなし、部屋の寸法は A と同じ。 */
+    public static final SectionTheme V = register(new SectionTheme(
+            "v", "V",
+            new SectionTheme.Palette(
+                    Blocks.DIRT_PATH::defaultBlockState, Blocks.OAK_PLANKS::defaultBlockState, Blocks.SPRUCE_PLANKS::defaultBlockState,
+                    () -> Blocks.SPRUCE_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{3, 0, 2, 1, 2},                       // 廊下なし、ホール/L字多め
+            new SectionTheme.Furniture(
+                    () -> Blocks.BARREL, 1, 3,
+                    () -> Blocks.OAK_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.TOP), () -> Blocks.FLOWER_POT, 3,
+                    () -> Blocks.STRIPPED_OAK_LOG, () -> Blocks.OAK_LOG),
+            new SectionTheme.Cover(0.8f, 1, 3, Map.of(), new int[]{1, 2, 1, 3},
+                    Blocks.BOOKSHELF::defaultBlockState, Blocks.OAK_LOG::defaultBlockState, Blocks.OAK_PLANKS::defaultBlockState,
+                    Blocks.OAK_PLANKS::defaultBlockState, Blocks.HAY_BLOCK::defaultBlockState, Blocks.BARREL::defaultBlockState),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.6f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.4f)),
+            3, 2,
+            List.of(),
+            new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
+            0, 5));
+
     private Sections() {}
 
     public static SectionTheme register(SectionTheme t) {
@@ -53,6 +75,11 @@ public final class Sections {
     }
 
     public static SectionTheme byId(String id) { return THEMES.getOrDefault(id, A); }
+
+    /** 登録済みなら定義、なければ null。 */
+    public static SectionTheme find(String id) { return THEMES.get(id); }
+
+    public static java.util.Set<String> ids() { return THEMES.keySet(); }
 
     /** 部屋番号 room が属するセクション（RoomsState のセクション開始表から）。 */
     public static SectionTheme forRoom(RoomsState rs, int room) {
