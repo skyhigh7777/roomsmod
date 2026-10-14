@@ -29,10 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A-60：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
+ * A-20：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
  * 隠れ場所（オーク板）で視線を遮れば回避可能。
  */
-public class A60Entity extends Mob {
+public class A20Entity extends Mob {
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f; // 連続ダメージで致命的に
     private ChunkPos lastForcedChunk = null;
@@ -101,7 +101,7 @@ public class A60Entity extends Mob {
         waypointsBuilt = false; // 次tickでRoomsStateから再構築
     }
 
-    public A60Entity(EntityType<? extends Mob> type, Level level) {
+    public A20Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
         this.noPhysics = true; // 壁やロッカーを完全に突き抜ける
         this.setNoGravity(true);
@@ -138,7 +138,7 @@ public class A60Entity extends Mob {
 
     @Override
     public void remove(RemovalReason reason) {
-        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-60 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
+        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-20 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
         if (this.level() instanceof ServerLevel serverLevel && lastForcedChunk != null) {
             for (int dx = -1; dx <= 1; dx++) {
                 for (int dz = -1; dz <= 1; dz++) {
@@ -167,7 +167,7 @@ public class A60Entity extends Mob {
             spawnVisualParticles();
             // 接近ループ音（2秒ごと、エンティティに追従するクライアント側サウンド）
             if (this.tickCount % 40 == 0) {
-                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A60_APPROACH.get());
+                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A20_APPROACH.get());
             }
             return;
         }
@@ -215,8 +215,8 @@ public class A60Entity extends Mob {
             Player nearest = sl.getNearestPlayer(this, 500);
             double nd = nearest != null ? this.distanceTo(nearest) : -1;
             com.example.roomsmod.util.RoomsDebug.log(nearest,
-                nearest != null ? "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
-                "A-60 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                nearest != null ? "A-20 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "A-20 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
                 waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
@@ -226,13 +226,13 @@ public class A60Entity extends Mob {
         if (nearest2 != null) {
             double ahead = this.getZ() - nearest2.getZ();
             if (ahead > 120.0) {
-                com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
+                com.example.roomsmod.util.RoomsDebug.log("A-20 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
                 this.discard();
                 return;
             }
         } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
-            com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: no player within 500 blocks after {} ticks", this.tickCount);
+            com.example.roomsmod.util.RoomsDebug.log("A-20 despawn: no player within 500 blocks after {} ticks", this.tickCount);
             this.discard();
             return;
         }
@@ -252,7 +252,7 @@ public class A60Entity extends Mob {
 
             float volume = Math.min(5.0f, baseVolume * facingMul);
 
-            // 遠くても聞こえるよう、プレイヤーからA-60方向へ最大8ブロックの位置で鳴らす
+            // 遠くても聞こえるよう、プレイヤーからA-20方向へ最大8ブロックの位置で鳴らす
             // （位置で鳴らすと 16×音量 ブロック以内しか届かないため）
             Vec3 pp = nearestForSound.position();
             double off = Math.min(dist, 8.0);

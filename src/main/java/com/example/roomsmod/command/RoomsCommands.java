@@ -27,23 +27,23 @@ public class RoomsCommands {
         return 1;
     }
 
-    private static int spawnRusher(CommandSourceStack src, boolean a75) {
+    private static int spawnRusher(CommandSourceStack src, boolean a40) {
         ServerLevel roomsLevel = src.getServer().getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(roomsLevel);
         if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
-        boolean sameAlive = a75 ? com.example.roomsmod.event.DoorEventHandler.isA75Alive(roomsLevel)
-                                : com.example.roomsmod.event.DoorEventHandler.isA60Alive(roomsLevel);
+        boolean sameAlive = a40 ? com.example.roomsmod.event.DoorEventHandler.isA40Alive(roomsLevel)
+                                : com.example.roomsmod.event.DoorEventHandler.isA20Alive(roomsLevel);
         if (sameAlive) {
-            src.sendFailure(Component.literal((a75 ? "A-75" : "A-60") + "はすでに生存中よ")); return 0;
+            src.sendFailure(Component.literal((a40 ? "A-40" : "A-20") + "はすでに生存中よ")); return 0;
         }
         var player = src.getPlayer();
-        if (a75) {
-            if (!com.example.roomsmod.event.DoorEventHandler.spawnA75(roomsLevel, rs, player)) { src.sendFailure(Component.literal("A-75の出現に失敗したわ")); return 0; }
+        if (a40) {
+            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("A-40の出現に失敗したわ")); return 0; }
         } else {
-            com.example.roomsmod.event.DoorEventHandler.spawnA60(roomsLevel, rs, player);
+            com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player);
         }
-        src.sendSuccess(() -> Component.literal((a75 ? "A-75" : "A-60") + "を出現させたわ"), true);
+        src.sendSuccess(() -> Component.literal((a40 ? "A-40" : "A-20") + "を出現させたわ"), true);
         return 1;
     }
 
@@ -108,8 +108,8 @@ public class RoomsCommands {
                 })))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
-                .then(Commands.literal("a60").executes(ctx -> spawnRusher(ctx.getSource(), false)))
-                .then(Commands.literal("a75").executes(ctx -> spawnRusher(ctx.getSource(), true))))
+                .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
+                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true))))
             .then(Commands.literal("deepest")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();

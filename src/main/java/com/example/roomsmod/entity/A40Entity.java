@@ -32,10 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A-75：A-60 と同様に後方から突進し、最深部屋の終端で折り返して数部屋戻り、
+ * A-40：A-20 と同様に後方から突進し、最深部屋の終端で折り返して数部屋戻り、
  * 再び最深部屋の終端まで突進してから消える。各往路・復路で視線判定ダメージ。
  */
-public class A75Entity extends Mob {
+public class A40Entity extends Mob {
     public static final int DEFAULT_ROOMS_BACK = 6;
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f;
@@ -48,7 +48,7 @@ public class A75Entity extends Mob {
     private int phase = 0;
     /** 移動中フラグ（phaseはクライアントへ同期されないため、ループ音用に同期する）。 */
     private static final net.minecraft.network.syncher.EntityDataAccessor<Boolean> DATA_MOVING =
-            net.minecraft.network.syncher.SynchedEntityData.defineId(A75Entity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
+            net.minecraft.network.syncher.SynchedEntityData.defineId(A40Entity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
 
     @Override
     protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
@@ -67,7 +67,7 @@ public class A75Entity extends Mob {
     private int lastPathPointCount = 0;
     private ChunkPos lastForcedChunk = null;
 
-    public A75Entity(EntityType<? extends Mob> type, Level level) {
+    public A40Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
         this.noPhysics = true;
         this.setNoGravity(true);
@@ -116,7 +116,7 @@ public class A75Entity extends Mob {
         if (!(this.level() instanceof ServerLevel sl)) return;
         if (expectedPointCount(RoomsState.get(sl)) > lastPathPointCount) {
             buildWaypoints();
-            RoomsDebug.log("A-75 path extended: waypoints={}", waypoints.size());
+            RoomsDebug.log("A-40 path extended: waypoints={}", waypoints.size());
         }
     }
 
@@ -146,7 +146,7 @@ public class A75Entity extends Mob {
     }
 
     private void setPhase(int p) {
-        RoomsDebug.log("A-75 phase {} -> {} waypoint={}/{}", phase, p, waypointIndex, waypoints.size());
+        RoomsDebug.log("A-40 phase {} -> {} waypoint={}/{}", phase, p, waypointIndex, waypoints.size());
         phase = p;
         phaseTicks = 0;
     }
@@ -159,7 +159,7 @@ public class A75Entity extends Mob {
             spawnVisualParticles();
             // 接近ループ音（移動中のみ1秒ごと、エンティティに追従するクライアント側サウンド）
             if (this.entityData.get(DATA_MOVING) && this.tickCount % 20 == 0) {
-                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A75_APPROACH.get());
+                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A40_APPROACH.get());
             }
             return;
         }
@@ -181,7 +181,7 @@ public class A75Entity extends Mob {
                         setPhase(2);
                         playCue(sl);
                     } else {
-                        RoomsDebug.log("A-75 despawn: finished second rush at waypoint {}/{}", waypointIndex, waypoints.size());
+                        RoomsDebug.log("A-40 despawn: finished second rush at waypoint {}/{}", waypointIndex, waypoints.size());
                         this.discard();
                         return;
                     }
@@ -210,7 +210,7 @@ public class A75Entity extends Mob {
 
         // 保険：異常に長生きしたら消滅
         if (this.tickCount > 12000) {
-            RoomsDebug.log("A-75 despawn: timeout phase={}", phase);
+            RoomsDebug.log("A-40 despawn: timeout phase={}", phase);
             this.discard();
             return;
         }
@@ -219,8 +219,8 @@ public class A75Entity extends Mob {
             Player nearest = sl.getNearestPlayer(this, 500);
             double nd = nearest != null ? this.distanceTo(nearest) : -1;
             RoomsDebug.log(nearest,
-                nearest != null ? "A-75 phase " + phase + " Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
-                "A-75 progress phase={} waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                nearest != null ? "A-40 phase " + phase + " Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "A-40 progress phase={} waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
                 phase, waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
@@ -242,7 +242,7 @@ public class A75Entity extends Mob {
         playNearPlayer(sl, SoundEvents.WARDEN_SONIC_CHARGE, 0.7f);
     }
 
-    /** A-60 と同じ：プレイヤーから本体方向へ最大8ブロックの位置で鳴らし、遠くても届くようにする。 */
+    /** A-20 と同じ：プレイヤーから本体方向へ最大8ブロックの位置で鳴らし、遠くても届くようにする。 */
     private void playNearPlayer(ServerLevel sl, SoundEvent sound, float pitch) {
         Player p = sl.getNearestPlayer(this, 500);
         if (p == null) return;
@@ -281,7 +281,7 @@ public class A75Entity extends Mob {
 
     @Override
     public void remove(RemovalReason reason) {
-        if (!this.level().isClientSide()) RoomsDebug.log("A-75 removed reason={} phase={} waypoint={}/{}", reason, phase, waypointIndex, waypoints.size());
+        if (!this.level().isClientSide()) RoomsDebug.log("A-40 removed reason={} phase={} waypoint={}/{}", reason, phase, waypointIndex, waypoints.size());
         if (this.level() instanceof ServerLevel sl) {
             setForced(sl, lastForcedChunk, false);
             lastForcedChunk = null;

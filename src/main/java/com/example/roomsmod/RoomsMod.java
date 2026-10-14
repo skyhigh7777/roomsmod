@@ -1,7 +1,7 @@
 package com.example.roomsmod;
 
 import com.example.roomsmod.command.RoomsCommands;
-import com.example.roomsmod.entity.A60Entity;
+import com.example.roomsmod.entity.A20Entity;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvent;
@@ -24,22 +24,22 @@ public class RoomsMod {
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
-    public static final DeferredHolder<SoundEvent, SoundEvent> A60_APPROACH = SOUND_EVENTS.register("a60_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a60_approach")));
-    public static final DeferredHolder<SoundEvent, SoundEvent> A75_APPROACH = SOUND_EVENTS.register("a75_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a75_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> A20_APPROACH = SOUND_EVENTS.register("a20_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a20_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> A40_APPROACH = SOUND_EVENTS.register("a40_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a40_approach")));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<A60Entity>> A60 = ENTITIES.register("a60",
-            () -> EntityType.Builder.of(A60Entity::new, MobCategory.MONSTER)
+    public static final DeferredHolder<EntityType<?>, EntityType<A20Entity>> A20 = ENTITIES.register("a20",
+            () -> EntityType.Builder.of(A20Entity::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.0f)
                     .clientTrackingRange(10) // 160ブロック：接近音(120ブロック)が届く距離まで同期
                     .updateInterval(1) // 高速移動するので毎tick位置同期（追従サウンド用）
-                    .build("a60"));
+                    .build("a20"));
 
-    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.A75Entity>> A75 = ENTITIES.register("a75",
-            () -> EntityType.Builder.of(com.example.roomsmod.entity.A75Entity::new, MobCategory.MONSTER)
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.A40Entity>> A40 = ENTITIES.register("a40",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.A40Entity::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.0f)
                     .clientTrackingRange(10) // 160ブロック：接近音(120ブロック)が届く距離まで同期
                     .updateInterval(1) // 高速移動するので毎tick位置同期（追従サウンド用）
-                    .build("a75"));
+                    .build("a40"));
 
     public RoomsMod(IEventBus modEventBus) {
         LOGGER.info("Rooms Mod is loading!");
@@ -59,8 +59,8 @@ public class RoomsMod {
     }
 
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
-        event.put(A60.get(), A60Entity.createAttributes().build());
-        event.put(A75.get(), com.example.roomsmod.entity.A75Entity.createAttributes().build());
+        event.put(A20.get(), A20Entity.createAttributes().build());
+        event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
     }
 
     private static void onRegisterCommands(RegisterCommandsEvent event) {

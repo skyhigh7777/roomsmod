@@ -429,7 +429,7 @@ public class RoomGenerator {
     }
 
     /**
-     * 隠れ場所を1つ設置する。現在はOAK_PLANKS単体（A-60の視線遮蔽判定に使用）。
+     * 隠れ場所を1つ設置する。現在はOAK_PLANKS単体（A-20の視線遮蔽判定に使用）。
      * 将来ロッカーブロックに差し替える際はここだけ変更する。facingは開口側（部屋の内側）。
      */
     public static void placeHidingSpot(ServerLevel level, BlockPos pos, Direction facing) {

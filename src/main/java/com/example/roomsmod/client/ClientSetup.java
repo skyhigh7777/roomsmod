@@ -1,7 +1,7 @@
 package com.example.roomsmod.client;
 
 import com.example.roomsmod.RoomsMod;
-import com.example.roomsmod.entity.A60Entity;
+import com.example.roomsmod.entity.A20Entity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -27,22 +27,22 @@ public class ClientSetup {
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
-        event.registerEntityRenderer(RoomsMod.A60.get(), A60Renderer::new);
-        event.registerEntityRenderer(RoomsMod.A75.get(), A75Renderer::new);
+        event.registerEntityRenderer(RoomsMod.A20.get(), A20Renderer::new);
+        event.registerEntityRenderer(RoomsMod.A40.get(), A40Renderer::new);
     }
 
-    private static class A60Renderer extends EntityRenderer<A60Entity> {
+    private static class A20Renderer extends EntityRenderer<A20Entity> {
         private static final ResourceLocation TEX =
-                ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/a60.png");
+                ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/a20.png");
         private static final int FULLBRIGHT = 15728880;
 
-        public A60Renderer(EntityRendererProvider.Context context) {
+        public A20Renderer(EntityRendererProvider.Context context) {
             super(context);
             this.shadowRadius = 0.0f;
         }
 
         @Override
-        public void render(A60Entity entity, float entityYaw, float partialTick, PoseStack poseStack,
+        public void render(A20Entity entity, float entityYaw, float partialTick, PoseStack poseStack,
                            MultiBufferSource buffer, int packedLight) {
             float age = entity.tickCount + partialTick;
             poseStack.pushPose();
@@ -68,23 +68,23 @@ public class ClientSetup {
         }
 
         @Override
-        public ResourceLocation getTextureLocation(A60Entity entity) {
+        public ResourceLocation getTextureLocation(A20Entity entity) {
             return TEX;
         }
     }
 
-    private static class A75Renderer extends EntityRenderer<com.example.roomsmod.entity.A75Entity> {
+    private static class A40Renderer extends EntityRenderer<com.example.roomsmod.entity.A40Entity> {
         private static final ResourceLocation TEX =
-                ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/a75.png");
+                ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/a40.png");
         private static final int FULLBRIGHT = 15728880;
 
-        public A75Renderer(EntityRendererProvider.Context context) {
+        public A40Renderer(EntityRendererProvider.Context context) {
             super(context);
             this.shadowRadius = 0.0f;
         }
 
         @Override
-        public void render(com.example.roomsmod.entity.A75Entity entity, float entityYaw, float partialTick, PoseStack poseStack,
+        public void render(com.example.roomsmod.entity.A40Entity entity, float entityYaw, float partialTick, PoseStack poseStack,
                            MultiBufferSource buffer, int packedLight) {
             float age = entity.tickCount + partialTick;
             poseStack.pushPose();
@@ -111,7 +111,7 @@ public class ClientSetup {
         }
 
         @Override
-        public ResourceLocation getTextureLocation(com.example.roomsmod.entity.A75Entity entity) {
+        public ResourceLocation getTextureLocation(com.example.roomsmod.entity.A40Entity entity) {
             return TEX;
         }
     }

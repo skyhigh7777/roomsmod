@@ -1,6 +1,6 @@
 package com.example.roomsmod.client;
 
-import com.example.roomsmod.entity.A60Entity;
+import com.example.roomsmod.entity.A20Entity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
@@ -12,7 +12,7 @@ import net.minecraft.world.entity.Entity;
 
 /**
  * Approach loop sound that follows its entity every tick. Loudness is driven entirely by
- * A60Entity.approachVolume (t^0.75 curve, 0 at >=120 blocks, full at <=4), so attenuation is NONE
+ * A20Entity.approachVolume (t^0.75 curve, 0 at >=120 blocks, full at <=4), so attenuation is NONE
  * (OpenAL rolloff off; the source position is still used for left/right panning).
  */
 public class ApproachSoundInstance extends AbstractTickableSoundInstance {
@@ -35,7 +35,7 @@ public class ApproachSoundInstance extends AbstractTickableSoundInstance {
     private float computeVolume() {
         LocalPlayer p = Minecraft.getInstance().player;
         if (p == null) return 0f;
-        float v = A60Entity.approachVolume(entity.distanceTo(p)) / A60Entity.APPROACH_MAX_VOLUME;
+        float v = A20Entity.approachVolume(entity.distanceTo(p)) / A20Entity.APPROACH_MAX_VOLUME;
         return Mth.clamp(v, 0f, 1f);
     }
 
@@ -59,7 +59,7 @@ public class ApproachSoundInstance extends AbstractTickableSoundInstance {
     /** Client entry point used via ApproachSoundHook. */
     public static void start(Entity entity, SoundEvent sound) {
         ApproachSoundInstance inst = new ApproachSoundInstance(entity, sound);
-        if (inst.initialVolume() <= A60Entity.MIN_APPROACH_VOLUME / A60Entity.APPROACH_MAX_VOLUME) return;
+        if (inst.initialVolume() <= A20Entity.MIN_APPROACH_VOLUME / A20Entity.APPROACH_MAX_VOLUME) return;
         Minecraft.getInstance().getSoundManager().play(inst);
     }
 }
