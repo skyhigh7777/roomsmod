@@ -33,7 +33,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.V25T.get(), c -> new VRenderer<>(c, "v25t", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.V25L.get(), c -> new VRenderer<>(c, "v25l", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.V25_BUFFED.get(), c -> new VRenderer<>(c, "v25_buffed", 2.6f, 0.15f));
-        event.registerEntityRenderer(RoomsMod.V35.get(), c -> new VRenderer<>(c, "v35", 2.0f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.V35.get(), c -> new VRenderer<>(c, "v35", 1.1f, 0.05f).withEyes("v35_eyes"));
         event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
     }
 
@@ -126,6 +126,8 @@ public class ClientSetup {
     private static class VRenderer<T extends com.example.roomsmod.entity.v.VEntity> extends EntityRenderer<T> {
         private final ResourceLocation tex;
         private final float size, wobble;
+        private ResourceLocation eyes = null;
+        VRenderer<T> withEyes(String name) { eyes = ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/" + name + ".png"); return this; }
 
         VRenderer(EntityRendererProvider.Context context, String name, float size, float wobble) {
             super(context);
@@ -152,6 +154,15 @@ public class ClientSetup {
             vc.addVertex(m, 0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
             vc.addVertex(m, 0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
             vc.addVertex(m, -0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            if (eyes != null) { // 発光する目（クモの目と同じ eyes レイヤー）。少し手前に重ねる
+                ps.translate(0f, 0f, 0.01f);
+                PoseStack.Pose pe = ps.last(); Matrix4f me = pe.pose();
+                VertexConsumer ve = buf.getBuffer(RenderType.eyes(eyes));
+                ve.addVertex(me, -0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+                ve.addVertex(me, 0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+                ve.addVertex(me, 0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+                ve.addVertex(me, -0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+            }
             ps.popPose();
             super.render(entity, yaw, pt, ps, buf, light);
         }

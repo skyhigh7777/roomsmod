@@ -524,8 +524,13 @@ final class VillageRooms {
                         if (!c.get(x, y, z).is(theme.palette().wall().get().getBlock())) continue;
                         if (rand.nextFloat() >= 0.4f) continue;
                         BlockPos back = c.base.offset(x + out.getStepX(), y, z + out.getStepZ());
+                        // 板ガラスの外に1ブロックの空気ポケット（V-35 が入る）を作り、その周り（奥・左右・上下）を黒コンクリートで塞ぐ
                         if (!c.level.getBlockState(back).isAir()) continue;
-                        c.level.setBlockAndUpdate(back, Blocks.BLACK_CONCRETE.defaultBlockState());
+                        BlockPos[] shell = {back.relative(out), back.relative(t), back.relative(t.getOpposite()), back.above(), back.below()};
+                        boolean ok = true;
+                        for (BlockPos s2 : shell) { var bs = c.level.getBlockState(s2); if (!bs.isAir() && !bs.isSolidRender(c.level, s2)) ok = false; }
+                        if (!ok) continue;
+                        for (BlockPos s2 : shell) if (c.level.getBlockState(s2).isAir()) c.level.setBlockAndUpdate(s2, Blocks.BLACK_CONCRETE.defaultBlockState());
                         BlockPos wp = c.base.offset(x, y, z);
                         c.level.setBlockAndUpdate(wp, Block.updateFromNeighbourShapes(Blocks.GLASS_PANE.defaultBlockState(), c.level, wp));
                         win.add(key(x, z));

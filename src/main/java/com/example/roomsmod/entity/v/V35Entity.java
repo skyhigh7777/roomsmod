@@ -69,7 +69,8 @@ public class V35Entity extends VEntity {
             for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ())) {
                 if (!level.getBlockState(q).is(Blocks.GLASS_PANE)) continue;
                 for (Direction d : Direction.Plane.HORIZONTAL) {
-                    if (!level.getBlockState(q.relative(d)).is(Blocks.BLACK_CONCRETE)) continue;
+                    // 板ガラスの外の空気ポケット（奥が黒コンクリート）
+                    if (!level.getBlockState(q.relative(d)).isAir() || !level.getBlockState(q.relative(d, 2)).is(Blocks.BLACK_CONCRETE)) continue;
                     // 出口扉は +Z（SOUTH）側の壁。その壁、または出口扉と同じ z の窓は除外
                     if (d == Direction.SOUTH || (exit != null && q.getZ() >= exit.getZ() - 1)) continue;
                     out.add(new Object[]{q.immutable(), d});
@@ -86,8 +87,8 @@ public class V35Entity extends VEntity {
         Object[] w = ws.get(level.random.nextInt(ws.size()));
         window = (BlockPos) w[0];
         Direction out = (Direction) w[1];
-        BlockPos at = window.relative(out); // 黒コンクリートの位置（窓のすぐ外）
-        setPos(at.getX() + 0.5, at.getY() - 0.6, at.getZ() + 0.5);
+        BlockPos at = window.relative(out); // 窓のすぐ外の空気ポケット
+        setPos(at.getX() + 0.5, at.getY() - 0.05, at.getZ() + 0.5); // 顔（描画中心 y+0.55）がガラスの高さに来る
         faceTowards(Vec3.atCenterOf(window.relative(out.getOpposite())));
         return at;
     }
@@ -99,7 +100,7 @@ public class V35Entity extends VEntity {
         if (life < KNOCK_TICKS) return;
         if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-35 peeking at window {}", window); }
         if (life > KNOCK_TICKS + PEEK_TICKS) { leave("peek time over"); return; }
-        Vec3 face = Vec3.atCenterOf(window);
+        Vec3 face = new Vec3(getX(), window.getY() + 0.5, getZ()); // ポケット内の顔
         for (Player p : playersNear(RANGE)) {
             boolean looking = !HidingRules.isProtectedFrom(this, p) && isLookingAt(p, face);
             int g = looking ? gaze.getOrDefault(p.getUUID(), 0) + 1 : 0;
@@ -122,10 +123,20 @@ public class V35Entity extends VEntity {
         Vec3 to = face.subtract(eye);
         if (to.length() < 1.0E-3) return true;
         if (p.getViewVector(1.0f).dot(to.normalize()) < Math.cos(Math.toRadians(LOOK_CONE_DEG))) return false;
-        BlockHitResult hit = level().clip(new ClipContext(eye, face, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
-        if (hit.getType() == HitResult.Type.MISS) return true;
-        BlockPos h = hit.getBlockPos();
-        return h.equals(window) || h.equals(blockPosition()) || h.equals(blockPosition().above());
+        // 板ガラス・ガラスは透明扱い：当たったら少し先から撃ち直す
+        Vec3 from = eye;
+        for (int i = 0; i < 8; i++) {
+            BlockHitResult hit = level().clip(new ClipContext(from, face, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
+            if (hit.getType() == HitResult.Type.MISS) return true;
+            BlockPos h = hit.getBlockPos();
+            if (h.equals(blockPosition())) return true;
+            var s = level().getBlockState(h);
+            if (!(s.getBlock() instanceof net.minecraft.world.level.block.IronBarsBlock) && !(s.getBlock() instanceof net.minecraft.world.level.block.TransparentBlock)) return false;
+            from = hit.getLocation().add(to.normalize().scale(0.05));
+            // ガラスブロックの中から出るまで進める
+            while (level().getBlockState(BlockPos.containing(from)).equals(s) && from.distanceTo(face) > 0.1) from = from.add(to.normalize().scale(0.1));
+        }
+        return false;
     }
 
     @Override
