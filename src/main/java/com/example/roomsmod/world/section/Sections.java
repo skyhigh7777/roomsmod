@@ -61,6 +61,22 @@ public final class Sections {
         return cur;
     }
 
-    /** 区画内での番号（セクション開始からの通し番号ではなく、現状は全体の部屋番号をそのまま使う）。 */
-    public static String formatRoom(RoomsState rs, int room) { return forRoom(rs, room).formatRoom(room); }
+    /** room が属するセクション開始エントリの startRoom（該当なしは 0）。 */
+    public static int sectionStart(RoomsState rs, int room) {
+        int start = 0;
+        for (RoomsState.SectionStart s : rs.sections) if (room >= s.startRoom()) start = s.startRoom();
+        return start;
+    }
+
+    /**
+     * セクション内の部屋番号。セクション最初の部屋が 1。
+     * startRoom 0 のセクション（A）は部屋 0 がロビーなので最初の番号付き部屋は 1 → 全体番号と同じ。
+     * 式: local = room - max(startRoom, 1) + 1
+     */
+    public static int localRoom(RoomsState rs, int room) {
+        return room - Math.max(sectionStart(rs, room), 1) + 1;
+    }
+
+    /** 表示用の部屋番号（セクション接頭辞 + セクション内番号）。 */
+    public static String formatRoom(RoomsState rs, int room) { return forRoom(rs, room).formatRoom(localRoom(rs, room)); }
 }

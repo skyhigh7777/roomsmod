@@ -155,7 +155,7 @@ public class RoomGenerator {
         state.setExpectedExitDoor(exitDoor);
         state.setCurrentRoom(roomNumber);
         if (RoomsDebug.isEnabled()) {
-            RoomsDebug.log("room generated #{} section={} origin={} {} boxes={} exitDoor={}", roomNumber, theme.prefix(), origin, planInfo, toWorldBoxes(origin, plan), exitDoor);
+            RoomsDebug.log("room generated #{} ({}) section={} origin={} {} boxes={} exitDoor={}", roomNumber, com.example.roomsmod.world.section.Sections.formatRoom(state, roomNumber), theme.prefix(), origin, planInfo, toWorldBoxes(origin, plan), exitDoor);
         }
         return exitDoor;
     }

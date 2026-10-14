@@ -66,7 +66,7 @@ public class DoorEventHandler {
             RoomsDebug.error("room generation failed (room=" + room + ", origin=" + nextOrigin + ")", e);
             return;
         }
-        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（A-" + String.format("%03d", room) + "）",
+        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
             "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
 
         try {
@@ -83,11 +83,12 @@ public class DoorEventHandler {
     private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         var table = theme.rushers();
+        int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
-            hit[k] = room >= r.minRoom() && level.random.nextFloat() < r.chance();
+            hit[k] = local >= r.minRoom() && level.random.nextFloat() < r.chance();
         }
         StringBuilder sb = new StringBuilder();
         for (int k = 0; k < table.size(); k++) {
@@ -96,7 +97,7 @@ public class DoorEventHandler {
             sb.append(k == 0 ? "" : " | ").append(r.name()).append('=').append(hit[k])
               .append(" (room>=").append(r.minRoom()).append(", ").append(r.chance()).append(") alive=").append(alive[k]);
         }
-        RoomsDebug.log("rusher roll room={} section={} {}", room, theme.prefix(), sb);
+        RoomsDebug.log("rusher roll room={} local={} section={} {}", room, com.example.roomsmod.world.section.Sections.formatRoom(rs, room), theme.prefix(), sb);
         for (int k = 0; k < table.size(); k++) {
             if (!hit[k]) continue;
             var r = table.get(k);

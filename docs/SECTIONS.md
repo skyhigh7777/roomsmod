@@ -12,20 +12,32 @@ Moving to data-driven JSON later just means adding a codec and loading themes in
 ## What a theme holds
 | Field | Meaning |
 |---|---|
-| `id`, `prefix` | internal id and room-number prefix (`A` → `A-020`) |
+| `id`, `prefix` | internal id and room-number prefix (`A` → `A-020`, number is section-local) |
 | `palette` | floor, wall, ceiling, door block, light |
 | `shapeWeights` | weights for `BOX, CORRIDOR, HALL, TALL, L_SHAPE` (all 1 = uniform) |
 | `furniture` | wall shelves, desks, pillars and their counts |
 | `cover` | cover chance/count, per-shape kind weights (`BOOKSHELF_ROW, PILLAR_2X2, PARTITION, CRATES`), blocks |
 | `hidingMix`, `hidingMin/Extra` | hiding spot types with weights (cumulative, in list order) and count |
-| `rushers` | `RusherSpawn(name, minRoom, chance, alive, spawn)`, rolled independently in list order |
+| `rushers` | `RusherSpawn(name, minRoom, chance, alive, spawn)` (`minRoom` = section-local number), rolled independently in list order |
 | `sign` | wall sign block, text color, glow |
 | `lightFadeStart/Step` | rooms after which lights dim |
 
 ## Section switching
 `RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world, default `[(a, 0)]`).
 `Sections.forRoom(state, room)` picks the last entry with `startRoom <= room`; room numbers on signs and in
-debug use that section's prefix. Add a switch with `state.addSection("v", 100)`.
+debug use that section's prefix.
+
+### Section-local numbering
+Room numbers restart at 1 in every section: `Sections.localRoom(state, room) = room - max(startRoom, 1) + 1`.
+Section A starts at 0 where room 0 is the lobby, so its first numbered room (global 1) is `A-001` — unchanged
+from before. A section added with `addSection("v", 100)` shows global room 100 as `V-001`, 101 as `V-002`, ...
+`Sections.formatRoom` (door number signs, `RoomTracker`, debug logs, `/rooms debug section`) uses the local
+number; `/rooms debug section` prints both `global` and `local`. Internals (`currentRoom`, seeds, light fade,
+rusher `startRoom` waypoint indices, `/rooms test gen N`) still use global indices.
+
+**Rusher thresholds are section-local:** `RusherSpawn.minRoom` is compared against the local number, so
+A-20 (`minRoom 20`) and A-40 (`minRoom 40`) can roll from `X-020` / `X-040` of whichever section owns them.
+For A this is identical to before (local == global). Add a switch with `state.addSection("v", 100)`.
 Debug: `/rooms debug section` prints the current section and table; generation logs `section change at room N`.
 
 ## Example: V (Village) skeleton (NOT registered)
