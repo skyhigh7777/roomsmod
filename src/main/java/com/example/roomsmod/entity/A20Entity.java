@@ -42,6 +42,9 @@ public class A20Entity extends Mob {
     private ChunkPos lastForcedChunk = null;
     private List<BlockPos> waypoints = new ArrayList<>();
     private int waypointIndex = 0;
+    /** 出現後の猶予（tick）。保存されるので、ロードしても猶予をやり直さない／飛ばさない。 */
+    private static final int GRACE_TICKS = 80;
+    private int graceTicks = 0;
 
     private int startRoom = 0;
     private boolean waypointsBuilt = false;
@@ -100,6 +103,8 @@ public class A20Entity extends Mob {
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.putInt("GraceTicks", graceTicks);
+        com.example.roomsmod.util.RoomsDebug.log("A-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
         tag.putInt("WaypointIndex", waypointIndex);
     }
@@ -107,6 +112,8 @@ public class A20Entity extends Mob {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        graceTicks = tag.contains("GraceTicks") ? tag.getInt("GraceTicks") : GRACE_TICKS;
+        com.example.roomsmod.util.RoomsDebug.log("A-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
         waypointIndex = tag.getInt("WaypointIndex");
         waypointsBuilt = false; // 次tickでRoomsStateから再構築
@@ -127,38 +134,29 @@ public class A20Entity extends Mob {
 
     private void updateForcedChunks(ServerLevel serverLevel) {
         ChunkPos current = new ChunkPos(this.blockPosition());
-        if (lastForcedChunk != null && lastForcedChunk.equals(current)) return;
-
-        // 前回の強制読み込みを解除
-        if (lastForcedChunk != null) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    serverLevel.setChunkForced(lastForcedChunk.x + dx, lastForcedChunk.z + dz, false);
-                }
-            }
-        }
-
-        // 現在位置周辺を強制読み込み
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                serverLevel.setChunkForced(current.x + dx, current.z + dz, true);
-            }
-        }
+        RusherChunks.move(serverLevel, this, lastForcedChunk, current);
         lastForcedChunk = current;
     }
 
     @Override
     public void remove(RemovalReason reason) {
         if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-20 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
-        if (this.level() instanceof ServerLevel serverLevel && lastForcedChunk != null) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    serverLevel.setChunkForced(lastForcedChunk.x + dx, lastForcedChunk.z + dz, false);
-                }
-            }
-            lastForcedChunk = null;
-        }
         super.remove(reason);
+    }
+
+    /** 全ての除去理由（破棄・死亡・チャンク保存による退避・次元移動）をデバッグに出し、破棄時はチケットを外す。 */
+    @Override
+    public void onRemovedFromLevel() {
+        super.onRemovedFromLevel();
+        if (this.level() instanceof ServerLevel sl) {
+            RemovalReason r = this.getRemovalReason();
+            com.example.roomsmod.util.RoomsDebug.log("A-20 removed from level reason={} saved={} pos=({}, {}, {})", r, r != null && r.shouldSave(),
+                    String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
+            if (r == null || r.shouldDestroy() || r == RemovalReason.CHANGED_DIMENSION) {
+                if (lastForcedChunk != null) RusherChunks.force(sl, this, lastForcedChunk, false);
+                lastForcedChunk = null;
+            }
+        }
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -189,7 +187,7 @@ public class A20Entity extends Mob {
         }
 
         // 前方に高速移動。猶予中は動かない。扉を経由点として通る
-        if (this.tickCount < 80) {
+        if (graceTicks++ < GRACE_TICKS) {
             this.setDeltaMovement(Vec3.ZERO);
             if (!waypointsBuilt) {
                 buildWaypoints();

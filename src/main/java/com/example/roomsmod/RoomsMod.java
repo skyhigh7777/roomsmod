@@ -73,6 +73,10 @@ public class RoomsMod {
         });
         SOUND_EVENTS.register(modEventBus);
         modEventBus.addListener(RoomsMod::onEntityAttributeCreation);
+        modEventBus.addListener((net.neoforged.neoforge.common.world.chunk.RegisterTicketControllersEvent e) -> e.register(com.example.roomsmod.entity.RusherChunks.CONTROLLER));
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.LevelTickEvent.Post e) -> {
+            if (e.getLevel() instanceof net.minecraft.server.level.ServerLevel sl) com.example.roomsmod.entity.RusherChunks.cleanupStale(sl);
+        });
         NeoForge.EVENT_BUS.addListener(RoomsMod::onRegisterCommands);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DoorEventHandler.class);
         // 起動時に RoomsState を読み込んでデバッグフラグを復元、停止時にクリア

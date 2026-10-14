@@ -176,7 +176,7 @@ public class A40Entity extends Mob {
         switch (phase) {
             case 0 -> {
                 this.setDeltaMovement(Vec3.ZERO);
-                if (this.tickCount >= GRACE_TICKS) setPhase(1);
+                if (phaseTicks >= GRACE_TICKS) setPhase(1);
             }
             case 1, 5 -> {
                 if (this.tickCount % 20 == 0) { refreshIfGrown(); end = Math.max(0, waypoints.size() - 1); }
@@ -270,26 +270,28 @@ public class A40Entity extends Mob {
 
     private void updateForcedChunks(ServerLevel sl) {
         ChunkPos current = new ChunkPos(this.blockPosition());
-        if (current.equals(lastForcedChunk)) return;
-        setForced(sl, lastForcedChunk, false);
-        setForced(sl, current, true);
+        RusherChunks.move(sl, this, lastForcedChunk, current);
         lastForcedChunk = current;
     }
 
-    private static void setForced(ServerLevel sl, ChunkPos c, boolean on) {
-        if (c == null) return;
-        for (int dx = -1; dx <= 1; dx++)
-            for (int dz = -1; dz <= 1; dz++)
-                sl.setChunkForced(c.x + dx, c.z + dz, on);
+    /** 全ての除去理由（破棄・死亡・チャンク保存による退避・次元移動）をデバッグに出し、破棄時はチケットを外す。 */
+    @Override
+    public void onRemovedFromLevel() {
+        super.onRemovedFromLevel();
+        if (this.level() instanceof ServerLevel sl) {
+            RemovalReason r = this.getRemovalReason();
+            RoomsDebug.log("A-40 removed from level reason={} saved={} pos=({}, {}, {})", r, r != null && r.shouldSave(),
+                    String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
+            if (r == null || r.shouldDestroy() || r == RemovalReason.CHANGED_DIMENSION) {
+                if (lastForcedChunk != null) RusherChunks.force(sl, this, lastForcedChunk, false);
+                lastForcedChunk = null;
+            }
+        }
     }
 
     @Override
     public void remove(RemovalReason reason) {
         if (!this.level().isClientSide()) RoomsDebug.log("A-40 removed reason={} phase={} waypoint={}/{}", reason, phase, waypointIndex, waypoints.size());
-        if (this.level() instanceof ServerLevel sl) {
-            setForced(sl, lastForcedChunk, false);
-            lastForcedChunk = null;
-        }
         super.remove(reason);
     }
 
@@ -302,6 +304,7 @@ public class A40Entity extends Mob {
         tag.putInt("PhaseTicks", phaseTicks);
         tag.putInt("RoomsBack", roomsBack);
         tag.putInt("BackTarget", backTargetIndex);
+        RoomsDebug.log("A-40 saved phase={} phaseTicks={} waypoint={}/{}", phase, phaseTicks, waypointIndex, waypoints.size());
     }
 
     @Override
@@ -313,7 +316,8 @@ public class A40Entity extends Mob {
         phaseTicks = tag.getInt("PhaseTicks");
         roomsBack = tag.contains("RoomsBack") ? tag.getInt("RoomsBack") : DEFAULT_ROOMS_BACK;
         backTargetIndex = tag.getInt("BackTarget");
-        if (phase == 0) phase = 1; // ロード後は猶予をやり直さない（tickCountは0に戻るため）
+        // 猶予は phaseTicks（保存される）で数えるので、ロードしても残り時間から再開する
+        RoomsDebug.log("A-40 loaded phase={} phaseTicks={} waypoint={}", phase, phaseTicks, waypointIndex);
         waypointsBuilt = false;
     }
 

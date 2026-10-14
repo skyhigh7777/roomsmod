@@ -127,10 +127,8 @@ public class DoorEventHandler {
         a40.setPos(x, y, z);
         a40.setStartRoom(startIndex);
         a40.setRoomsBack(com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
-        for (int dx = -1; dx <= 1; dx++)
-            for (int dz = -1; dz <= 1; dz++)
-                level.setChunkForced((start.getX() >> 4) + dx, (start.getZ() >> 4) + dz, true);
-        level.addFreshEntity(a40);
+        com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
+        if (!level.addFreshEntity(a40)) { RoomsDebug.warn("A-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
             "A-40が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
             "A-40 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
@@ -151,16 +149,9 @@ public class DoorEventHandler {
         a20.setPos(spawnX, spawnY, spawnZ);
         a20.setStartRoom(startIndex);
 
-        // 出現位置のチャンクを強制読み込み
-        int chunkX = start.getX() >> 4;
-        int chunkZ = start.getZ() >> 4;
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                level.setChunkForced(chunkX + dx, chunkZ + dz, true);
-            }
-        }
-
-        level.addFreshEntity(a20);
+        // 出現位置のチャンクを（このA-20のチケットで）読み込んでから追加する
+        com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));
+        if (!level.addFreshEntity(a20)) { RoomsDebug.warn("A-20 spawn failed: addFreshEntity returned false"); return; }
         int pathLen = 0;
         for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.roomPaths.get(i).size();
         RoomsDebug.log(player,
