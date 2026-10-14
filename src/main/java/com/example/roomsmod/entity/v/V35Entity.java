@@ -46,6 +46,8 @@ public class V35Entity extends VEntity {
 
     private static final EntityDataAccessor<Boolean> PEEKING = SynchedEntityData.defineId(V35Entity.class, EntityDataSerializers.BOOLEAN);
     private BlockPos window = null;
+    private Direction windowOut = null;
+    private int knockStart = 0;
     private final Map<UUID, Integer> gaze = new HashMap<>();
 
     public V35Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
@@ -74,33 +76,98 @@ public class V35Entity extends VEntity {
                     if (!level.getBlockState(q.relative(d)).isAir() || !level.getBlockState(q.relative(d, 2)).is(Blocks.BLACK_CONCRETE)) continue;
                     // 出口扉は +Z（SOUTH）側の壁。その壁、または出口扉と同じ z の窓は除外
                     if (d == Direction.SOUTH || (exit != null && q.getZ() >= exit.getZ() - 1)) continue;
+                    if (!isValidWindow(level, rs, room, q, d)) continue;
                     out.add(new Object[]{q.immutable(), d});
                 }
             }
         return out;
     }
 
-    @Override
-    protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
-        startRoom = playerRoom;
-        List<Object[]> ws = windows(level, rs, playerRoom);
-        if (ws.isEmpty()) { RoomsDebug.log("V-35: room {} has no eligible window", playerRoom); return null; }
+    public static List<Object[]> windowsForTest(ServerLevel l, RoomsState rs, int room) { return windows(l, rs, room); }
+
+    /** 本物の窓か：板ガラス、外がこの部屋の外の空気ポケット、その奥が黒コンクリート、内側がこの部屋の中の通れる空間。 */
+    static boolean isValidWindow(ServerLevel level, RoomsState rs, int room, BlockPos q, Direction out) {
+        if (!level.getBlockState(q).is(Blocks.GLASS_PANE)) return false;
+        BlockPos pocket = q.relative(out), in = q.relative(out.getOpposite());
+        if (!level.getBlockState(pocket).isAir() || !level.getBlockState(q.relative(out, 2)).is(Blocks.BLACK_CONCRETE)) return false;
+        if (!level.getBlockState(in).getCollisionShape(level, in).isEmpty()) return false;
+        boolean inInside = false;
+        for (BoundingBox b : rs.generatedRooms.get(room)) {
+            if (b.isInside(in)) inInside = true;
+        }
+        if (!inInside) return false;
+        // ポケットはどの部屋の内部でもない（隣の部屋の中を窓と誤認しない）
+        for (int r = Math.max(0, room - 2); r < Math.min(rs.generatedRooms.size(), room + 3); r++)
+            if (com.example.roomsmod.world.SafeSpot.inInterior(rs, r, pocket)) return false;
+        return true;
+    }
+
+    /** 今いちばん先の部屋にいるプレイヤーの部屋（いなければ -1）。 */
+    /** テスト用（ハーネス）：>=0 なら「いちばん先のプレイヤーの部屋」として使う。通常は -1。 */
+    public static int testPlayerRoom = -1;
+
+    private int furthestPlayerRoom(ServerLevel level, RoomsState rs) {
+        int best = testPlayerRoom;
+        for (Player p : level.players())
+            if (!p.isSpectator() && p.isAlive()) best = Math.max(best, com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()));
+        return best;
+    }
+
+    /** 部屋 room の有効な窓を選んでポケットに入る。なければ false（窓なし＝隠れて待つ）。 */
+    private boolean pickWindow(ServerLevel level, RoomsState rs, int room) {
+        startRoom = room;
+        List<Object[]> ws = windows(level, rs, room);
+        if (ws.isEmpty()) { window = null; RoomsDebug.log("V-35: room {} ({}) has no eligible window -> waiting", room, com.example.roomsmod.event.RoomTracker.format(rs, room)); return false; }
         Object[] w = ws.get(level.random.nextInt(ws.size()));
         window = (BlockPos) w[0];
-        Direction out = (Direction) w[1];
-        BlockPos at = window.relative(out); // 窓のすぐ外の空気ポケット
-        setPos(at.getX() + 0.5, at.getY() - 0.05, at.getZ() + 0.5); // 顔（描画中心 y+0.55）がガラスの高さに来る
-        faceTowards(Vec3.atCenterOf(window.relative(out.getOpposite())));
-        return at;
+        windowOut = (Direction) w[1];
+        BlockPos at = window.relative(windowOut); // 窓のすぐ外の空気ポケット
+        com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, this, new net.minecraft.world.level.ChunkPos(at));
+        setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5); // 足元＝ポケットのブロック（描画中心 y+0.55 がガラスの高さ）
+        faceTowards(Vec3.atCenterOf(window.relative(windowOut.getOpposite())));
+        knockStart = life;
+        RoomsDebug.log("V-35 chose window {} pocket {} in room {} ({}) of {} candidates", window, at, room, com.example.roomsmod.event.RoomTracker.format(rs, room), ws.size());
+        return true;
+    }
+
+    /** 今の位置が選んだ窓のポケットか（テスト・自己点検用）。 */
+    public boolean isInPocket(ServerLevel level) {
+        if (window == null || windowOut == null) return false;
+        BlockPos at = window.relative(windowOut);
+        return blockPosition().equals(at) && isValidWindow(level, RoomsState.get(level), startRoom, window, windowOut);
+    }
+
+    @Override
+    protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
+        int fr = furthestPlayerRoom(level, rs);
+        int room = Math.max(playerRoom, fr);
+        if (!pickWindow(level, rs, room)) return null;
+        return window.relative(windowOut);
     }
 
     @Override
     protected void serverTick(ServerLevel level) {
-        if (window == null) { leave("no window"); return; }
-        if (life == 1 || life == 12) level.playSound(null, window, RoomsMod.V35_KNOCK.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
-        if (life < KNOCK_TICKS) return;
-        if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-35 peeking at window {}", window); }
-        if (life > KNOCK_TICKS + PEEK_TICKS) { leave("peek time over"); return; }
+        RoomsState rs = RoomsState.get(level);
+        // プレイヤーが別の部屋へ移ったら、その部屋の窓に移り直す（ノックからやり直し）
+        int fr = furthestPlayerRoom(level, rs);
+        if (fr >= 0 && fr != startRoom) {
+            RoomsDebug.log("V-35 player moved room {} -> {}: re-pick window", startRoom, fr);
+            if (isPeeking()) entityData.set(PEEKING, false);
+            pickWindow(level, rs, fr);
+        }
+        // 窓が壊れた・無効になった
+        if (window != null && !isValidWindow(level, rs, startRoom, window, windowOut)) {
+            RoomsDebug.log("V-35 window {} no longer valid: re-pick", window);
+            if (isPeeking()) entityData.set(PEEKING, false);
+            pickWindow(level, rs, startRoom);
+        }
+        if (window == null && life % 20 == 0) pickWindow(level, rs, startRoom); // 古いセーブ等
+        if (window == null) { if (isPeeking()) entityData.set(PEEKING, false); return; } // 窓のない部屋：見えないまま待つ（寿命で消える）
+        int t = life - knockStart;
+        if (t == 1 || t == 12) level.playSound(null, window, RoomsMod.V35_KNOCK.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
+        if (t < KNOCK_TICKS) return;
+        if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-35 peeking at window {} room {} inPocket={}", window, startRoom, isInPocket(level)); }
+        if (t > KNOCK_TICKS + PEEK_TICKS) { leave("peek time over"); return; }
         Vec3 face = new Vec3(getX(), window.getY() + 0.5, getZ()); // ポケット内の顔
         for (Player p : playersNear(RANGE)) {
             boolean looking = !HidingRules.isProtectedFrom(this, p) && isLookingAt(p, face);
@@ -153,11 +220,16 @@ public class V35Entity extends VEntity {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         if (window != null) tag.putLong("Window", window.asLong());
+        if (windowOut != null) tag.putInt("WindowOut", windowOut.get3DDataValue());
+        tag.putInt("KnockStart", knockStart);
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         window = tag.contains("Window") ? BlockPos.of(tag.getLong("Window")) : null;
+        windowOut = tag.contains("WindowOut") ? Direction.from3DDataValue(tag.getInt("WindowOut")) : null;
+        knockStart = tag.getInt("KnockStart");
+        if (windowOut == null) window = null; // 古いセーブ：次の tick で選び直す
     }
 }
