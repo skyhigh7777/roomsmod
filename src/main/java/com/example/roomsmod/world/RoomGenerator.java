@@ -92,6 +92,7 @@ public class RoomGenerator {
     static final class RoomPlan {
         final List<Rect> rects = new ArrayList<>();
         int height = 5;
+        RoomShape shape = RoomShape.BOX;
         int mainDepth;       // 照明位置の基準（入口側の区画の奥行き）
         int exitX, exitZ;    // 出口扉（ローカル）
         final List<int[]> pathWaypoints = new ArrayList<>(); // 入口→出口の通路の折れ点
@@ -198,6 +199,7 @@ public class RoomGenerator {
     /** 直線系（箱・廊下・ホール・高天井）。 */
     private static RoomPlan planStraight(RoomShape shape, ExitType exit, int a, int b, int c) {
         RoomPlan p = new RoomPlan();
+        p.shape = shape;
         int width, depth;
         switch (shape) {
             case CORRIDOR -> { width = 7 + a % 3; depth = 40 + b % 11; }
@@ -248,6 +250,7 @@ public class RoomGenerator {
     /** L字：前進してから左右に曲がる。出口は曲がった脚の先端の+Z壁。 */
     private static RoomPlan planL(boolean right, boolean shortLeg, int a, int b) {
         RoomPlan p = new RoomPlan();
+        p.shape = RoomShape.L_SHAPE;
         int fwdWidth = 9;
         int fwdDepth = 18 + a % 7;
         int legDepth = 11; // 曲がった脚の奥行き（z方向）
@@ -392,6 +395,9 @@ public class RoomGenerator {
             hides--;
         }
 
+        // 遮蔽物：通路の脇にU字の遮蔽＋裏の隠れポケット
+        placeCover(level, origin, p, rand, blocked, used);
+
         // 本棚：壁際に2段
         int shelves = 2 + rand.nextInt(4);
         for (int[] c : wallSide) {
@@ -423,6 +429,183 @@ public class RoomGenerator {
             for (int y = 1; y < p.height; y++) place(level, origin, c[0], c[1], y, block);
             pillars--;
         }
+    }
+
+    // ===================== 遮蔽物 =====================
+
+    /** 遮蔽物が出る部屋の割合と個数（調整用）。 */
+    public static final float COVER_ROOM_CHANCE = 0.7f;
+    public static final int COVER_MIN = 1;
+    public static final int COVER_MAX = 3;
+    /** 遮蔽の検証距離（ラッシャーの攻撃距離22.5＋余裕）。 */
+    private static final double COVER_CHECK_RANGE = 24.0;
+    private static final int COVER_ATTEMPTS = 60;
+
+    enum CoverKind { BOOKSHELF_ROW, PILLAR_2X2, PARTITION, CRATES }
+
+    /** 部屋の形ごとの出やすさ（BOOKSHELF_ROW, PILLAR_2X2, PARTITION, CRATES の順）。 */
+    private static int[] coverWeights(RoomShape shape) {
+        return switch (shape) {
+            case HALL -> new int[]{2, 3, 2, 2};
+            case TALL -> new int[]{1, 2, 3, 1};
+            case L_SHAPE -> new int[]{2, 0, 1, 3};
+            case CORRIDOR -> new int[]{1, 0, 1, 2};
+            default -> new int[]{3, 1, 2, 2};
+        };
+    }
+
+    /** 1つの遮蔽物。structure=置くブロック（高さ付き）、pocket=隠れる床、back=出入り用に空ける床。 */
+    private record Cover(CoverKind kind, java.util.Map<Long, net.minecraft.world.level.block.state.BlockState[]> structure, Set<Long> pocket, Set<Long> back) {}
+
+    /**
+     * 通路の線分の脇（中心線から2マス以上離れた所）に、通路側を塞ぐU字の遮蔽物を置く。
+     * 裏の1列が隠れポケット、その更に裏を出入り口として空ける。通路3マス幅・扉付近・ロッカー/机は blocked/used で避ける。
+     * 置く前に、通路上のどの点からもポケットが見えないこと（2D視線）を検証する。部屋の床（壁以外）にしか置かない。
+     */
+    private static void placeCover(ServerLevel level, BlockPos origin, RoomPlan p, Random rand, Set<Long> blocked, Set<Long> used) {
+        if (rand.nextFloat() >= COVER_ROOM_CHANCE) {
+            RoomsDebug.log("cover shape={} none (roll)", p.shape);
+            return;
+        }
+        int want = COVER_MIN + rand.nextInt(COVER_MAX - COVER_MIN + 1);
+        int[] weights = coverWeights(p.shape);
+        List<int[]> rusherCells = new ArrayList<>();
+        Set<Long> pathSet = pathCells(p);
+        for (long k : pathSet) rusherCells.add(new int[]{(int) (k >> 32), (int) k});
+        int placed = 0;
+        List<String> report = new ArrayList<>();
+        for (int attempt = 0; attempt < COVER_ATTEMPTS && placed < want; attempt++) {
+            int seg = rand.nextInt(Math.max(1, p.pathWaypoints.size() - 1));
+            if (seg + 1 >= p.pathWaypoints.size()) break;
+            int[] a = p.pathWaypoints.get(seg), b = p.pathWaypoints.get(seg + 1);
+            int len = Math.abs(b[0] - a[0]) + Math.abs(b[1] - a[1]);
+            if (len < 4) continue;
+            int dx = Integer.signum(b[0] - a[0]), dz = Integer.signum(b[1] - a[1]);
+            int side = rand.nextBoolean() ? 1 : -1;
+            int nx = -dz * side, nz = dx * side;
+            CoverKind kind = pickKind(rand, weights);
+            if (kind == null) break;
+            int along = rand.nextInt(len);
+            int ax = a[0] + dx * along, az = a[1] + dz * along;
+            Cover c = buildCover(kind, rand, p, ax, az, dx, dz, nx, nz);
+            if (!fits(p, c, blocked, used)) continue;
+            if (!pocketHidden(p, c, rusherCells)) continue;
+            for (var e : c.structure.entrySet()) {
+                int x = (int) (e.getKey() >> 32), z = (int) (long) e.getKey();
+                var col = e.getValue();
+                for (int y = 0; y < col.length; y++) level.setBlockAndUpdate(origin.offset(x, 1 + y, z), col[y]);
+            }
+            used.addAll(c.structure.keySet());
+            used.addAll(c.pocket);
+            used.addAll(c.back);
+            placed++;
+            long pk = c.pocket.iterator().next();
+            report.add(kind + "@" + origin.offset((int) (pk >> 32), 1, (int) pk).toShortString() + "(" + c.structure.size() + " cols)");
+        }
+        RoomsDebug.log("cover shape={} wanted={} placed={} {}", p.shape, want, placed, report);
+    }
+
+    private static CoverKind pickKind(Random rand, int[] w) {
+        int total = 0;
+        for (int v : w) total += v;
+        if (total == 0) return null;
+        int r = rand.nextInt(total);
+        for (int i = 0; i < w.length; i++) { r -= w[i]; if (r < 0) return CoverKind.values()[i]; }
+        return null;
+    }
+
+    /** (s=通路方向, o=通路から離れる方向) のローカル座標でU字を組む。o=0 が通路中心線。 */
+    private static Cover buildCover(CoverKind kind, Random rand, RoomPlan p, int ax, int az, int dx, int dz, int nx, int nz) {
+        java.util.Map<Long, net.minecraft.world.level.block.state.BlockState[]> st = new java.util.LinkedHashMap<>();
+        Set<Long> pocket = new HashSet<>(), back = new HashSet<>();
+        int full = p.height - 1;              // 床+1〜天井直下
+        int tall = Math.min(3, full);
+        java.util.function.BiFunction<Integer, Integer, Long> at = (sv, ov) -> key(ax + dx * sv + nx * ov, az + dz * sv + nz * ov);
+        switch (kind) {
+            case BOOKSHELF_ROW, PARTITION, CRATES -> {
+                int l = switch (kind) { case BOOKSHELF_ROW -> 4 + rand.nextInt(3); case PARTITION -> 5 + rand.nextInt(3); default -> 3 + rand.nextInt(2); };
+                int s0 = -l / 2;
+                for (int sv = s0; sv < s0 + l; sv++) {
+                    st.put(at.apply(sv, 2), coverColumn(kind, rand, kind == CoverKind.PARTITION ? full : tall));
+                }
+                st.put(at.apply(s0, 3), coverColumn(kind, rand, kind == CoverKind.PARTITION ? full : tall));
+                st.put(at.apply(s0 + l - 1, 3), coverColumn(kind, rand, kind == CoverKind.PARTITION ? full : tall));
+                for (int sv = s0 + 1; sv < s0 + l - 1; sv++) { pocket.add(at.apply(sv, 3)); back.add(at.apply(sv, 4)); }
+            }
+            case PILLAR_2X2 -> {
+                net.minecraft.world.level.block.state.BlockState[] pil = column(Blocks.POLISHED_ANDESITE.defaultBlockState(), full);
+                for (int sv = 0; sv <= 1; sv++) for (int ov = 2; ov <= 3; ov++) st.put(at.apply(sv, ov), pil);
+                // 2x2の両脇から裏へ回り込む袖（ポケットの横を塞ぐ）
+                for (int ov = 3; ov <= 4; ov++) {
+                    st.put(at.apply(-1, ov), column(Blocks.STONE_BRICKS.defaultBlockState(), tall));
+                    st.put(at.apply(2, ov), column(Blocks.STONE_BRICKS.defaultBlockState(), tall));
+                }
+                for (int sv = 0; sv <= 1; sv++) { pocket.add(at.apply(sv, 4)); back.add(at.apply(sv, 5)); }
+            }
+        }
+        return new Cover(kind, st, pocket, back);
+    }
+
+    private static net.minecraft.world.level.block.state.BlockState[] column(net.minecraft.world.level.block.state.BlockState b, int h) {
+        var col = new net.minecraft.world.level.block.state.BlockState[Math.max(2, h)];
+        java.util.Arrays.fill(col, b);
+        return col;
+    }
+
+    private static net.minecraft.world.level.block.state.BlockState[] coverColumn(CoverKind kind, Random rand, int h) {
+        return switch (kind) {
+            case BOOKSHELF_ROW -> column(Blocks.BOOKSHELF.defaultBlockState(), h);
+            case PARTITION -> column(Blocks.STONE_BRICKS.defaultBlockState(), h);
+            default -> {
+                int hh = Math.max(2, Math.min(h, 2 + rand.nextInt(2)));
+                var col = new net.minecraft.world.level.block.state.BlockState[hh];
+                for (int y = 0; y < hh; y++) col[y] = rand.nextBoolean() ? Blocks.BARREL.defaultBlockState() : Blocks.SPRUCE_PLANKS.defaultBlockState();
+                yield col;
+            }
+        };
+    }
+
+    /** 全セルが部屋の床（壁でない）で、通路・扉付近・他の家具と重ならないか。構造物は他の家具から1マス空ける。 */
+    private static boolean fits(RoomPlan p, Cover c, Set<Long> blocked, Set<Long> used) {
+        for (long k : c.structure.keySet()) {
+            int x = (int) (k >> 32), z = (int) k;
+            if (!p.inside(x, z) || p.isWall(x, z) || blocked.contains(k)) return false;
+            for (int ddx = -1; ddx <= 1; ddx++)
+                for (int ddz = -1; ddz <= 1; ddz++)
+                    if (used.contains(key(x + ddx, z + ddz))) return false;
+        }
+        for (Set<Long> set : List.of(c.pocket, c.back)) {
+            for (long k : set) {
+                int x = (int) (k >> 32), z = (int) k;
+                if (!p.inside(x, z) || p.isWall(x, z) || blocked.contains(k) || used.contains(k) || c.structure.containsKey(k)) return false;
+            }
+        }
+        return !c.pocket.isEmpty();
+    }
+
+    /** 通路セル（ラッシャーが通りうる3マス幅）のどこから見ても、ポケットの全セル中心が遮られているか（2D）。 */
+    private static boolean pocketHidden(RoomPlan p, Cover c, List<int[]> rusherCells) {
+        for (long pk : c.pocket) {
+            double qx = (int) (pk >> 32) + 0.5, qz = (int) pk + 0.5;
+            for (int[] r : rusherCells) {
+                double rx = r[0] + 0.5, rz = r[1] + 0.5;
+                double d = Math.hypot(qx - rx, qz - rz);
+                if (d > COVER_CHECK_RANGE) continue;
+                if (lineClear(p, c, rx, rz, qx, qz, d)) return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean lineClear(RoomPlan p, Cover c, double x0, double z0, double x1, double z1, double d) {
+        int steps = (int) Math.ceil(d / 0.1);
+        for (int i = 1; i < steps; i++) {
+            double t = (double) i / steps;
+            int cx = (int) Math.floor(x0 + (x1 - x0) * t), cz = (int) Math.floor(z0 + (z1 - z0) * t);
+            long k = key(cx, cz);
+            if (c.structure.containsKey(k) || !p.inside(cx, cz) || p.isWall(cx, cz)) return false;
+        }
+        return true;
     }
 
     /** 壁から部屋内側を向く方向（隣接する壁の反対側）。 */
