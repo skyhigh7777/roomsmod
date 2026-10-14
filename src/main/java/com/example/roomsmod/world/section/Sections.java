@@ -43,7 +43,7 @@ public final class Sections {
                             (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }),
                     new SectionTheme.RusherSpawn("A-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40)),
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
-            25, 5));
+            1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 
     /** V（Village）区画。部屋の形・家具は VillageRooms（小さな民家、2階建てあり）。shapeWeights/furniture は未使用、cover は遮蔽物のブロック。ラッシャーなし。 */
     public static final SectionTheme V = register(new SectionTheme(
@@ -65,7 +65,7 @@ public final class Sections {
             3, 2,
             List.of(),
             new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
-            0, 5));
+            1, 7));
 
     private Sections() {}
 

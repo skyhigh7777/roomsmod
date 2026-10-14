@@ -46,17 +46,7 @@ public class RoomGenerator {
             }
         }
 
-        // 椅子のみ
-        level.setBlockAndUpdate(origin.offset(5, 1, 10), Blocks.OAK_STAIRS.defaultBlockState());
-        level.setBlockAndUpdate(origin.offset(10, 1, 15), Blocks.OAK_STAIRS.defaultBlockState());
-        level.setBlockAndUpdate(origin.offset(15, 1, 20), Blocks.OAK_STAIRS.defaultBlockState());
-
-        // 照明を規則正しく配置（天井に吊るす）
-        for (int x = 5; x <= 15; x += 5) {
-            for (int z = 8; z <= 24; z += 8) {
-                level.setBlockAndUpdate(origin.offset(x, height - 1, z), theme.palette().light().get());
-            }
-        }
+        buildLobbyInterior(level, origin, width, depth, height);
 
         // 出口扉
         BlockPos doorPos = origin.offset(10, 1, depth - 1);
@@ -76,6 +66,21 @@ public class RoomGenerator {
         state.setExpectedExitDoor(doorPos);
 
         return doorPos;
+    }
+
+    /**
+     * ロビーの内装。今は家具なし・壁は空けたまま（将来アイテム関連やモード切替ボタン等を置く余白）で、
+     * 天窓（天井の白い色付きガラス越しにグロウストーン）で明るくする。次元に空の光は無いので、ロビーの明るさはこの光源だけ。
+     * 追加物はここに足す。中央の通路 x=10（入口 z=2 → 出口扉 z=depth-1）は空けておくこと。
+     */
+    private static void buildLobbyInterior(ServerLevel level, BlockPos origin, int width, int depth, int height) {
+        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17 / 21..25 に計6枚（左右対称・等間隔）
+        for (int cx : new int[]{5, 14}) for (int cz : new int[]{7, 15, 23})
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) {
+                BlockPos g = origin.offset(cx + dx, height, cz + dz);
+                level.setBlockAndUpdate(g, Blocks.WHITE_STAINED_GLASS.defaultBlockState());
+                level.setBlockAndUpdate(g.above(), Blocks.GLOWSTONE.defaultBlockState());
+            }
     }
 
     // ===================== 通常部屋生成 =====================
@@ -139,11 +144,8 @@ public class RoomGenerator {
         level.setBlockAndUpdate(exitDoor, doorLower());
         level.setBlockAndUpdate(exitDoor.above(), doorLower().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
 
-        // 照明：天井に吊るす（既存ロジックのまま）
-        int lightLevel = Math.max(0, 15 - Math.max(0, com.example.roomsmod.world.section.Sections.localRoom(state, roomNumber) - theme.lightFadeStart()) / theme.lightFadeStep());
-        if (lightLevel > 0) {
-            level.setBlockAndUpdate(origin.offset(ENTRANCE_X, plan.height - 1, plan.mainDepth / 2), theme.palette().light().get());
-        }
+        // 照明: セクション内の部屋番号が進むほど少なく・暗く（RoomLighting）
+        placeLights(level, origin, plan, com.example.roomsmod.world.section.Sections.localRoom(state, roomNumber));
 
         placeExitSign(level, origin.offset(plan.exitX, 3, plan.exitZ - 1), com.example.roomsmod.world.section.Sections.formatRoom(state, roomNumber + 1));
 
@@ -159,6 +161,29 @@ public class RoomGenerator {
             RoomsDebug.log("room generated #{} ({}) section={} origin={} {} boxes={} exitDoor={}", roomNumber, com.example.roomsmod.world.section.Sections.formatRoom(state, roomNumber), theme.prefix(), origin, planInfo, toWorldBoxes(origin, plan), exitDoor);
         }
         return exitDoor;
+    }
+
+    private static void placeLights(ServerLevel level, BlockPos origin, RoomPlan plan, int localRoom) {
+        RoomLighting.Fixture f = RoomLighting.fixture(
+                RoomLighting.tier(localRoom, theme.lightFadeStart(), theme.lightFadeStep()), theme.palette().light());
+        List<int[]> interiors = new ArrayList<>();
+        for (Rect r : plan.rects) interiors.add(new int[]{r.x0() + 1, r.z0() + 1, r.x1() - 1, r.z1() - 1});
+        List<int[]> path = new ArrayList<>();
+        path.add(new int[]{ENTRANCE_X, 0});
+        path.addAll(plan.pathWaypoints);
+        path.add(new int[]{plan.exitX, plan.exitZ});
+        int placed = 0;
+        for (int[] c : RoomLighting.candidates(interiors, f)) {
+            if (placed >= f.maxCount()) break;
+            if (!plan.inside(c[0], c[1]) || plan.isWall(c[0], c[1])) continue;
+            BlockPos pos = origin.offset(c[0], f.hanging() ? plan.height - 1 : 1, c[1]);
+            if (!level.getBlockState(pos).isAir()) continue;
+            if (f.hanging() ? level.getBlockState(pos.above()).isAir() : level.getBlockState(pos.below()).isAir()) continue;
+            if (!f.hanging() && RoomLighting.nearPath(path, c[0], c[1])) continue;
+            if (c[0] == plan.exitX && c[1] == plan.exitZ - 1) continue; // 番号プレート
+            level.setBlockAndUpdate(pos, f.state().get());
+            placed++;
+        }
     }
 
     /** 候補を順に試し、既存部屋と重ならない最初のものを採用。最後は必ず通る直線の箱部屋。 */

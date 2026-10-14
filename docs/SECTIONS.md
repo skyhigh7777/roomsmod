@@ -20,7 +20,7 @@ Moving to data-driven JSON later just means adding a codec and loading themes in
 | `hidingMix`, `hidingMin/Extra` | hiding spot types with weights (cumulative, in list order) and count |
 | `rushers` | `RusherSpawn(name, minRoom, chance, alive, spawn)` (`minRoom` = section-local number), rolled independently in list order |
 | `sign` | wall sign block, text color, glow |
-| `lightFadeStart/Step` | rooms after which lights dim |
+| `lightFadeStart/Step` | progressive darkness: tier = (localRoom - start) / step, see `RoomLighting` (lanterns → fewer lanterns → soul lanterns → candles) |
 
 ## Section switching
 `RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world, default `[(a, 0)]`).
@@ -89,3 +89,6 @@ layouts SINGLE / TWO_ROOM (front+back, inner door) / SIDE_ROOM (side room via in
 TWO_STORY (~22%, stairs; ascending at base height -> exit on 2nd floor, descending when already raised
 -> enter 2nd floor, exit ground floor, so floor height alternates base / base+4). The next room origin
 is the exit door's floor (door y - 1). Path waypoints include every stair step (rise, then advance).
+
+## Lobby
+`RoomGenerator.buildLobbyInterior` holds the lobby interior (skylights only; walls/floor deliberately empty for future item stands / mode buttons). Keep the centre path x=10 clear. The rooms dimension has no sky light and ambient_light 0, so the lobby is lit only by its own skylight glowstone.

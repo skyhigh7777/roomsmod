@@ -481,22 +481,28 @@ final class VillageRooms {
             }
         }
 
-        // 照明: 各部屋（矩形）・各階に、内寸に応じて 1〜4 個の吊りランタン
-        int lightLevel = Math.max(0, 15 - Math.max(0, localRoom - theme.lightFadeStart()) / theme.lightFadeStep());
-        if (lightLevel > 0) {
-            for (Floor f : floors) for (Rect r : p.rects) {
-                int ix0 = r.x0() + 1, iz0 = r.z0() + 1, w = r.x1() - r.x0() - 1, d = r.z1() - r.z0() - 1;
-                int nx = Math.max(1, (w + 2) / 4), nz = Math.max(1, (d + 2) / 4);
-                for (int i = 0; i < nx; i++) for (int j = 0; j < nz; j++) {
-                    int x = ix0 + (2 * i + 1) * w / (2 * nx), z = iz0 + (2 * j + 1) * d / (2 * nz);
-                    if (!p.floorCell(x, z)) continue;
-                    if (p.hasStairs && Math.abs(x - p.sx) <= 1 && between(z, p.zb, p.zb + 4 * p.sdz)) continue;
-                    if (x == p.exitX && z == p.exitZ - 1) continue; // 番号プレートの場所
-                    int y = f.y + 2;
-                    if (!c.get(x, y, z).isAir()) continue;
-                    c.set(x, y, z, theme.palette().light().get());
-                    c.count("lantern");
-                }
+        // 照明: セクション内の部屋番号が進むほど少なく・暗く（RoomLighting）。各階ごとに配置
+        RoomLighting.Fixture lf = RoomLighting.fixture(
+                RoomLighting.tier(localRoom, theme.lightFadeStart(), theme.lightFadeStep()), theme.palette().light());
+        List<int[]> interiors = new ArrayList<>();
+        for (Rect r : p.rects) interiors.add(new int[]{r.x0() + 1, r.z0() + 1, r.x1() - 1, r.z1() - 1});
+        List<int[]> path2d = new ArrayList<>();
+        for (int[] q : p.path) path2d.add(new int[]{q[0], q[2]});
+        for (Floor f : floors) {
+            int placed = 0;
+            for (int[] cand : RoomLighting.candidates(interiors, lf)) {
+                if (placed >= lf.maxCount()) break;
+                int x = cand[0], z = cand[1];
+                if (!p.floorCell(x, z)) continue;
+                if (p.hasStairs && Math.abs(x - p.sx) <= 1 && between(z, p.zb, p.zb + 4 * p.sdz)) continue;
+                if (x == p.exitX && z == p.exitZ - 1) continue; // 番号プレートの場所
+                if (!lf.hanging() && (RoomLighting.nearPath(path2d, x, z) || f.used.contains(key(x, z)))) continue;
+                int y = lf.hanging() ? f.y + 2 : f.y;
+                if (!c.get(x, y, z).isAir()) continue;
+                if (lf.hanging() ? c.get(x, y + 1, z).isAir() : c.get(x, y - 1, z).isAir()) continue;
+                c.set(x, y, z, lf.state().get());
+                c.count("light");
+                placed++;
             }
         }
 
