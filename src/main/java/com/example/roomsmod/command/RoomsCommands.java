@@ -113,7 +113,7 @@ public class RoomsCommands {
                     return 1;
                 }))
             .then(Commands.literal("to")
-                .then(Commands.argument("room", IntegerArgumentType.integer(1, 200))
+                .then(Commands.argument("room", IntegerArgumentType.integer(1, 500))
                     .executes(ctx -> {
                         ServerPlayer player = ctx.getSource().getPlayerOrException();
                         ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
@@ -144,7 +144,11 @@ public class RoomsCommands {
                         state.setCurrentRoom(target);
 
                         // 最後の部屋の中央付近にワープ（出口扉の手前）
-                        player.teleportTo(roomsLevel, currentExit.getX() + 0.5, 2, currentExit.getZ() - 8, 0, 0);
+                        // 部屋の床の上の安全な場所へ（V の部屋は2階建てで床の高さが変わるので固定 y は使わない）
+                        net.minecraft.world.phys.Vec3 at = com.example.roomsmod.world.SafeSpot.find(roomsLevel, state, target);
+                        if (at == null) at = new net.minecraft.world.phys.Vec3(currentExit.getX() + 0.5, currentExit.getY(), currentExit.getZ() - 0.5);
+                        com.example.roomsmod.util.RoomsDebug.log("rooms to {}: teleport to ({}, {}, {})", target, at.x, at.y, at.z);
+                        player.teleportTo(roomsLevel, at.x, at.y, at.z, 0, 0);
                         player.sendSystemMessage(Component.literal(com.example.roomsmod.world.section.Sections.formatRoom(state, target) + " まで生成してワープしたわ"));
                         return 1;
                     })))
