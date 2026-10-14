@@ -26,6 +26,14 @@ public class DoorEventHandler {
     /** A-60 が出現する、プレイヤーから何部屋後ろか。 */
     public static final int A60_ROOMS_BEHIND = 10;
 
+    // ラッシャー出現率（調整用）
+    public static final int A60_MIN_ROOM = 10;
+    public static final float A60_CHANCE = 0.6f;
+    public static final int A75_MIN_ROOM = 15;
+    public static final float A75_CHANCE = 0.25f;
+    /** 当選したが出せなかった A-75（メモリのみ。サーバー再起動で消える）。 */
+    private static boolean pendingA75 = false;
+
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
         if (event.getLevel().isClientSide()) return;
@@ -67,18 +75,53 @@ public class DoorEventHandler {
             "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
 
         // 同時に複数のラッシャーは出さない
-        if (!isRusherAlive(level)) {
-            try {
-                if (room >= 10 && level.random.nextFloat() < 0.6f) {
-                    spawnA60(level, rs, event.getEntity());
-                } else if (room >= 15 && level.random.nextFloat() < 0.25f) {
-                    spawnA75(level, rs, event.getEntity());
-                }
-            } catch (RuntimeException e) {
-                RoomsDebug.error("rusher spawn failed", e);
+        try {
+            rollRushers(level, rs, event.getEntity(), room);
+        } catch (RuntimeException e) {
+            RoomsDebug.error("rusher spawn failed", e);
+        }
+    }
+
+    /**
+     * ラッシャー抽選。A-60 と A-75 はそれぞれ独立に抽選し、両方当たったら50/50で片方。
+     * A-75 が当たったのに他のラッシャー生存中で出せなかった場合は保留し、次の部屋でラッシャーがいなければ出す。
+     */
+    private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        boolean alive = isRusherAlive(level);
+        if (pendingA75) {
+            if (alive) {
+                RoomsDebug.log("rusher room={} A-75 pending still blocked: another rusher is alive", room);
+            } else {
+                RoomsDebug.log("rusher room={} spawning pending A-75", room);
+                if (spawnA75(level, rs, player)) pendingA75 = false;
+                return; // 保留分を出した部屋では新規抽選しない
             }
-        } else {
-            RoomsDebug.log("rusher spawn skipped: another rusher is alive");
+        }
+
+        boolean a60Hit = room >= A60_MIN_ROOM && level.random.nextFloat() < A60_CHANCE;
+        boolean a75Hit = room >= A75_MIN_ROOM && level.random.nextFloat() < A75_CHANCE;
+        RoomsDebug.log("rusher roll room={} A-60={} (room>={}, {}) A-75={} (room>={}, {}) rusherAlive={}",
+            room, a60Hit, A60_MIN_ROOM, A60_CHANCE, a75Hit, A75_MIN_ROOM, A75_CHANCE, alive);
+        if (a60Hit && a75Hit) {
+            if (level.random.nextBoolean()) a75Hit = false; else a60Hit = false;
+            RoomsDebug.log("rusher roll room={} both hit -> picked {}", room, a60Hit ? "A-60" : "A-75");
+        }
+        if (!a60Hit && !a75Hit) return;
+
+        if (alive) {
+            if (a75Hit) {
+                pendingA75 = true;
+                RoomsDebug.log("rusher roll room={} A-75 blocked by alive rusher -> pending", room);
+            } else {
+                RoomsDebug.log("rusher roll room={} A-60 skipped: another rusher is alive", room);
+            }
+            return;
+        }
+        if (a60Hit) {
+            spawnA60(level, rs, player);
+        } else if (!spawnA75(level, rs, player)) {
+            pendingA75 = true;
+            RoomsDebug.log("rusher roll room={} A-75 spawn failed -> pending", room);
         }
     }
 
