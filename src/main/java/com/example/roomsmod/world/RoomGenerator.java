@@ -645,10 +645,28 @@ public class RoomGenerator {
         level.setBlockAndUpdate(origin.offset(x, y, z), block.defaultBlockState());
     }
 
+    /**
+     * 扉の上の部屋番号プレート。pos は扉の1マス手前（来る側＝部屋の内側）・床+3。
+     * 北向き（-Z側から読める）で、出口扉のある+Z側の壁に掛ける。テキストは発光させ、編集不可にする。
+     */
     private static void placeExitSign(ServerLevel level, BlockPos pos, String text) {
-        // TextDisplayのsetTextなどがprivateのため、一旦通常の看板で代用
-        // 大きめ表示は後でText DisplayのEntityData経由で実装予定
-        level.setBlockAndUpdate(pos, Blocks.OAK_WALL_SIGN.defaultBlockState());
-        // TODO: SignBlockEntityでテキスト設定
+        BlockPos wall = pos.relative(Direction.SOUTH);
+        if (!level.getBlockState(pos).isAir() || !level.getBlockState(wall).isSolid()) {
+            RoomsDebug.log("room number sign {} skipped at {} (space occupied or no wall)", text, pos);
+            return;
+        }
+        level.setBlockAndUpdate(pos, Blocks.OAK_WALL_SIGN.defaultBlockState()
+                .setValue(net.minecraft.world.level.block.WallSignBlock.FACING, Direction.NORTH));
+        if (level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.SignBlockEntity sign) {
+            var st = new net.minecraft.world.level.block.entity.SignText()
+                    .setMessage(1, net.minecraft.network.chat.Component.literal(text))
+                    .setColor(net.minecraft.world.item.DyeColor.WHITE)
+                    .setHasGlowingText(true);
+            sign.setText(st, true);
+            sign.setWaxed(true);
+            sign.setChanged();
+            level.sendBlockUpdated(pos, sign.getBlockState(), sign.getBlockState(), 3);
+        }
+        RoomsDebug.log("room number sign {} at {}", text, pos);
     }
 }

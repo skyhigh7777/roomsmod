@@ -66,6 +66,7 @@ public class RoomsMod {
         ITEMS.register(modEventBus);
         ENTITIES.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomTracker.class);
         com.example.roomsmod.hiding.HidingRules.addHidingCheck(com.example.roomsmod.hiding.LockerManager::isUnderTable);
         modEventBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(LOCKER_ITEM.get()); e.accept(HIDING_TABLE_ITEM.get()); }
