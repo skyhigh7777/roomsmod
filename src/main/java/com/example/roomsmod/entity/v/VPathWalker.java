@@ -57,6 +57,24 @@ public abstract class VPathWalker extends VEntity {
         return wps == null ? List.of() : wps;
     }
 
+    /**
+     * 前進型（endRoom >= startRoom）のみ：走行中にプレイヤーが扉を開けて endRoom より先の部屋が生成されたら、
+     * その部屋の経路（階段込み）を末尾に足し、最新の部屋の出口まで走り続ける。
+     * 逆向き（V-50）は対象外。チャンクは VEntity.tick の RusherChunks.move が現在位置に追従して保持する。
+     */
+    private List<BlockPos> extendIfNewRooms(ServerLevel level, List<BlockPos> w) {
+        if (wps == null || endRoom < startRoom) return w;
+        RoomsState rs = RoomsState.get(level);
+        int last = rs.roomPaths.size() - 1;
+        if (last <= endRoom) return w;
+        int before = wps.size();
+        for (BlockPos p : pathOf(rs, endRoom + 1, last))
+            if (wps.isEmpty() || !wps.get(wps.size() - 1).equals(p)) wps.add(p);
+        endRoom = last;
+        RoomsDebug.log("{} path extended to room {} (+{} waypoints)", vName(), last, wps.size() - before);
+        return wps;
+    }
+
     /** startRoom→endRoom の経路の先頭に置く。 */
     protected BlockPos placeAtStart(RoomsState rs, int from, int to) {
         startRoom = from; endRoom = to; wps = null;
@@ -76,6 +94,7 @@ public abstract class VPathWalker extends VEntity {
     protected void serverTick(ServerLevel level) {
         List<BlockPos> w = waypoints();
         if (holdTick(level)) return;
+        w = extendIfNewRooms(level, w);
         if (w.isEmpty() || waypointIndex >= w.size()) { leave("path end (" + w.size() + " waypoints)"); return; }
         int idx = mover.step(this, vName(), w, waypointIndex, w.size() - 1, speed(), reached);
         if (idx < w.size()) faceTowards(net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(idx)));
