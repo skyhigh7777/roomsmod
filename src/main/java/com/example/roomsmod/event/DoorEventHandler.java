@@ -31,6 +31,16 @@ public class DoorEventHandler {
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+        // 一度開いた扉は閉められない（両手・上下どちらの半分も、クライアントでも取り消して予測で閉じないようにする）
+        if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION)) {
+            BlockState s0 = event.getLevel().getBlockState(event.getPos());
+            if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
+                event.setCanceled(true);
+                if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
+                    RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
+                return;
+            }
+        }
         if (event.getLevel().isClientSide()) return;
         // MAIN_HAND / OFF_HAND の2回発火を防ぐ
         if (event.getHand() != InteractionHand.MAIN_HAND) return;
