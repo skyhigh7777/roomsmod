@@ -165,6 +165,10 @@ public class A60Entity extends Mob {
         if (this.level().isClientSide()) {
             // クライアント側で赤いパーティクルを大量に
             spawnVisualParticles();
+            // 接近ループ音（2秒ごと、エンティティに追従するクライアント側サウンド）
+            if (this.tickCount % 40 == 0) {
+                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A60_APPROACH.get());
+            }
             return;
         }
 
@@ -258,13 +262,6 @@ public class A60Entity extends Mob {
             if (this.tickCount == 1) {
                 this.level().playSound(null, src.x, src.y, src.z,
                         SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
-            }
-            if (this.tickCount % 40 == 0) {
-                float approachVol = approachVolume(dist);
-                if (approachVol > MIN_APPROACH_VOLUME) {
-                    this.level().playSound(null, src.x, src.y, src.z,
-                            com.example.roomsmod.RoomsMod.A60_APPROACH.get(), SoundSource.HOSTILE, approachVol, 1.0f);
-                }
             }
         }
 

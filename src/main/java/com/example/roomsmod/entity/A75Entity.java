@@ -46,6 +46,15 @@ public class A75Entity extends Mob {
 
     // フェーズ: 0=待機 1=前進 2=折返し停止 3=後退 4=停止 5=再前進
     private int phase = 0;
+    /** 移動中フラグ（phaseはクライアントへ同期されないため、ループ音用に同期する）。 */
+    private static final net.minecraft.network.syncher.EntityDataAccessor<Boolean> DATA_MOVING =
+            net.minecraft.network.syncher.SynchedEntityData.defineId(A75Entity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
+
+    @Override
+    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(DATA_MOVING, false);
+    }
     private int phaseTicks = 0;
     private int startRoom = 0;
     private int roomsBack = DEFAULT_ROOMS_BACK;
@@ -148,6 +157,10 @@ public class A75Entity extends Mob {
         this.noPhysics = true;
         if (this.level().isClientSide()) {
             spawnVisualParticles();
+            // 接近ループ音（移動中のみ1秒ごと、エンティティに追従するクライアント側サウンド）
+            if (this.entityData.get(DATA_MOVING) && this.tickCount % 20 == 0) {
+                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A75_APPROACH.get());
+            }
             return;
         }
         ServerLevel sl = (ServerLevel) this.level();
@@ -213,7 +226,7 @@ public class A75Entity extends Mob {
 
         boolean moving = phase == 1 || phase == 3 || phase == 5;
         if (this.tickCount == 1) playNearPlayer(sl, SoundEvents.WARDEN_SONIC_BOOM, 0.6f);
-        if (moving && this.tickCount % 20 == 0) playApproachNearPlayer(sl, com.example.roomsmod.RoomsMod.A75_APPROACH.get());
+        this.entityData.set(DATA_MOVING, moving);
 
         if (moving) {
             AABB box = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
@@ -239,19 +252,6 @@ public class A75Entity extends Mob {
         Vec3 src = p.position().add(to.scale(Math.min(dist, 8.0)));
         float vol = (float) Math.max(0.3, Math.min(1.0, 1.0 - dist / 150.0)) * 3.0f;
         sl.playSound(null, src.x, src.y, src.z, sound, SoundSource.HOSTILE, Math.max(0.9f, vol), pitch);
-    }
-
-    /** 接近ループ音：playNearPlayerと同じ位置決め、音量はA60Entity.approachVolume（距離フェードイン）。 */
-    private void playApproachNearPlayer(ServerLevel sl, SoundEvent sound) {
-        Player p = sl.getNearestPlayer(this, 500);
-        if (p == null) return;
-        double dist = this.distanceTo(p);
-        float vol = A60Entity.approachVolume(dist);
-        if (vol <= A60Entity.MIN_APPROACH_VOLUME) return;
-        Vec3 to = this.position().subtract(p.position());
-        to = to.lengthSqr() > 1.0E-6 ? to.normalize() : Vec3.ZERO;
-        Vec3 src = p.position().add(to.scale(Math.min(dist, 8.0)));
-        sl.playSound(null, src.x, src.y, src.z, sound, SoundSource.HOSTILE, vol, 1.0f);
     }
 
     private void spawnVisualParticles() {

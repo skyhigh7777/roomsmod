@@ -21,6 +21,11 @@ import org.joml.Matrix4f;
 public class ClientSetup {
 
     @SubscribeEvent
+    public static void onClientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
+        com.example.roomsmod.util.ApproachSoundHook.set(ApproachSoundInstance::start);
+    }
+
+    @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(RoomsMod.A60.get(), A60Renderer::new);
         event.registerEntityRenderer(RoomsMod.A75.get(), A75Renderer::new);
