@@ -40,7 +40,10 @@ public class V35Entity extends VEntity {
     public static final int PEEK_TICKS = 20 * 12;    // 覗いている時間
     /** 見た時間の累計（tick）がこれを超えると攻撃。目を逸らしてもリセットしない（この個体が生きている間ずっと累積）。 */
     public static final int GAZE_KILL_TICKS = 10;
-    public static final double LOOK_CONE_DEG = 20.0; // 視線の中心からこの角度以内なら「見ている」
+    /** 視線（画面中央）から V-35 の顔のどこか（顔の中心までの角度 − 見かけの半径 atan(FACE_RADIUS/距離)）までがこの半角以内なら「見ている」＝視界の中央付近に入っていれば数える。 */
+    public static final double GAZE_CONE_DEG = 30.0;
+    /** 顔の中心の高さ（足元から。描画のビルボード 1.1 の中心）と、見かけの大きさに使う半径。 */
+    public static final double FACE_HEIGHT = 0.55, FACE_RADIUS = 0.55;
     public static final double RANGE = 24.0;
     public static final float DAMAGE = 40.0f;        // ほぼ即死
 
@@ -168,38 +171,69 @@ public class V35Entity extends VEntity {
         if (t < KNOCK_TICKS) return;
         if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-35 peeking at window {} room {} inPocket={}", window, startRoom, isInPocket(level)); }
         if (t > KNOCK_TICKS + PEEK_TICKS) { leave("peek time over"); return; }
-        Vec3 face = new Vec3(getX(), window.getY() + 0.5, getZ()); // ポケット内の顔
-        for (Player p : playersNear(RANGE)) {
-            boolean looking = !HidingRules.isProtectedFrom(this, p) && isLookingAt(p, face);
-            int g = gaze.getOrDefault(p.getUUID(), 0) + (looking ? 1 : 0); // 累積（逸らしても減らない）
-            if (looking) gaze.put(p.getUUID(), g);
-            if (looking && (g == 1 || g % 5 == 0))
-                RoomsDebug.log(p, "V-35 を見ている " + g + "/" + GAZE_KILL_TICKS, "V-35 gaze player={} ticks={}/{}", p.getGameProfile().getName(), g, GAZE_KILL_TICKS);
-            if (looking && g >= GAZE_KILL_TICKS) {
-                level.playSound(null, getX(), getY(), getZ(), RoomsMod.V35_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
-                RoomsDebug.log(p, "V-35 に見つかったわ", "V-35 attack player={} after gaze {} ticks creative={}", p.getGameProfile().getName(), g, p.isCreative());
-                if (!p.isCreative()) p.hurt(damageSources().mobAttack(this), DAMAGE);
-                leave("attacked");
-                return;
-            }
-        }
+        for (Player p : playersNear(RANGE)) if (gazeTick(level, p)) return;
     }
 
-    /** 視野円錐内かつ、目から窓までブロックに遮られない（窓ガラス・外の黒コンクリートは除く）。 */
-    private boolean isLookingAt(Player p, Vec3 face) {
+    public BlockPos window() { return window; }
+    public Direction windowOut() { return windowOut; }
+
+    /** 顔の中心（描画の中心＝足元 + FACE_HEIGHT）。 */
+    public Vec3 faceCenter() { return position().add(0, FACE_HEIGHT, 0); }
+
+    /**
+     * 1プレイヤー分の視線判定（毎tick）。見ていれば累計+1、GAZE_KILL_TICKS で攻撃（クリエイティブはログのみ）。
+     * @return 攻撃して消えたら true
+     */
+    public boolean gazeTick(ServerLevel level, Player p) {
+        if (!isPeeking() || isRemoved()) return false;
+        String why = HidingRules.isProtectedFrom(this, p) ? "hiding" : lookFailReason(p, faceCenter());
+        if (why != null) {
+            if (RoomsDebug.isEnabled() && life % 10 == 0) RoomsDebug.log("V-35 not looking player={} reason={}", p.getGameProfile().getName(), why);
+            return false;
+        }
+        int g = gaze.getOrDefault(p.getUUID(), 0) + 1; // 累積（逸らしても減らない）
+        gaze.put(p.getUUID(), g);
+        RoomsDebug.log(p, "V-35 gaze " + g + "/" + GAZE_KILL_TICKS, "V-35 gaze {}/{} player={}", g, GAZE_KILL_TICKS, p.getGameProfile().getName());
+        if (g < GAZE_KILL_TICKS) return false;
+        level.playSound(null, getX(), getY(), getZ(), RoomsMod.V35_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
+        boolean immune = p.isCreative() || p.isSpectator();
+        RoomsDebug.log(p, immune ? "V-35: would kill（クリエイティブ）" : "V-35 に見つかったわ",
+                "V-35 attack player={} after gaze {} ticks creative={}{}", p.getGameProfile().getName(), g, p.isCreative(), immune ? " -> would kill" : "");
+        if (!immune) p.hurt(damageSources().mobAttack(this), DAMAGE);
+        leave("attacked");
+        return true;
+    }
+
+    /** 見ていれば null、見ていなければ理由。視野円錐（顔の見かけの大きさも足す）＋ガラス・板ガラスを透過する視線。 */
+    public String lookFailReason(Player p, Vec3 face) {
         Vec3 eye = p.getEyePosition();
         Vec3 to = face.subtract(eye);
-        if (to.length() < 1.0E-3) return true;
-        if (p.getViewVector(1.0f).dot(to.normalize()) < Math.cos(Math.toRadians(LOOK_CONE_DEG))) return false;
+        double dist = to.length();
+        if (dist < 1.0E-3) return null;
+        double ang = Math.toDegrees(Math.acos(Math.max(-1, Math.min(1, p.getViewVector(1.0f).dot(to.normalize())))));
+        double allowed = GAZE_CONE_DEG + Math.toDegrees(Math.atan(FACE_RADIUS / dist));
+        if (ang > allowed) return String.format("cone %.1f>%.1f", ang, allowed);
+        // 窓は1ブロック幅なので、斜めから見ると顔の中心への線は窓の横の壁に当たる。
+        // 窓（板ガラス）まで見通せればその奥の V-35 も見えているとみなす。
+        if (lineOfSight(eye, face, p)) return null;
+        if (window != null && lineOfSight(eye, Vec3.atCenterOf(window), p)) return null;
+        return "blocked";
+    }
+
+    private boolean lineOfSight(Vec3 eye, Vec3 face, Player p) {
+        Vec3 to = face.subtract(eye);
         // 板ガラス・ガラスは透明扱い：当たったら少し先から撃ち直す
         Vec3 from = eye;
         for (int i = 0; i < 8; i++) {
             BlockHitResult hit = level().clip(new ClipContext(from, face, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, p));
             if (hit.getType() == HitResult.Type.MISS) return true;
             BlockPos h = hit.getBlockPos();
-            if (h.equals(blockPosition())) return true;
+            if (h.equals(blockPosition()) || (h.equals(window) && face.distanceTo(Vec3.atCenterOf(window)) < 0.01)) return true;
             var s = level().getBlockState(h);
-            if (!(s.getBlock() instanceof net.minecraft.world.level.block.IronBarsBlock) && !(s.getBlock() instanceof net.minecraft.world.level.block.TransparentBlock)) return false;
+            if (!(s.getBlock() instanceof net.minecraft.world.level.block.IronBarsBlock) && !(s.getBlock() instanceof net.minecraft.world.level.block.TransparentBlock)) {
+                if (RoomsDebug.isEnabled() && life % 10 == 0) RoomsDebug.log("V-35 sight blocked by {} at {}", s.getBlock(), h);
+                return false;
+            }
             from = hit.getLocation().add(to.normalize().scale(0.05));
             // ガラスブロックの中から出るまで進める
             while (level().getBlockState(BlockPos.containing(from)).equals(s) && from.distanceTo(face) > 0.1) from = from.add(to.normalize().scale(0.1));
