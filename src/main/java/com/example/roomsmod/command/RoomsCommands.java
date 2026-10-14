@@ -107,7 +107,7 @@ public class RoomsCommands {
                     if (lv == null) return 0;
                     var rs = com.example.roomsmod.world.RoomsState.get(lv);
                     var cur = com.example.roomsmod.world.section.Sections.forRoom(rs, rs.currentRoom);
-                    String msg = "section current=" + cur.id() + " (prefix " + cur.prefix() + ") room=" + cur.formatRoom(rs.currentRoom) + " table=" + rs.sections;
+                    String msg = "section current=" + cur.id() + " (prefix " + cur.prefix() + ") room=" + com.example.roomsmod.world.section.Sections.formatRoom(rs, rs.currentRoom) + " (global " + rs.currentRoom + ", local " + com.example.roomsmod.world.section.Sections.localRoom(rs, rs.currentRoom) + ") table=" + rs.sections;
                     com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] " + msg);
                     ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
                     return 1;
