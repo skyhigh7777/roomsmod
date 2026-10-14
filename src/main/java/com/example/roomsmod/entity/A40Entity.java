@@ -39,8 +39,10 @@ public class A40Entity extends Mob {
     public static final int DEFAULT_ROOMS_BACK = 6;
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f;
-    /** 移動速度（ブロック/tick、全フェーズ共通。調整用）。旧0.75の1.5倍。 */
-    public static final double SPEED = 1.125;
+    /** 移動速度（ブロック/tick、全フェーズ共通。調整用）。旧実効1.5（0.75がtravelで二重適用されていた）の1.5倍。 */
+    public static final double SPEED = 2.25;
+    private final WaypointMover mover = new WaypointMover();
+    private final boolean[] reachedBuf = new boolean[1];
     private static final int GRACE_TICKS = 80;
     private static final int TURN_PAUSE = 20;
     private static final int RETURN_PAUSE = 12;
@@ -116,7 +118,13 @@ public class A40Entity extends Mob {
     private void refreshIfGrown() {
         if (!(this.level() instanceof ServerLevel sl)) return;
         if (expectedPointCount(RoomsState.get(sl)) > lastPathPointCount) {
+            List<BlockPos> old = new ArrayList<>(waypoints);
+            int oldIdx = waypointIndex;
+            int oldBack = backTargetIndex;
             buildWaypoints();
+            waypointIndex = WaypointMover.preserveIndex(old, oldIdx, waypoints);
+            backTargetIndex = WaypointMover.preserveIndex(old, oldBack, waypoints);
+            if (waypointIndex != oldIdx) RoomsDebug.log("A-40 path extend remapped waypoint {} -> {}", oldIdx, waypointIndex);
             RoomsDebug.log("A-40 path extended: waypoints={}", waypoints.size());
         }
     }
@@ -131,25 +139,20 @@ public class A40Entity extends Mob {
 
     /** 目標インデックスへ1tick分移動。到達したら true。 */
     private boolean stepToward(int targetIdx) {
-        if (waypoints.isEmpty()) return true;
-        int dir = Integer.compare(targetIdx, waypointIndex);
-        BlockPos target = waypoints.get(waypointIndex);
-        Vec3 delta = Vec3.atBottomCenterOf(target).subtract(this.position());
-        double dist = delta.length();
-        if (dist < 1.0) {
-            if (dir == 0) { this.setDeltaMovement(Vec3.ZERO); return true; }
-            waypointIndex += dir;
-            this.setDeltaMovement(Vec3.ZERO);
-        } else {
-            this.setDeltaMovement(delta.scale(Math.min(SPEED, dist) / dist));
-        }
-        return false;
+        waypointIndex = mover.step(this, "A-40", waypoints, waypointIndex, targetIdx, SPEED, reachedBuf);
+        return reachedBuf[0];
     }
+
+
+    /** 位置は WaypointMover で直接動かす。バニラの travel による二重移動・クライアント側の速度外挿を無効化。 */
+    @Override
+    public void travel(Vec3 input) { this.setDeltaMovement(Vec3.ZERO); }
 
     private void setPhase(int p) {
         RoomsDebug.log("A-40 phase {} -> {} waypoint={}/{}", phase, p, waypointIndex, waypoints.size());
         phase = p;
         phaseTicks = 0;
+        mover.resetProgress(this);
     }
 
     @Override
@@ -207,7 +210,7 @@ public class A40Entity extends Mob {
             }
             default -> setPhase(0);
         }
-        this.move(MoverType.SELF, this.getDeltaMovement());
+        this.setDeltaMovement(Vec3.ZERO);
 
         // 保険：異常に長生きしたら消滅
         if (this.tickCount > 12000) {

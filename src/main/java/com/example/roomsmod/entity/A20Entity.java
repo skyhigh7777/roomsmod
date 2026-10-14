@@ -35,6 +35,10 @@ import java.util.List;
 public class A20Entity extends Mob {
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f; // 連続ダメージで致命的に
+    /** 移動速度（ブロック/tick、調整用）。旧実装の実効値（0.9がtravelで二重適用＝約1.8）を維持。 */
+    public static final double SPEED = 1.8;
+    private final WaypointMover mover = new WaypointMover();
+    private final boolean[] reachedBuf = new boolean[1];
     private ChunkPos lastForcedChunk = null;
     private List<BlockPos> waypoints = new ArrayList<>();
     private int waypointIndex = 0;
@@ -79,12 +83,19 @@ public class A20Entity extends Mob {
         for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) expected += rs.roomPaths.get(i).size();
         if (expected > lastPathPointCount) {
             lastPathPointCount = expected;
+            List<BlockPos> old = new ArrayList<>(waypoints);
             int idx = waypointIndex;
             buildWaypoints();
-            waypointIndex = Math.min(idx, waypoints.size());
+            waypointIndex = idx >= old.size() ? Math.min(idx, waypoints.size()) : WaypointMover.preserveIndex(old, idx, waypoints);
+            if (waypointIndex != idx) com.example.roomsmod.util.RoomsDebug.log("A-20 path extend remapped waypoint {} -> {}", idx, waypointIndex);
         }
     }
     private int lastPathPointCount = 0;
+
+    /** 位置は WaypointMover で直接動かす。バニラの travel による二重移動・クライアント側の速度外挿を無効化。 */
+    @Override
+    public void travel(Vec3 input) { this.setDeltaMovement(Vec3.ZERO); }
+
 
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
@@ -191,23 +202,17 @@ public class A20Entity extends Mob {
             }
             if (this.tickCount % 20 == 0) refreshWaypointsIfGrown();
             if (waypointIndex < waypoints.size()) {
-                BlockPos target = waypoints.get(waypointIndex);
-                Vec3 goal = Vec3.atBottomCenterOf(target);
-                Vec3 delta = goal.subtract(this.position());
-                double dist = delta.length();
-                if (dist < 1.0) {
-                    waypointIndex++;
-                    this.setDeltaMovement(Vec3.ZERO);
-                } else {
-                    // 行き過ぎないよう残り距離で速度を制限
-                    this.setDeltaMovement(delta.scale(Math.min(0.9, dist) / dist));
-                }
+                // 終端（size-1）まで進み、到達したら index=size（経路終端後モード）
+                int last = waypoints.size() - 1;
+                int idx = mover.step(this, "A-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
+                waypointIndex = reachedBuf[0] ? waypoints.size() : idx;
             } else {
                 // 生成済み経路の終端：出口方向へ進み続ける
-                this.setDeltaMovement(exitDirection.scale(0.9));
+                Vec3 n = this.position().add(exitDirection.scale(SPEED));
+                this.setPos(n.x, n.y, n.z);
             }
         }
-        this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
+        this.setDeltaMovement(Vec3.ZERO);
 
         // デバッグ：10秒ごとに位置を出す
         if (this.tickCount % 200 == 0 && com.example.roomsmod.util.RoomsDebug.isEnabled()) {
