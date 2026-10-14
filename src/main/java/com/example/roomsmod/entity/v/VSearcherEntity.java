@@ -46,6 +46,15 @@ public abstract class VSearcherEntity extends VEntity {
     protected VSearcherEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
 
     protected abstract LockerManager.Spot spotType();
+    // ---- 強化版（V25-BUFFED）が上書きする調整値・フック ----
+    protected double walkSpeed() { return WALK_SPEED; }
+    protected int checkTicks() { return CHECK_TICKS; }
+    protected int enterGraceTicks() { return ENTER_GRACE_TICKS; }
+    protected int stepInterval() { return STEP_INTERVAL; }
+    /** 出現時に入口で軋み音を鳴らすか。 */
+    protected boolean entrySound() { return true; }
+    /** 捜索開始前の保留フェーズ（true の間は捜索も当たり判定もしない）。 */
+    protected boolean holdTick(ServerLevel level) { return false; }
     protected abstract SoundEvent stepSound();
     protected abstract SoundEvent checkSound();
 
@@ -62,7 +71,7 @@ public abstract class VSearcherEntity extends VEntity {
         if (p.isEmpty()) return null;
         BlockPos s = p.get(0);
         setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
-        level.playSound(null, s, checkSound(), SoundSource.HOSTILE, 2.0f, 0.7f); // 入って来る合図
+        if (entrySound()) level.playSound(null, s, checkSound(), SoundSource.HOSTILE, 2.0f, 0.7f); // 入って来る合図
         return s;
     }
 
@@ -94,7 +103,8 @@ public abstract class VSearcherEntity extends VEntity {
     @Override
     protected void serverTick(ServerLevel level) {
         RoomsState rs = RoomsState.get(level);
-        if (grace < ENTER_GRACE_TICKS) { grace++; if (grace == ENTER_GRACE_TICKS) planRoom(level, rs); return; }
+        if (holdTick(level)) return;
+        if (grace < enterGraceTicks()) { grace++; if (grace >= enterGraceTicks()) planRoom(level, rs); return; }
         if (targets.isEmpty()) planRoom(level, rs); // ロード直後
         // 見えている・隠れていないプレイヤー（10tickごと）
         if (life % 10 == 0)
@@ -102,7 +112,7 @@ public abstract class VSearcherEntity extends VEntity {
                 RusherHits.tryHit(this, vName(), p, canSee(p), OPEN_DAMAGE);
 
         if (checking >= 0) {
-            if (++checking >= CHECK_TICKS) { finishCheck(level); checking = -1; targetIdx++; }
+            if (++checking >= checkTicks()) { finishCheck(level); checking = -1; targetIdx++; }
             return;
         }
         if (targetIdx >= targets.size()) {
@@ -115,7 +125,7 @@ public abstract class VSearcherEntity extends VEntity {
         Vec3 goal = new Vec3(t[0] + 0.5, t[1], t[2] + 0.5);
         Vec3 d = goal.subtract(position());
         faceTowards(goal);
-        if (d.length() <= WALK_SPEED) {
+        if (d.length() <= walkSpeed()) {
             setPos(goal.x, goal.y, goal.z);
             if (t[3] == 1) {
                 checking = 0;
@@ -123,9 +133,9 @@ public abstract class VSearcherEntity extends VEntity {
                 RoomsDebug.log("{} checking {} at {}", vName(), spotType(), new BlockPos(t[0], t[1], t[2]));
             } else targetIdx++;
         } else {
-            Vec3 n = position().add(d.normalize().scale(WALK_SPEED));
+            Vec3 n = position().add(d.normalize().scale(walkSpeed()));
             setPos(n.x, n.y, n.z);
-            if (life - lastStep >= STEP_INTERVAL) {
+            if (life - lastStep >= stepInterval()) {
                 lastStep = life;
                 level.playSound(null, getX(), getY(), getZ(), stepSound(), SoundSource.HOSTILE, 1.6f, 0.9f + random.nextFloat() * 0.2f);
             }

@@ -76,5 +76,17 @@
       "roomsmod:v50_explode"
     ],
     "subtitle": "subtitles.roomsmod.v50_explode"
+  },
+  "v25_buffed_tick": {
+    "sounds": [
+      "roomsmod:v25_buffed_tick"
+    ],
+    "subtitle": "subtitles.roomsmod.v25_buffed_tick"
+  },
+  "v25_buffed_reveal": {
+    "sounds": [
+      "roomsmod:v25_buffed_reveal"
+    ],
+    "subtitle": "subtitles.roomsmod.v25_buffed_reveal"
   }
 }

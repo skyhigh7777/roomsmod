@@ -48,6 +48,11 @@ public class RoomsCommands {
     }
 
     /** V エンティティの強制出現（同種・排他グループの生存チェックあり）。プレイヤーのいる部屋（RCON なら最新の1つ手前）基準。 */
+    private static int spawnBuffed(CommandSourceStack src, com.example.roomsmod.hiding.LockerManager.Spot t) {
+        com.example.roomsmod.entity.v.V25BuffedEntity.forcedNext = t;
+        try { return spawnV(src, "v25buffed"); } finally { com.example.roomsmod.entity.v.V25BuffedEntity.forcedNext = null; }
+    }
+
     private static int spawnV(CommandSourceStack src, String id) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
@@ -168,6 +173,9 @@ public class RoomsCommands {
                 .then(Commands.literal("v10").executes(ctx -> spawnV(ctx.getSource(), "v10")))
                 .then(Commands.literal("v25t").executes(ctx -> spawnV(ctx.getSource(), "v25t")))
                 .then(Commands.literal("v25l").executes(ctx -> spawnV(ctx.getSource(), "v25l")))
+                .then(Commands.literal("v25buffed").executes(ctx -> spawnV(ctx.getSource(), "v25buffed"))
+                    .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
+                    .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v35")))
                 .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50"))))
             .then(Commands.literal("section")

@@ -66,6 +66,8 @@ public class RoomsMod {
     public static final DeferredHolder<SoundEvent, SoundEvent> V25L_CHECK = SOUND_EVENTS.register("v25l_check", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25l_check")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V35_KNOCK = SOUND_EVENTS.register("v35_knock", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v35_knock")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V35_SCREAM = SOUND_EVENTS.register("v35_scream", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v35_scream")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V25B_TICK = SOUND_EVENTS.register("v25_buffed_tick", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25_buffed_tick")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V25B_REVEAL = SOUND_EVENTS.register("v25_buffed_reveal", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v25_buffed_reveal")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V50_APPROACH = SOUND_EVENTS.register("v50_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_approach")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V50_TICK = SOUND_EVENTS.register("v50_tick", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_tick")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V50_BUZZER = SOUND_EVENTS.register("v50_buzzer", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_buzzer")));
@@ -81,6 +83,9 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V25LEntity>> V25L = ENTITIES.register("v25l",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V25LEntity::new, MobCategory.MONSTER)
                     .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("v25l"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V25BuffedEntity>> V25_BUFFED = ENTITIES.register("v25_buffed",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V25BuffedEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("v25_buffed"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V35Entity>> V35 = ENTITIES.register("v35",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V35Entity::new, MobCategory.MONSTER)
                     .sized(0.9f, 1.9f).clientTrackingRange(12).updateInterval(1).build("v35"));
@@ -120,7 +125,7 @@ public class RoomsMod {
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
-        for (var t : java.util.List.of(V10, V25T, V25L, V35, V50))
+        for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V35, V50))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

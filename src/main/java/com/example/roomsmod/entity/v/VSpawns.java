@@ -23,6 +23,7 @@ public final class VSpawns {
     public enum Kind {
         V10("V-10", "v10", null, RoomsMod.V10),
         V25T("V-25-T", "v25t", "searcher", RoomsMod.V25T), V25L("V-25-L", "v25l", "searcher", RoomsMod.V25L),
+        V25_BUFFED("V25-BUFFED", "v25buffed", "searcher", RoomsMod.V25_BUFFED),
         V35("V-35", "v35", null, RoomsMod.V35), V50("V-50", "v50", null, RoomsMod.V50);
         public final String display, id;
         /**
