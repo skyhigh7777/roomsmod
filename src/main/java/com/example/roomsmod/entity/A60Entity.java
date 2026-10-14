@@ -336,15 +336,17 @@ public class A60Entity extends Mob {
         return hitDist >= targetDist - 0.5;
     }
 
-    /** 接近ループ音のフェードイン：MAX_RANGE以遠で0、FULL_RANGE以内で最大、間はsmoothstep。 */
-    public static final double APPROACH_MAX_RANGE = 56.0;
+    /** 接近ループ音のフェードイン：MAX_RANGE以遠で0、FULL_RANGE以内で最大、間は t^CURVE_EXPONENT（t=線形の近さ0..1）。 */
+    public static final double APPROACH_MAX_RANGE = 120.0;
     public static final double APPROACH_FULL_RANGE = 4.0;
     public static final float APPROACH_MAX_VOLUME = 3.0f;
     public static final float MIN_APPROACH_VOLUME = 0.02f;
+    /** 1.0=線形、<1で遠くから早めに聞こえる（0.75: 100ブロックで約27%）。 */
+    public static final double APPROACH_CURVE_EXPONENT = 0.75;
 
     public static float approachVolume(double dist) {
         double t = (APPROACH_MAX_RANGE - dist) / (APPROACH_MAX_RANGE - APPROACH_FULL_RANGE);
         t = Math.max(0.0, Math.min(1.0, t));
-        return (float) (t * t * (3.0 - 2.0 * t)) * APPROACH_MAX_VOLUME;
+        return (float) Math.pow(t, APPROACH_CURVE_EXPONENT) * APPROACH_MAX_VOLUME;
     }
 }

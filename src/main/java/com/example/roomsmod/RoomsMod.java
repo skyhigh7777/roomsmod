@@ -30,11 +30,15 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<A60Entity>> A60 = ENTITIES.register("a60",
             () -> EntityType.Builder.of(A60Entity::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.0f)
+                    .clientTrackingRange(10) // 160ブロック：接近音(120ブロック)が届く距離まで同期
+                    .updateInterval(1) // 高速移動するので毎tick位置同期（追従サウンド用）
                     .build("a60"));
 
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.A75Entity>> A75 = ENTITIES.register("a75",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.A75Entity::new, MobCategory.MONSTER)
                     .sized(1.2f, 2.0f)
+                    .clientTrackingRange(10) // 160ブロック：接近音(120ブロック)が届く距離まで同期
+                    .updateInterval(1) // 高速移動するので毎tick位置同期（追従サウンド用）
                     .build("a75"));
 
     public RoomsMod(IEventBus modEventBus) {
