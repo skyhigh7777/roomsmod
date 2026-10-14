@@ -70,6 +70,24 @@ public class A20Entity extends Mob {
         updateExitDirection();
     }
 
+    /** 一度だけ：経路の終端（最も奥の部屋の出口扉）に着いたら、プレイヤーと同じく扉を開けて次の部屋を生成・出現抽選。 */
+    private boolean openedExit = false;
+    private void openDeepestExitDoor() {
+        if (openedExit || !(this.level() instanceof ServerLevel sl) || waypoints.isEmpty()) return;
+        openedExit = true;
+        RoomsState rs = RoomsState.get(sl);
+        BlockPos door = waypoints.get(waypoints.size() - 1);
+        net.minecraft.world.level.block.state.BlockState s = sl.getBlockState(door);
+        if (!(s.getBlock() instanceof net.minecraft.world.level.block.DoorBlock db) || !door.equals(rs.expectedExitDoor)) {
+            com.example.roomsmod.util.RoomsDebug.log("A-20 reached path end {} (not the unopened exit door, expected={})", door, rs.expectedExitDoor);
+            return;
+        }
+        if (!s.getValue(net.minecraft.world.level.block.DoorBlock.OPEN)) db.setOpen(null, sl, s, door, true);
+        boolean gen = com.example.roomsmod.event.DoorEventHandler.advanceThroughExitDoor(sl, rs, null, door, "A-20 opened door");
+        com.example.roomsmod.util.RoomsDebug.log("A-20 opened exit door {} generatedNext={}", door, gen);
+        if (gen) refreshWaypointsIfGrown();
+    }
+
     private void updateExitDirection() {
         if (waypoints.size() >= 2) {
             BlockPos a = waypoints.get(waypoints.size() - 2), b = waypoints.get(waypoints.size() - 1);
@@ -107,6 +125,7 @@ public class A20Entity extends Mob {
         com.example.roomsmod.util.RoomsDebug.log("A-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
         tag.putInt("WaypointIndex", waypointIndex);
+        tag.putBoolean("OpenedExit", openedExit);
     }
 
     @Override
@@ -116,6 +135,7 @@ public class A20Entity extends Mob {
         com.example.roomsmod.util.RoomsDebug.log("A-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
         waypointIndex = tag.getInt("WaypointIndex");
+        openedExit = tag.getBoolean("OpenedExit");
         waypointsBuilt = false; // 次tickでRoomsStateから再構築
     }
 
@@ -204,6 +224,7 @@ public class A20Entity extends Mob {
                 int last = waypoints.size() - 1;
                 int idx = mover.step(this, "A-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
                 waypointIndex = reachedBuf[0] ? waypoints.size() : idx;
+                if (reachedBuf[0]) openDeepestExitDoor();
             } else {
                 // 生成済み経路の終端：出口方向へ進み続ける
                 Vec3 n = this.position().add(exitDirection.scale(SPEED));
