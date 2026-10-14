@@ -32,13 +32,14 @@ import java.util.UUID;
 /**
  * V-35：窓（板ガラス＋外側の黒コンクリート）の外に現れる覗き魔。
  * 先にノック音（KNOCK_TICKS）→姿を見せて PEEK_TICKS 覗く→消える。
- * 覗いている間、プレイヤーが視線（視野円錐＋遮るものなし）を GAZE_GRACE_TICKS より長く向け続けると攻撃。目を逸らせば数え直し。
+ * 覗いている間、プレイヤーが視線（視野円錐＋遮るものなし）を 累計 GAZE_KILL_TICKS より長く向けると攻撃（目を逸らしても数え直さない）。
  * 出口扉と同じ壁（+Z 側の壁）の窓には出ない（出口を見ないと進めない＝詰みを防ぐ）。
  */
 public class V35Entity extends VEntity {
     public static final int KNOCK_TICKS = 30;        // ノック〜出現（1.5秒）
     public static final int PEEK_TICKS = 20 * 12;    // 覗いている時間
-    public static final int GAZE_GRACE_TICKS = 50;   // 見続けて許される時間（2.5秒）
+    /** 見た時間の累計（tick）がこれを超えると攻撃。目を逸らしてもリセットしない（この個体が生きている間ずっと累積）。 */
+    public static final int GAZE_KILL_TICKS = 10;
     public static final double LOOK_CONE_DEG = 20.0; // 視線の中心からこの角度以内なら「見ている」
     public static final double RANGE = 24.0;
     public static final float DAMAGE = 40.0f;        // ほぼ即死
@@ -103,11 +104,11 @@ public class V35Entity extends VEntity {
         Vec3 face = new Vec3(getX(), window.getY() + 0.5, getZ()); // ポケット内の顔
         for (Player p : playersNear(RANGE)) {
             boolean looking = !HidingRules.isProtectedFrom(this, p) && isLookingAt(p, face);
-            int g = looking ? gaze.getOrDefault(p.getUUID(), 0) + 1 : 0;
-            gaze.put(p.getUUID(), g);
-            if (looking && (g == 1 || g % 20 == 0))
-                RoomsDebug.log(p, "V-35 を見ている " + g + "/" + GAZE_GRACE_TICKS, "V-35 gaze player={} ticks={}/{}", p.getGameProfile().getName(), g, GAZE_GRACE_TICKS);
-            if (g > GAZE_GRACE_TICKS) {
+            int g = gaze.getOrDefault(p.getUUID(), 0) + (looking ? 1 : 0); // 累積（逸らしても減らない）
+            if (looking) gaze.put(p.getUUID(), g);
+            if (looking && (g == 1 || g % 5 == 0))
+                RoomsDebug.log(p, "V-35 を見ている " + g + "/" + GAZE_KILL_TICKS, "V-35 gaze player={} ticks={}/{}", p.getGameProfile().getName(), g, GAZE_KILL_TICKS);
+            if (looking && g >= GAZE_KILL_TICKS) {
                 level.playSound(null, getX(), getY(), getZ(), RoomsMod.V35_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
                 RoomsDebug.log(p, "V-35 に見つかったわ", "V-35 attack player={} after gaze {} ticks creative={}", p.getGameProfile().getName(), g, p.isCreative());
                 if (!p.isCreative()) p.hurt(damageSources().mobAttack(this), DAMAGE);
