@@ -1,0 +1,6 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "roomsmod:block/locker_front_upper"
+  }
+}

@@ -2,7 +2,7 @@ package com.example.roomsmod.event;
 
 import com.example.roomsmod.RoomsMod;
 import com.example.roomsmod.command.RoomsCommands;
-import com.example.roomsmod.entity.A60Entity;
+import com.example.roomsmod.entity.A20Entity;
 import com.example.roomsmod.world.RoomGenerator;
 import com.example.roomsmod.world.RoomsState;
 import com.example.roomsmod.util.RoomsDebug;
@@ -23,8 +23,11 @@ import java.util.List;
  */
 public class DoorEventHandler {
     public static final int baseFloorY = 1;
-    /** A-60 が出現する、プレイヤーから何部屋後ろか。 */
-    public static final int A60_ROOMS_BEHIND = 10;
+    /** A-20 が出現する、プレイヤーから何部屋後ろか。 */
+    public static final int A20_ROOMS_BEHIND = 10;
+
+    // ラッシャー出現率（調整用）
+    // 出現する部屋・確率は SectionTheme.rushers()（Sections.A）
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
@@ -35,6 +38,8 @@ public class DoorEventHandler {
         if (!level.dimension().equals(RoomsCommands.ROOMS_DIMENSION)) return;
 
         BlockState state = level.getBlockState(event.getPos());
+        // このディメンションはベッドが爆発する（bed_works=false）ので、飾りのベッドは使えないようにする
+        if (state.getBlock() instanceof net.minecraft.world.level.block.BedBlock) { event.setCanceled(true); return; }
         if (!(state.getBlock() instanceof DoorBlock)) return;
 
         // 下半分に正規化
@@ -56,91 +61,109 @@ public class DoorEventHandler {
 
         rs.markDoorGenerated(doorPos);
         int room = rs.currentRoom + 1;
-        BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, baseFloorY, doorPos.getZ() + 1);
+        BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, doorPos.getY() - 1, doorPos.getZ() + 1); // 扉の床の高さ（V の2階建てで上がる）
         try {
             RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
         } catch (RuntimeException e) {
             RoomsDebug.error("room generation failed (room=" + room + ", origin=" + nextOrigin + ")", e);
             return;
         }
-        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（A-" + String.format("%03d", room) + "）",
+        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
             "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
 
-        // 同時に複数のラッシャーは出さない
-        if (!isRusherAlive(level)) {
-            try {
-                if (room >= 10 && level.random.nextFloat() < 0.6f) {
-                    spawnA60(level, rs, event.getEntity());
-                } else if (room >= 15 && level.random.nextFloat() < 0.25f) {
-                    spawnA75(level, rs, event.getEntity());
-                }
-            } catch (RuntimeException e) {
-                RoomsDebug.error("rusher spawn failed", e);
-            }
-        } else {
-            RoomsDebug.log("rusher spawn skipped: another rusher is alive");
+        try {
+            rollRushers(level, rs, event.getEntity(), room);
+        } catch (RuntimeException e) {
+            RoomsDebug.error("rusher spawn failed", e);
         }
     }
 
-    /** A-60 または A-75 が生存中か。 */
-    public static boolean isRusherAlive(ServerLevel level) {
+    /**
+     * ラッシャー抽選。A-20 と A-40 はそれぞれ独立に抽選し、同じ部屋で両方出ることもある。
+     * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
+     */
+    private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
+        var table = theme.rushers();
+        int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
+        boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
+        // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
+        for (int k = 0; k < table.size(); k++) {
+            var r = table.get(k);
+            hit[k] = local >= r.minRoom() && level.random.nextFloat() < r.chance();
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int k = 0; k < table.size(); k++) {
+            var r = table.get(k);
+            alive[k] = r.alive().test(level);
+            sb.append(k == 0 ? "" : " | ").append(r.name()).append('=').append(hit[k])
+              .append(" (room>=").append(r.minRoom()).append(", ").append(r.chance()).append(") alive=").append(alive[k]);
+        }
+        RoomsDebug.log("rusher roll room={} local={} section={} {}", room, com.example.roomsmod.world.section.Sections.formatRoom(rs, room), theme.prefix(), sb);
+        for (int k = 0; k < table.size(); k++) {
+            if (!hit[k]) continue;
+            var r = table.get(k);
+            if (alive[k]) RoomsDebug.log("rusher roll room={} {} skipped: already alive", room, r.name());
+            else if (!r.spawn().spawn(level, rs, player)) RoomsDebug.log("rusher roll room={} {} spawn failed", room, r.name());
+        }
+    }
+
+    public static boolean isA20Alive(ServerLevel level) {
         for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
-            if ((e instanceof A60Entity || e instanceof com.example.roomsmod.entity.A75Entity) && e.isAlive()) return true;
+            if (e instanceof A20Entity && e.isAlive()) return true;
         }
         return false;
     }
 
-    public static boolean spawnA75(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
+    public static boolean isA40Alive(ServerLevel level) {
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
+            if (e instanceof com.example.roomsmod.entity.A40Entity && e.isAlive()) return true;
+        }
+        return false;
+    }
+
+    public static boolean spawnA40(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return false;
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
-        int startIndex = Math.max(0, playerRoomIndex - A60_ROOMS_BEHIND);
+        int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
-        if (startPath.isEmpty()) { RoomsDebug.warn("A-75 spawn skipped: empty path at room index {}", startIndex); return false; }
-        com.example.roomsmod.entity.A75Entity a75 = RoomsMod.A75.get().create(level);
-        if (a75 == null) { RoomsDebug.warn("A-75 spawn failed: entity create returned null"); return false; }
+        if (startPath.isEmpty()) { RoomsDebug.warn("A-40 spawn skipped: empty path at room index {}", startIndex); return false; }
+        com.example.roomsmod.entity.A40Entity a40 = RoomsMod.A40.get().create(level);
+        if (a40 == null) { RoomsDebug.warn("A-40 spawn failed: entity create returned null"); return false; }
         BlockPos start = startPath.get(0);
         double x = start.getX() + 0.5, y = start.getY(), z = start.getZ() + 0.5;
-        a75.setPos(x, y, z);
-        a75.setStartRoom(startIndex);
-        a75.setRoomsBack(com.example.roomsmod.entity.A75Entity.DEFAULT_ROOMS_BACK);
-        for (int dx = -1; dx <= 1; dx++)
-            for (int dz = -1; dz <= 1; dz++)
-                level.setChunkForced((start.getX() >> 4) + dx, (start.getZ() >> 4) + dz, true);
-        level.addFreshEntity(a75);
+        a40.setPos(x, y, z);
+        a40.setStartRoom(startIndex);
+        a40.setRoomsBack(com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
+        com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
+        if (!level.addFreshEntity(a40)) { RoomsDebug.warn("A-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
-            "A-75が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
-            "A-75 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A75Entity.DEFAULT_ROOMS_BACK);
+            "A-40が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
+            "A-40 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
         return true;
     }
 
-    public static void spawnA60(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
+    public static void spawnA20(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return;
         // プレイヤーがいるのは直前の部屋（index = room - 1）。そこから約N部屋後ろ。
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
-        int startIndex = Math.max(0, playerRoomIndex - A60_ROOMS_BEHIND);
+        int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
-        if (startPath.isEmpty()) { RoomsDebug.warn("A-60 spawn skipped: empty path at room index {}", startIndex); return; }
-        A60Entity a60 = RoomsMod.A60.get().create(level);
-        if (a60 == null) { RoomsDebug.warn("A-60 spawn failed: entity create returned null"); return; }
+        if (startPath.isEmpty()) { RoomsDebug.warn("A-20 spawn skipped: empty path at room index {}", startIndex); return; }
+        A20Entity a20 = RoomsMod.A20.get().create(level);
+        if (a20 == null) { RoomsDebug.warn("A-20 spawn failed: entity create returned null"); return; }
         BlockPos start = startPath.get(0);
         double spawnX = start.getX() + 0.5, spawnY = start.getY(), spawnZ = start.getZ() + 0.5;
-        a60.setPos(spawnX, spawnY, spawnZ);
-        a60.setStartRoom(startIndex);
+        a20.setPos(spawnX, spawnY, spawnZ);
+        a20.setStartRoom(startIndex);
 
-        // 出現位置のチャンクを強制読み込み
-        int chunkX = start.getX() >> 4;
-        int chunkZ = start.getZ() >> 4;
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                level.setChunkForced(chunkX + dx, chunkZ + dz, true);
-            }
-        }
-
-        level.addFreshEntity(a60);
+        // 出現位置のチャンクを（このA-20のチケットで）読み込んでから追加する
+        com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));
+        if (!level.addFreshEntity(a20)) { RoomsDebug.warn("A-20 spawn failed: addFreshEntity returned false"); return; }
         int pathLen = 0;
         for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.roomPaths.get(i).size();
         RoomsDebug.log(player,
-            "A-60が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
-            "A-60 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
+            "A-20が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
+            "A-20 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
     }
 }

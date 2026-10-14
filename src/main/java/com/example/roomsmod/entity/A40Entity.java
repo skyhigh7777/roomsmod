@@ -32,20 +32,32 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A-75：A-60 と同様に後方から突進し、最深部屋の終端で折り返して数部屋戻り、
+ * A-40：A-20 と同様に後方から突進し、最深部屋の終端で折り返して数部屋戻り、
  * 再び最深部屋の終端まで突進してから消える。各往路・復路で視線判定ダメージ。
  */
-public class A75Entity extends Mob {
+public class A40Entity extends Mob {
     public static final int DEFAULT_ROOMS_BACK = 6;
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f;
-    private static final double SPEED = 0.75;
+    /** 移動速度（ブロック/tick、全フェーズ共通。調整用）。旧実効1.5（0.75がtravelで二重適用されていた）の1.5倍。 */
+    public static final double SPEED = 2.25;
+    private final WaypointMover mover = new WaypointMover();
+    private final boolean[] reachedBuf = new boolean[1];
     private static final int GRACE_TICKS = 80;
     private static final int TURN_PAUSE = 20;
     private static final int RETURN_PAUSE = 12;
 
     // フェーズ: 0=待機 1=前進 2=折返し停止 3=後退 4=停止 5=再前進
     private int phase = 0;
+    /** 移動中フラグ（phaseはクライアントへ同期されないため、ループ音用に同期する）。 */
+    private static final net.minecraft.network.syncher.EntityDataAccessor<Boolean> DATA_MOVING =
+            net.minecraft.network.syncher.SynchedEntityData.defineId(A40Entity.class, net.minecraft.network.syncher.EntityDataSerializers.BOOLEAN);
+
+    @Override
+    protected void defineSynchedData(net.minecraft.network.syncher.SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(DATA_MOVING, false);
+    }
     private int phaseTicks = 0;
     private int startRoom = 0;
     private int roomsBack = DEFAULT_ROOMS_BACK;
@@ -58,7 +70,7 @@ public class A75Entity extends Mob {
     private int lastPathPointCount = 0;
     private ChunkPos lastForcedChunk = null;
 
-    public A75Entity(EntityType<? extends Mob> type, Level level) {
+    public A40Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
         this.noPhysics = true;
         this.setNoGravity(true);
@@ -106,8 +118,14 @@ public class A75Entity extends Mob {
     private void refreshIfGrown() {
         if (!(this.level() instanceof ServerLevel sl)) return;
         if (expectedPointCount(RoomsState.get(sl)) > lastPathPointCount) {
+            List<BlockPos> old = new ArrayList<>(waypoints);
+            int oldIdx = waypointIndex;
+            int oldBack = backTargetIndex;
             buildWaypoints();
-            RoomsDebug.log("A-75 path extended: waypoints={}", waypoints.size());
+            waypointIndex = WaypointMover.preserveIndex(old, oldIdx, waypoints);
+            backTargetIndex = WaypointMover.preserveIndex(old, oldBack, waypoints);
+            if (waypointIndex != oldIdx) RoomsDebug.log("A-40 path extend remapped waypoint {} -> {}", oldIdx, waypointIndex);
+            RoomsDebug.log("A-40 path extended: waypoints={}", waypoints.size());
         }
     }
 
@@ -121,25 +139,20 @@ public class A75Entity extends Mob {
 
     /** 目標インデックスへ1tick分移動。到達したら true。 */
     private boolean stepToward(int targetIdx) {
-        if (waypoints.isEmpty()) return true;
-        int dir = Integer.compare(targetIdx, waypointIndex);
-        BlockPos target = waypoints.get(waypointIndex);
-        Vec3 delta = Vec3.atBottomCenterOf(target).subtract(this.position());
-        double dist = delta.length();
-        if (dist < 1.0) {
-            if (dir == 0) { this.setDeltaMovement(Vec3.ZERO); return true; }
-            waypointIndex += dir;
-            this.setDeltaMovement(Vec3.ZERO);
-        } else {
-            this.setDeltaMovement(delta.scale(Math.min(SPEED, dist) / dist));
-        }
-        return false;
+        waypointIndex = mover.step(this, "A-40", waypoints, waypointIndex, targetIdx, SPEED, reachedBuf);
+        return reachedBuf[0];
     }
 
+
+    /** 位置は WaypointMover で直接動かす。バニラの travel による二重移動・クライアント側の速度外挿を無効化。 */
+    @Override
+    public void travel(Vec3 input) { this.setDeltaMovement(Vec3.ZERO); }
+
     private void setPhase(int p) {
-        RoomsDebug.log("A-75 phase {} -> {} waypoint={}/{}", phase, p, waypointIndex, waypoints.size());
+        RoomsDebug.log("A-40 phase {} -> {} waypoint={}/{}", phase, p, waypointIndex, waypoints.size());
         phase = p;
         phaseTicks = 0;
+        mover.resetProgress(this);
     }
 
     @Override
@@ -148,6 +161,10 @@ public class A75Entity extends Mob {
         this.noPhysics = true;
         if (this.level().isClientSide()) {
             spawnVisualParticles();
+            // 接近ループ音（移動中のみ1秒ごと、エンティティに追従するクライアント側サウンド）
+            if (this.entityData.get(DATA_MOVING) && this.tickCount % 20 == 0) {
+                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A40_APPROACH.get());
+            }
             return;
         }
         ServerLevel sl = (ServerLevel) this.level();
@@ -159,7 +176,7 @@ public class A75Entity extends Mob {
         switch (phase) {
             case 0 -> {
                 this.setDeltaMovement(Vec3.ZERO);
-                if (this.tickCount >= GRACE_TICKS) setPhase(1);
+                if (phaseTicks >= GRACE_TICKS) setPhase(1);
             }
             case 1, 5 -> {
                 if (this.tickCount % 20 == 0) { refreshIfGrown(); end = Math.max(0, waypoints.size() - 1); }
@@ -168,7 +185,7 @@ public class A75Entity extends Mob {
                         setPhase(2);
                         playCue(sl);
                     } else {
-                        RoomsDebug.log("A-75 despawn: finished second rush at waypoint {}/{}", waypointIndex, waypoints.size());
+                        RoomsDebug.log("A-40 despawn: finished second rush at waypoint {}/{}", waypointIndex, waypoints.size());
                         this.discard();
                         return;
                     }
@@ -193,11 +210,11 @@ public class A75Entity extends Mob {
             }
             default -> setPhase(0);
         }
-        this.move(MoverType.SELF, this.getDeltaMovement());
+        this.setDeltaMovement(Vec3.ZERO);
 
         // 保険：異常に長生きしたら消滅
         if (this.tickCount > 12000) {
-            RoomsDebug.log("A-75 despawn: timeout phase={}", phase);
+            RoomsDebug.log("A-40 despawn: timeout phase={}", phase);
             this.discard();
             return;
         }
@@ -206,21 +223,21 @@ public class A75Entity extends Mob {
             Player nearest = sl.getNearestPlayer(this, 500);
             double nd = nearest != null ? this.distanceTo(nearest) : -1;
             RoomsDebug.log(nearest,
-                nearest != null ? "A-75 phase " + phase + " Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
-                "A-75 progress phase={} waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                nearest != null ? "A-40 phase " + phase + " Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "A-40 progress phase={} waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
                 phase, waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
         boolean moving = phase == 1 || phase == 3 || phase == 5;
         if (this.tickCount == 1) playNearPlayer(sl, SoundEvents.WARDEN_SONIC_BOOM, 0.6f);
-        if (moving && this.tickCount % 20 == 0) playNearPlayer(sl, com.example.roomsmod.RoomsMod.A75_APPROACH.get(), 1.0f);
+        this.entityData.set(DATA_MOVING, moving);
 
         if (moving) {
             AABB box = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
             for (Player player : this.level().getEntitiesOfClass(Player.class, box)) {
-                if (player.isCreative() || player.isSpectator() || !player.isAlive()) continue;
+                if (player.isSpectator() || !player.isAlive()) continue;
                 if (this.distanceTo(player) > MAX_RAYCAST_DISTANCE) continue;
-                if (hasLineOfSight(player)) player.hurt(this.damageSources().mobAttack(this), DAMAGE);
+                com.example.roomsmod.hiding.RusherHits.tryHit(this, "A-40", player, hasLineOfSight(player), DAMAGE);
             }
         }
     }
@@ -229,7 +246,7 @@ public class A75Entity extends Mob {
         playNearPlayer(sl, SoundEvents.WARDEN_SONIC_CHARGE, 0.7f);
     }
 
-    /** A-60 と同じ：プレイヤーから本体方向へ最大8ブロックの位置で鳴らし、遠くても届くようにする。 */
+    /** A-20 と同じ：プレイヤーから本体方向へ最大8ブロックの位置で鳴らし、遠くても届くようにする。 */
     private void playNearPlayer(ServerLevel sl, SoundEvent sound, float pitch) {
         Player p = sl.getNearestPlayer(this, 500);
         if (p == null) return;
@@ -253,26 +270,28 @@ public class A75Entity extends Mob {
 
     private void updateForcedChunks(ServerLevel sl) {
         ChunkPos current = new ChunkPos(this.blockPosition());
-        if (current.equals(lastForcedChunk)) return;
-        setForced(sl, lastForcedChunk, false);
-        setForced(sl, current, true);
+        RusherChunks.move(sl, this, lastForcedChunk, current);
         lastForcedChunk = current;
     }
 
-    private static void setForced(ServerLevel sl, ChunkPos c, boolean on) {
-        if (c == null) return;
-        for (int dx = -1; dx <= 1; dx++)
-            for (int dz = -1; dz <= 1; dz++)
-                sl.setChunkForced(c.x + dx, c.z + dz, on);
+    /** 全ての除去理由（破棄・死亡・チャンク保存による退避・次元移動）をデバッグに出し、破棄時はチケットを外す。 */
+    @Override
+    public void onRemovedFromLevel() {
+        super.onRemovedFromLevel();
+        if (this.level() instanceof ServerLevel sl) {
+            RemovalReason r = this.getRemovalReason();
+            RoomsDebug.log("A-40 removed from level reason={} saved={} pos=({}, {}, {})", r, r != null && r.shouldSave(),
+                    String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
+            if (r == null || r.shouldDestroy() || r == RemovalReason.CHANGED_DIMENSION) {
+                if (lastForcedChunk != null) RusherChunks.force(sl, this, lastForcedChunk, false);
+                lastForcedChunk = null;
+            }
+        }
     }
 
     @Override
     public void remove(RemovalReason reason) {
-        if (!this.level().isClientSide()) RoomsDebug.log("A-75 removed reason={} phase={} waypoint={}/{}", reason, phase, waypointIndex, waypoints.size());
-        if (this.level() instanceof ServerLevel sl) {
-            setForced(sl, lastForcedChunk, false);
-            lastForcedChunk = null;
-        }
+        if (!this.level().isClientSide()) RoomsDebug.log("A-40 removed reason={} phase={} waypoint={}/{}", reason, phase, waypointIndex, waypoints.size());
         super.remove(reason);
     }
 
@@ -285,6 +304,7 @@ public class A75Entity extends Mob {
         tag.putInt("PhaseTicks", phaseTicks);
         tag.putInt("RoomsBack", roomsBack);
         tag.putInt("BackTarget", backTargetIndex);
+        RoomsDebug.log("A-40 saved phase={} phaseTicks={} waypoint={}/{}", phase, phaseTicks, waypointIndex, waypoints.size());
     }
 
     @Override
@@ -296,7 +316,8 @@ public class A75Entity extends Mob {
         phaseTicks = tag.getInt("PhaseTicks");
         roomsBack = tag.contains("RoomsBack") ? tag.getInt("RoomsBack") : DEFAULT_ROOMS_BACK;
         backTargetIndex = tag.getInt("BackTarget");
-        if (phase == 0) phase = 1; // ロード後は猶予をやり直さない（tickCountは0に戻るため）
+        // 猶予は phaseTicks（保存される）で数えるので、ロードしても残り時間から再開する
+        RoomsDebug.log("A-40 loaded phase={} phaseTicks={} waypoint={}", phase, phaseTicks, waypointIndex);
         waypointsBuilt = false;
     }
 

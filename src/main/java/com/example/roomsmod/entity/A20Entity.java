@@ -29,15 +29,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A-60：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
+ * A-20：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
  * 隠れ場所（オーク板）で視線を遮れば回避可能。
  */
-public class A60Entity extends Mob {
+public class A20Entity extends Mob {
     private static final double MAX_RAYCAST_DISTANCE = 22.5;
     private static final float DAMAGE = 8.0f; // 連続ダメージで致命的に
+    /** 移動速度（ブロック/tick、調整用）。旧実装の実効値（0.9がtravelで二重適用＝約1.8）を維持。 */
+    public static final double SPEED = 1.8;
+    private final WaypointMover mover = new WaypointMover();
+    private final boolean[] reachedBuf = new boolean[1];
     private ChunkPos lastForcedChunk = null;
     private List<BlockPos> waypoints = new ArrayList<>();
     private int waypointIndex = 0;
+    /** 出現後の猶予（tick）。保存されるので、ロードしても猶予をやり直さない／飛ばさない。 */
+    private static final int GRACE_TICKS = 80;
+    private int graceTicks = 0;
 
     private int startRoom = 0;
     private boolean waypointsBuilt = false;
@@ -79,16 +86,25 @@ public class A60Entity extends Mob {
         for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) expected += rs.roomPaths.get(i).size();
         if (expected > lastPathPointCount) {
             lastPathPointCount = expected;
+            List<BlockPos> old = new ArrayList<>(waypoints);
             int idx = waypointIndex;
             buildWaypoints();
-            waypointIndex = Math.min(idx, waypoints.size());
+            waypointIndex = idx >= old.size() ? Math.min(idx, waypoints.size()) : WaypointMover.preserveIndex(old, idx, waypoints);
+            if (waypointIndex != idx) com.example.roomsmod.util.RoomsDebug.log("A-20 path extend remapped waypoint {} -> {}", idx, waypointIndex);
         }
     }
     private int lastPathPointCount = 0;
 
+    /** 位置は WaypointMover で直接動かす。バニラの travel による二重移動・クライアント側の速度外挿を無効化。 */
+    @Override
+    public void travel(Vec3 input) { this.setDeltaMovement(Vec3.ZERO); }
+
+
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
+        tag.putInt("GraceTicks", graceTicks);
+        com.example.roomsmod.util.RoomsDebug.log("A-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
         tag.putInt("WaypointIndex", waypointIndex);
     }
@@ -96,12 +112,14 @@ public class A60Entity extends Mob {
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
+        graceTicks = tag.contains("GraceTicks") ? tag.getInt("GraceTicks") : GRACE_TICKS;
+        com.example.roomsmod.util.RoomsDebug.log("A-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
         waypointIndex = tag.getInt("WaypointIndex");
         waypointsBuilt = false; // 次tickでRoomsStateから再構築
     }
 
-    public A60Entity(EntityType<? extends Mob> type, Level level) {
+    public A20Entity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
         this.noPhysics = true; // 壁やロッカーを完全に突き抜ける
         this.setNoGravity(true);
@@ -116,38 +134,29 @@ public class A60Entity extends Mob {
 
     private void updateForcedChunks(ServerLevel serverLevel) {
         ChunkPos current = new ChunkPos(this.blockPosition());
-        if (lastForcedChunk != null && lastForcedChunk.equals(current)) return;
-
-        // 前回の強制読み込みを解除
-        if (lastForcedChunk != null) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    serverLevel.setChunkForced(lastForcedChunk.x + dx, lastForcedChunk.z + dz, false);
-                }
-            }
-        }
-
-        // 現在位置周辺を強制読み込み
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                serverLevel.setChunkForced(current.x + dx, current.z + dz, true);
-            }
-        }
+        RusherChunks.move(serverLevel, this, lastForcedChunk, current);
         lastForcedChunk = current;
     }
 
     @Override
     public void remove(RemovalReason reason) {
-        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-60 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
-        if (this.level() instanceof ServerLevel serverLevel && lastForcedChunk != null) {
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dz = -1; dz <= 1; dz++) {
-                    serverLevel.setChunkForced(lastForcedChunk.x + dx, lastForcedChunk.z + dz, false);
-                }
-            }
-            lastForcedChunk = null;
-        }
+        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-20 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
         super.remove(reason);
+    }
+
+    /** 全ての除去理由（破棄・死亡・チャンク保存による退避・次元移動）をデバッグに出し、破棄時はチケットを外す。 */
+    @Override
+    public void onRemovedFromLevel() {
+        super.onRemovedFromLevel();
+        if (this.level() instanceof ServerLevel sl) {
+            RemovalReason r = this.getRemovalReason();
+            com.example.roomsmod.util.RoomsDebug.log("A-20 removed from level reason={} saved={} pos=({}, {}, {})", r, r != null && r.shouldSave(),
+                    String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
+            if (r == null || r.shouldDestroy() || r == RemovalReason.CHANGED_DIMENSION) {
+                if (lastForcedChunk != null) RusherChunks.force(sl, this, lastForcedChunk, false);
+                lastForcedChunk = null;
+            }
+        }
     }
 
     public static AttributeSupplier.Builder createAttributes() {
@@ -165,6 +174,10 @@ public class A60Entity extends Mob {
         if (this.level().isClientSide()) {
             // クライアント側で赤いパーティクルを大量に
             spawnVisualParticles();
+            // 接近ループ音（2秒ごと、エンティティに追従するクライアント側サウンド）
+            if (this.tickCount % 40 == 0) {
+                com.example.roomsmod.util.ApproachSoundHook.start(this, com.example.roomsmod.RoomsMod.A20_APPROACH.get());
+            }
             return;
         }
 
@@ -174,7 +187,7 @@ public class A60Entity extends Mob {
         }
 
         // 前方に高速移動。猶予中は動かない。扉を経由点として通る
-        if (this.tickCount < 80) {
+        if (graceTicks++ < GRACE_TICKS) {
             this.setDeltaMovement(Vec3.ZERO);
             if (!waypointsBuilt) {
                 buildWaypoints();
@@ -187,23 +200,17 @@ public class A60Entity extends Mob {
             }
             if (this.tickCount % 20 == 0) refreshWaypointsIfGrown();
             if (waypointIndex < waypoints.size()) {
-                BlockPos target = waypoints.get(waypointIndex);
-                Vec3 goal = Vec3.atBottomCenterOf(target);
-                Vec3 delta = goal.subtract(this.position());
-                double dist = delta.length();
-                if (dist < 1.0) {
-                    waypointIndex++;
-                    this.setDeltaMovement(Vec3.ZERO);
-                } else {
-                    // 行き過ぎないよう残り距離で速度を制限
-                    this.setDeltaMovement(delta.scale(Math.min(0.9, dist) / dist));
-                }
+                // 終端（size-1）まで進み、到達したら index=size（経路終端後モード）
+                int last = waypoints.size() - 1;
+                int idx = mover.step(this, "A-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
+                waypointIndex = reachedBuf[0] ? waypoints.size() : idx;
             } else {
                 // 生成済み経路の終端：出口方向へ進み続ける
-                this.setDeltaMovement(exitDirection.scale(0.9));
+                Vec3 n = this.position().add(exitDirection.scale(SPEED));
+                this.setPos(n.x, n.y, n.z);
             }
         }
-        this.move(net.minecraft.world.entity.MoverType.SELF, this.getDeltaMovement());
+        this.setDeltaMovement(Vec3.ZERO);
 
         // デバッグ：10秒ごとに位置を出す
         if (this.tickCount % 200 == 0 && com.example.roomsmod.util.RoomsDebug.isEnabled()) {
@@ -211,8 +218,8 @@ public class A60Entity extends Mob {
             Player nearest = sl.getNearestPlayer(this, 500);
             double nd = nearest != null ? this.distanceTo(nearest) : -1;
             com.example.roomsmod.util.RoomsDebug.log(nearest,
-                nearest != null ? "A-60 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
-                "A-60 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                nearest != null ? "A-20 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "A-20 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
                 waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
@@ -222,13 +229,13 @@ public class A60Entity extends Mob {
         if (nearest2 != null) {
             double ahead = this.getZ() - nearest2.getZ();
             if (ahead > 120.0) {
-                com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
+                com.example.roomsmod.util.RoomsDebug.log("A-20 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
                 this.discard();
                 return;
             }
         } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
-            com.example.roomsmod.util.RoomsDebug.log("A-60 despawn: no player within 500 blocks after {} ticks", this.tickCount);
+            com.example.roomsmod.util.RoomsDebug.log("A-20 despawn: no player within 500 blocks after {} ticks", this.tickCount);
             this.discard();
             return;
         }
@@ -248,7 +255,7 @@ public class A60Entity extends Mob {
 
             float volume = Math.min(5.0f, baseVolume * facingMul);
 
-            // 遠くても聞こえるよう、プレイヤーからA-60方向へ最大8ブロックの位置で鳴らす
+            // 遠くても聞こえるよう、プレイヤーからA-20方向へ最大8ブロックの位置で鳴らす
             // （位置で鳴らすと 16×音量 ブロック以内しか届かないため）
             Vec3 pp = nearestForSound.position();
             double off = Math.min(dist, 8.0);
@@ -259,23 +266,14 @@ public class A60Entity extends Mob {
                 this.level().playSound(null, src.x, src.y, src.z,
                         SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
             }
-            if (this.tickCount % 40 == 0) {
-                this.level().playSound(null, src.x, src.y, src.z,
-                        com.example.roomsmod.RoomsMod.A60_APPROACH.get(), SoundSource.HOSTILE, distVol, 1.0f);
-            }
         }
 
         // 近くのプレイヤーに視線判定ダメージ
         AABB searchBox = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
         for (Player player : this.level().getEntitiesOfClass(Player.class, searchBox)) {
-            if (player.isCreative() || player.isSpectator() || !player.isAlive()) continue;
-
-            double dist = this.distanceTo(player);
-            if (dist > MAX_RAYCAST_DISTANCE) continue;
-
-            if (hasLineOfSight(player)) {
-                player.hurt(this.damageSources().mobAttack(this), DAMAGE);
-            }
+            if (player.isSpectator() || !player.isAlive()) continue;
+            if (this.distanceTo(player) > MAX_RAYCAST_DISTANCE) continue;
+            com.example.roomsmod.hiding.RusherHits.tryHit(this, "A-20", player, hasLineOfSight(player), DAMAGE);
         }
     }
 
@@ -334,5 +332,19 @@ public class A60Entity extends Mob {
         double hitDist = start.distanceTo(hit.getLocation());
         double targetDist = start.distanceTo(end);
         return hitDist >= targetDist - 0.5;
+    }
+
+    /** 接近ループ音のフェードイン：MAX_RANGE以遠で0、FULL_RANGE以内で最大、間は t^CURVE_EXPONENT（t=線形の近さ0..1）。 */
+    public static final double APPROACH_MAX_RANGE = 160.0;
+    public static final double APPROACH_FULL_RANGE = 4.0;
+    public static final float APPROACH_MAX_VOLUME = 3.0f;
+    public static final float MIN_APPROACH_VOLUME = 0.02f;
+    /** 1.0=線形、<1で遠くから早めに聞こえる（0.75・最大160: 100ブロックで約49%、150ブロックで約12%）。 */
+    public static final double APPROACH_CURVE_EXPONENT = 0.75;
+
+    public static float approachVolume(double dist) {
+        double t = (APPROACH_MAX_RANGE - dist) / (APPROACH_MAX_RANGE - APPROACH_FULL_RANGE);
+        t = Math.max(0.0, Math.min(1.0, t));
+        return (float) Math.pow(t, APPROACH_CURVE_EXPONENT) * APPROACH_MAX_VOLUME;
     }
 }
