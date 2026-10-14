@@ -213,7 +213,7 @@ public class A75Entity extends Mob {
 
         boolean moving = phase == 1 || phase == 3 || phase == 5;
         if (this.tickCount == 1) playNearPlayer(sl, SoundEvents.WARDEN_SONIC_BOOM, 0.6f);
-        if (moving && this.tickCount % 10 == 0) playNearPlayer(sl, SoundEvents.WARDEN_ROAR, 1.2f + (float) (0.2 * Math.random()));
+        if (moving && this.tickCount % 20 == 0) playNearPlayer(sl, com.example.roomsmod.RoomsMod.A75_APPROACH.get(), 1.0f);
 
         if (moving) {
             AABB box = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);

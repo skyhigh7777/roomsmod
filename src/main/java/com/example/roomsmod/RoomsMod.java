@@ -24,6 +24,8 @@ public class RoomsMod {
 
     public static final DeferredRegister<EntityType<?>> ENTITIES = DeferredRegister.create(Registries.ENTITY_TYPE, MOD_ID);
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
+    public static final DeferredHolder<SoundEvent, SoundEvent> A60_APPROACH = SOUND_EVENTS.register("a60_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a60_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> A75_APPROACH = SOUND_EVENTS.register("a75_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a75_approach")));
 
     public static final DeferredHolder<EntityType<?>, EntityType<A60Entity>> A60 = ENTITIES.register("a60",
             () -> EntityType.Builder.of(A60Entity::new, MobCategory.MONSTER)

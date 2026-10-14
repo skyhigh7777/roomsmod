@@ -259,9 +259,9 @@ public class A60Entity extends Mob {
                 this.level().playSound(null, src.x, src.y, src.z,
                         SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
             }
-            if (this.tickCount % 10 == 0) {
+            if (this.tickCount % 40 == 0) {
                 this.level().playSound(null, src.x, src.y, src.z,
-                        SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, distVol, 0.8f + (float)(0.2 * Math.random()));
+                        com.example.roomsmod.RoomsMod.A60_APPROACH.get(), SoundSource.HOSTILE, distVol, 1.0f);
             }
         }
 
