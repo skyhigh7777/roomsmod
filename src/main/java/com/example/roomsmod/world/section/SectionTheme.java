@@ -58,7 +58,9 @@ public record SectionTheme(
     public enum HidingType { LOCKER, TABLE }
 
     /** ラッシャー1種類。alive は「同種が生存中か」、spawn は出現処理。 */
-    public record RusherSpawn(String name, int minRoom, float chance, Alive alive, Spawner spawn) {
+    public record RusherSpawn(String name, int minRoom, float chance, Alive alive, Spawner spawn, String exclusionGroup) {
+        /** 排他グループなし。 */
+        public RusherSpawn(String name, int minRoom, float chance, Alive alive, Spawner spawn) { this(name, minRoom, chance, alive, spawn, null); }
         @FunctionalInterface public interface Alive { boolean test(ServerLevel level); }
         @FunctionalInterface public interface Spawner { boolean spawn(ServerLevel level, com.example.roomsmod.world.RoomsState rs, Player player); }
     }

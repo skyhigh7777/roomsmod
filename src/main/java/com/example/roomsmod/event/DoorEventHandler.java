@@ -83,6 +83,11 @@ public class DoorEventHandler {
      * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
     private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        rollRushers(level, rs, player, room, false);
+    }
+
+    /** forceAll=true は全種類を当たり扱い（minRoom は無視しない）。テスト用。 */
+    public static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room, boolean forceAll) {
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         var table = theme.rushers();
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
@@ -90,7 +95,7 @@ public class DoorEventHandler {
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
-            hit[k] = local >= r.minRoom() && level.random.nextFloat() < r.chance();
+            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < r.chance() || forceAll);
         }
         StringBuilder sb = new StringBuilder();
         for (int k = 0; k < table.size(); k++) {
@@ -100,6 +105,20 @@ public class DoorEventHandler {
               .append(" (room>=").append(r.minRoom()).append(", ").append(r.chance()).append(") alive=").append(alive[k]);
         }
         RoomsDebug.log("rusher roll room={} local={} section={} {}", room, com.example.roomsmod.world.section.Sections.formatRoom(rs, room), theme.prefix(), sb);
+        // 排他グループ：同じ抽選で複数当たったら1つだけランダムに選ぶ（生存中のメンバーがいれば alive で全員スキップ）
+        java.util.Map<String, java.util.List<Integer>> groups = new java.util.LinkedHashMap<>();
+        for (int k = 0; k < table.size(); k++)
+            if (hit[k] && !alive[k] && table.get(k).exclusionGroup() != null)
+                groups.computeIfAbsent(table.get(k).exclusionGroup(), g -> new java.util.ArrayList<>()).add(k);
+        for (var e : groups.entrySet()) {
+            var c = e.getValue();
+            if (c.size() < 2) continue;
+            int win = c.get(level.random.nextInt(c.size()));
+            for (int k : c) if (k != win) {
+                hit[k] = false;
+                RoomsDebug.log("rusher roll room={} {} skipped: exclusion group {} ({} spawned this roll)", room, table.get(k).name(), e.getKey(), table.get(win).name());
+            }
+        }
         for (int k = 0; k < table.size(); k++) {
             if (!hit[k]) continue;
             var r = table.get(k);

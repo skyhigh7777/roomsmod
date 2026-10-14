@@ -50,7 +50,7 @@ public class V25BuffedEntity extends VSearcherEntity {
 
     public V25BuffedEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
-        if (forcedNext != null) { target = forcedNext; forcedNext = null; }
+        if (forcedNext != null) { target = forcedNext; forcedNext = null; forced = true; }
         else target = level.random.nextBoolean() ? LockerManager.Spot.TABLE : LockerManager.Spot.LOCKER;
     }
 
@@ -122,8 +122,15 @@ public class V25BuffedEntity extends VSearcherEntity {
         return false;
     }
 
+    private boolean forced = false;
+
     @Override
-    protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return super.prepare(level, rs, playerRoom); }
+    protected boolean retargetWhenNoSpots() {
+        if (forced) return false; // コマンドで指定された種類は変えない
+        target = target == LockerManager.Spot.TABLE ? LockerManager.Spot.LOCKER : LockerManager.Spot.TABLE;
+        RoomsDebug.log("V25-BUFFED no spots of the rolled type -> retarget {}", target);
+        return true;
+    }
 
     @Override protected String debugState() { return super.debugState() + " phase=" + phase + " target=" + target; }
 

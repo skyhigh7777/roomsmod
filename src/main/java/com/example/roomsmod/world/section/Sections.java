@@ -77,7 +77,7 @@ public final class Sections {
     private Sections() {}
 
     private static SectionTheme.RusherSpawn vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind k, int minRoom, float chance) {
-        return new SectionTheme.RusherSpawn(k.display, minRoom, chance, k::alive, k::spawn);
+        return new SectionTheme.RusherSpawn(k.display, minRoom, chance, k::alive, k::spawn, k.exclusionGroup);
     }
 
     public static SectionTheme register(SectionTheme t) {

@@ -69,11 +69,27 @@ public abstract class VSearcherEntity extends VEntity {
         startRoom = playerRoom;
         List<BlockPos> p = VSpawns.path(rs, playerRoom);
         if (p.isEmpty()) return null;
+        int spots = countSpots(level, rs);
+        if (spots == 0 && retargetWhenNoSpots()) spots = countSpots(level, rs);
+        if (spots == 0) { RoomsDebug.log("{} spawn skipped: no {} spots in rooms {}..{}", vName(), spotType(), startRoom, startRoom + ROOMS_TO_SEARCH - 1); return null; }
         BlockPos s = p.get(0);
         setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
         if (entrySound()) level.playSound(null, s, checkSound(), SoundSource.HOSTILE, 2.0f, 0.7f); // 入って来る合図
         return s;
     }
+
+    /** 調べる部屋（プレイヤーの部屋＋次の部屋）にある対象の隠れ場所の数。 */
+    protected int countSpots(ServerLevel level, RoomsState rs) {
+        int n = 0;
+        for (int i = startRoom; i < Math.min(startRoom + ROOMS_TO_SEARCH, rs.generatedRooms.size()); i++)
+            for (BoundingBox b : rs.generatedRooms.get(i))
+                for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ()))
+                    if (isSpot(level.getBlockState(q))) n++;
+        return n;
+    }
+
+    /** 対象が0個のとき、別の種類へ切り替えられるなら切り替えて true。 */
+    protected boolean retargetWhenNoSpots() { return false; }
 
     private void planRoom(ServerLevel level, RoomsState rs) {
         targets.clear(); targetIdx = 0;
@@ -158,7 +174,7 @@ public abstract class VSearcherEntity extends VEntity {
 
     @Override
     protected String debugState() {
-        return "room=" + (startRoom + roomOffset) + " target=" + targetIdx + "/" + targets.size() + (checking >= 0 ? " checking=" + checking : "") + " grace=" + grace;
+        return "room=" + (startRoom + roomOffset) + " target=" + (targets.isEmpty() ? "(planned after grace)" : targetIdx + "/" + targets.size()) + (checking >= 0 ? " checking=" + checking : "") + " grace=" + grace;
     }
 
     @Override
