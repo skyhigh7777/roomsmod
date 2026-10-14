@@ -62,6 +62,15 @@ public class DoorEventHandler {
             return;
         }
 
+        advanceThroughExitDoor(level, rs, event.getEntity(), doorPos, "door click hand=" + event.getHand());
+    }
+
+    /**
+     * 出口扉を通って次へ：扉を生成済みにし（以後は普通の扉）、次の部屋を生成し、出現抽選をする。
+     * プレイヤーのクリックと V-50 の飛び出し（扉を開ける）で共用。player は null 可。
+     */
+    public static boolean advanceThroughExitDoor(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, BlockPos doorPos, String by) {
+        if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos) || rs.generatedDoors.contains(doorPos)) return false;
         rs.markDoorGenerated(doorPos);
         int room = rs.currentRoom + 1;
         BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, doorPos.getY() - 1, doorPos.getZ() + 1); // 扉の床の高さ（V の2階建てで上がる）
@@ -69,16 +78,18 @@ public class DoorEventHandler {
             RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
         } catch (RuntimeException e) {
             RoomsDebug.error("room generation failed (room=" + room + ", origin=" + nextOrigin + ")", e);
-            return;
+            return false;
         }
-        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
-            "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
+        if (player != null) RoomsDebug.log(player, "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
+            "{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
+        else RoomsDebug.log("{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
 
         try {
-            rollRushers(level, rs, event.getEntity(), room);
+            rollRushers(level, rs, player, room);
         } catch (RuntimeException e) {
             RoomsDebug.error("rusher spawn failed", e);
         }
+        return true;
     }
 
     /**

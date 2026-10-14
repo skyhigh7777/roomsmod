@@ -72,6 +72,20 @@ public class V50Entity extends VPathWalker {
         return blockPosition();
     }
 
+    /** 飛び出し：潜んでいた出口扉を開け、プレイヤーが開けた時と同じく次の部屋の生成と出現抽選をする（罰は無し）。既に開いていれば何もしない。 */
+    private void openWaitingDoor(ServerLevel level) {
+        RoomsState rs = RoomsState.get(level);
+        java.util.List<BlockPos> p = VSpawns.path(rs, startRoom);
+        if (p.isEmpty()) return;
+        BlockPos door = p.get(p.size() - 1);
+        net.minecraft.world.level.block.state.BlockState s = level.getBlockState(door);
+        if (!(s.getBlock() instanceof net.minecraft.world.level.block.DoorBlock db)) { RoomsDebug.log("V-50 burst: no door at {}", door); return; }
+        if (s.getValue(net.minecraft.world.level.block.DoorBlock.OPEN)) { RoomsDebug.log("V-50 burst: door {} already open", door); return; }
+        db.setOpen(null, level, s, door, true);
+        boolean gen = com.example.roomsmod.event.DoorEventHandler.advanceThroughExitDoor(level, rs, null, door, "V-50 burst opened door");
+        RoomsDebug.log("V-50 burst opened door {} generatedNext={}", door, gen);
+    }
+
     /** 潜んでいる部屋の扉（入口・出口）か。経路の最初／最後の経由点（床+1）と比べる。 */
     private boolean isWaitingDoor(RoomsState rs, BlockPos door) {
         java.util.List<BlockPos> p = VSpawns.path(rs, startRoom);
@@ -88,12 +102,14 @@ public class V50Entity extends VPathWalker {
             RoomsDebug.log(player, "V-50: 扉を開けるのが早すぎたわ",
                     "V-50 door opened early -> punish player={} door={} phase={} creative={}", player.getGameProfile().getName(), door, v.phase, player.isCreative());
             if (!player.isCreative() && !player.isSpectator()) player.hurt(v.damageSources().mobAttack(v), OPEN_DOOR_DAMAGE);
-            v.burst(level);
+            v.burst(level, false);
         }
     }
 
-    private void burst(ServerLevel level) {
+    /** @param openDoor 扉を開けるか（プレイヤーが今まさに開けている＝早開け罰の時は false、その扉はプレイヤー側の処理で開く） */
+    private void burst(ServerLevel level, boolean openDoor) {
         enter(3, "burst");
+        if (openDoor) openWaitingDoor(level);
         notifyAll(level, RoomsMod.V50_EXPLODE.get());
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.V50_EXPLODE.get(), SoundSource.HOSTILE, 4.0f, 0.9f);
         level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, getX(), getY() + 1, getZ(), 1, 0, 0, 0, 0);
@@ -119,7 +135,7 @@ public class V50Entity extends VPathWalker {
             return true;
         }
         if (phase == 2) {
-            if (++phaseTicks >= BUZZER_TICKS) burst(level);
+            if (++phaseTicks >= BUZZER_TICKS) burst(level, true);
             return true;
         }
         return false; // 突進中：移動＋当たり判定
