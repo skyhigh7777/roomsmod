@@ -128,6 +128,7 @@ public class RoomGenerator {
         theme = com.example.roomsmod.world.section.Sections.forRoom(state, roomNumber);
         var prevTheme = com.example.roomsmod.world.section.Sections.forRoom(state, roomNumber - 1);
         if (prevTheme != theme) RoomsDebug.log("section change at room {}: {} -> {}", roomNumber, prevTheme.id(), theme.id());
+        if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         String planInfo = lastPlanInfo;
         buildShell(level, origin, plan);
@@ -351,7 +352,7 @@ public class RoomGenerator {
         return cells;
     }
 
-    private static long key(int x, int z) { return ((long) x << 32) ^ (z & 0xffffffffL); }
+    static long key(int x, int z) { return ((long) x << 32) ^ (z & 0xffffffffL); }
 
     private static void placeFurniture(ServerLevel level, BlockPos origin, RoomPlan p, Random rand) {
         Set<Long> blocked = pathCells(p);
@@ -450,7 +451,7 @@ public class RoomGenerator {
      * 裏の1列が隠れポケット、その更に裏を出入り口として空ける。通路3マス幅・扉付近・ロッカー/机は blocked/used で避ける。
      * 置く前に、通路上のどの点からもポケットが見えないこと（2D視線）を検証する。部屋の床（壁以外）にしか置かない。
      */
-    private static void placeCover(ServerLevel level, BlockPos origin, RoomPlan p, Random rand, Set<Long> blocked, Set<Long> used) {
+    static void placeCover(ServerLevel level, BlockPos origin, RoomPlan p, Random rand, Set<Long> blocked, Set<Long> used) {
         var cv = theme.cover();
         if (rand.nextFloat() >= cv.roomChance()) {
             RoomsDebug.log("cover shape={} none (roll)", p.shape);
@@ -609,7 +610,7 @@ public class RoomGenerator {
     }
 
     /** 隠れ場所の種類を theme.hidingMix() から累積判定で選ぶ（f は nextFloat の値）。 */
-    private static com.example.roomsmod.world.section.SectionTheme.HidingType pickHiding(float f) {
+    static com.example.roomsmod.world.section.SectionTheme.HidingType pickHiding(float f) {
         float total = 0f;
         for (var w : theme.hidingMix()) total += w.weight();
         float r = f * total, cum = 0f;
@@ -618,7 +619,7 @@ public class RoomGenerator {
     }
 
     /** 隠れ場所を種類ごとに置く。新しい種類はここに分岐を足す。 */
-    private static void placeHiding(ServerLevel level, BlockPos pos, Direction facing, com.example.roomsmod.world.section.SectionTheme.HidingType type) {
+    static void placeHiding(ServerLevel level, BlockPos pos, Direction facing, com.example.roomsmod.world.section.SectionTheme.HidingType type) {
         switch (type) {
             case TABLE -> level.setBlockAndUpdate(pos, com.example.roomsmod.RoomsMod.HIDING_TABLE.get().defaultBlockState());
             case LOCKER -> placeHidingSpot(level, pos, facing);
@@ -639,7 +640,7 @@ public class RoomGenerator {
     }
 
     /** 周囲spacingマス以内が未使用なら確保する。 */
-    private static boolean reserve(Set<Long> used, int x, int z, int spacing) {
+    static boolean reserve(Set<Long> used, int x, int z, int spacing) {
         for (int dx = -spacing; dx <= spacing; dx++)
             for (int dz = -spacing; dz <= spacing; dz++)
                 if (used.contains(key(x + dx, z + dz))) return false;
@@ -655,7 +656,7 @@ public class RoomGenerator {
      * 扉の上の部屋番号プレート。pos は扉の1マス手前（来る側＝部屋の内側）・床+3。
      * 北向き（-Z側から読める）で、出口扉のある+Z側の壁に掛ける。テキストは発光させ、編集不可にする。
      */
-    private static void placeExitSign(ServerLevel level, BlockPos pos, String text) {
+    static void placeExitSign(ServerLevel level, BlockPos pos, String text) {
         BlockPos wall = pos.relative(Direction.SOUTH);
         if (!level.getBlockState(pos).isAir() || !level.getBlockState(wall).isSolid()) {
             RoomsDebug.log("room number sign {} skipped at {} (space occupied or no wall)", text, pos);

@@ -65,7 +65,9 @@ public final class LockerManager {
             RoomsDebug.log(player, "机の下は使用中よ", "table enter denied pos={} player={} (occupied)", pos, player.getGameProfile().getName());
             return;
         }
-        BlockPos exitPos = player.blockPosition().equals(pos) ? pos.relative(player.getDirection().getOpposite()) : player.blockPosition().immutable();
+        // blockPosition() は床が 15/16 高さ（土の道など）だと床ブロック自身を指す（足のy=10.94 → 10）。
+        // それを出口にすると床の中にテレポートし、1枚床をすり抜けて奈落へ落ちていた。立てるマスを探して保存する。
+        BlockPos exitPos = safeStand(player.serverLevel(), pos, player.position());
         HIDING.put(player.getUUID(), new Hide(Spot.TABLE, player.serverLevel(), pos.immutable(), exitPos, !player.isShiftKeyDown()));
         player.stopRiding();
         player.setForcedPose(net.minecraft.world.entity.Pose.SWIMMING);
@@ -95,6 +97,35 @@ public final class LockerManager {
         RoomsDebug.log(player, "ロッカーに入ったわ", "locker enter pos={} facing={} player={}", base, facing, player.getGameProfile().getName());
     }
 
+    /** feet に立てるか: 足元に当たり判定あり、足と頭のマスに当たり判定なし。 */
+    static boolean standable(ServerLevel level, BlockPos feet) {
+        if (!level.isLoaded(feet)) return false;
+        return !level.getBlockState(feet.below()).getCollisionShape(level, feet.below()).isEmpty()
+                && level.getBlockState(feet).getCollisionShape(level, feet).isEmpty()
+                && level.getBlockState(feet.above()).getCollisionShape(level, feet.above()).isEmpty();
+    }
+
+    /** 立てる位置の足のブロック座標を探す。優先: 入った位置（床ブロック内なら1つ上）→机の4方→周囲2マス。見つからなければ机の位置。 */
+    static BlockPos safeStand(ServerLevel level, BlockPos table, Vec3 entry) {
+        BlockPos e = BlockPos.containing(entry.x, entry.y + 0.5, entry.z); // 15/16床の上でも足のマスになる
+        java.util.List<BlockPos> cands = new java.util.ArrayList<>();
+        cands.add(e); cands.add(e.above()); cands.add(e.below());
+        for (Direction d : Direction.Plane.HORIZONTAL) cands.add(table.relative(d));
+        for (int r = 1; r <= 2; r++)
+            for (int dx = -r; dx <= r; dx++) for (int dz = -r; dz <= r; dz++)
+                for (int dy = 0; dy >= -1; dy--) cands.add(table.offset(dx, dy, dz));
+        for (BlockPos c : cands) if (!c.equals(table) && standable(level, c)) return c.immutable();
+        RoomsDebug.log("hiding exit: no standable spot near {} (entry {}), using table pos", table, entry);
+        return table.immutable();
+    }
+
+    /** 足のマスの床（足元ブロックの当たり判定の上端）に立つ座標。 */
+    static Vec3 standVec(ServerLevel level, BlockPos feet) {
+        var below = level.getBlockState(feet.below()).getCollisionShape(level, feet.below());
+        double y = below.isEmpty() ? feet.getY() : feet.getY() - 1 + below.max(Direction.Axis.Y);
+        return new Vec3(feet.getX() + 0.5, Math.max(y, feet.getY() - 1 + 0.0), feet.getZ() + 0.5);
+    }
+
     private static Vec3 inside(BlockPos base) {
         return new Vec3(base.getX() + 0.5, base.getY(), base.getZ() + 0.5);
     }
@@ -106,7 +137,9 @@ public final class LockerManager {
         if (h.spot == Spot.TABLE) player.setForcedPose(null);
         BlockPos out = h.exitPos;
         if (player.level() == h.level && player.isAlive()) {
-            player.teleportTo(h.level, out.getX() + 0.5, out.getY(), out.getZ() + 0.5, player.getYRot(), player.getXRot());
+            Vec3 o = h.spot == Spot.TABLE ? standVec(h.level, safeStand(h.level, h.pos, Vec3.atBottomCenterOf(out))) : Vec3.atBottomCenterOf(out);
+            player.setDeltaMovement(Vec3.ZERO);
+            player.teleportTo(h.level, o.x, o.y, o.z, player.getYRot(), player.getXRot());
         }
         String what = h.spot == Spot.TABLE ? "机の下" : "ロッカー";
         RoomsDebug.log(player, what + "から出たわ（" + reason + "）", "{} exit pos={} reason={} player={}", h.spot, h.pos, reason, player.getGameProfile().getName());

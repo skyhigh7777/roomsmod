@@ -82,3 +82,10 @@ Checklist for a new section:
 5. Run the harness: `/rooms test gen N` must report `check RESULT PASS`.
 
 Not themed yet: room geometry (sizes per shape), the lobby decor, and the locker/table blocks themselves.
+
+## V (Village) rooms
+V uses its own generator (`world/VillageRooms.java`), not A's shapes: small houses (interiors 5-9),
+layouts SINGLE / TWO_ROOM (front+back, inner door) / SIDE_ROOM (side room via inner door) and
+TWO_STORY (~22%, stairs; ascending at base height -> exit on 2nd floor, descending when already raised
+-> enter 2nd floor, exit ground floor, so floor height alternates base / base+4). The next room origin
+is the exit door's floor (door y - 1). Path waypoints include every stair step (rise, then advance).

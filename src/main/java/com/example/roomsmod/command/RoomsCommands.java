@@ -111,7 +111,7 @@ public class RoomsCommands {
 
                         BlockPos currentExit = lobbyExit != null ? lobbyExit : origin.offset(10, 1, 31);
                         for (int i = 1; i <= target; i++) {
-                            BlockPos nextOrigin = new BlockPos(currentExit.getX() - 10, 1, currentExit.getZ() + 1);
+                            BlockPos nextOrigin = new BlockPos(currentExit.getX() - 10, currentExit.getY() - 1, currentExit.getZ() + 1);
                             BlockPos exitDoor = com.example.roomsmod.world.RoomGenerator.generateNextRoom(roomsLevel, nextOrigin, i);
                             if (exitDoor != null) {
                                 currentExit = exitDoor;

@@ -38,6 +38,8 @@ public class DoorEventHandler {
         if (!level.dimension().equals(RoomsCommands.ROOMS_DIMENSION)) return;
 
         BlockState state = level.getBlockState(event.getPos());
+        // このディメンションはベッドが爆発する（bed_works=false）ので、飾りのベッドは使えないようにする
+        if (state.getBlock() instanceof net.minecraft.world.level.block.BedBlock) { event.setCanceled(true); return; }
         if (!(state.getBlock() instanceof DoorBlock)) return;
 
         // 下半分に正規化
@@ -59,7 +61,7 @@ public class DoorEventHandler {
 
         rs.markDoorGenerated(doorPos);
         int room = rs.currentRoom + 1;
-        BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, baseFloorY, doorPos.getZ() + 1);
+        BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, doorPos.getY() - 1, doorPos.getZ() + 1); // 扉の床の高さ（V の2階建てで上がる）
         try {
             RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
         } catch (RuntimeException e) {

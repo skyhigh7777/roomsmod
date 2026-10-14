@@ -45,11 +45,11 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             25, 5));
 
-    /** V（Village）区画。お試し用：見た目と隠れ場所の比率だけ変更、ラッシャーなし、部屋の寸法は A と同じ。 */
+    /** V（Village）区画。部屋の形・家具は VillageRooms（小さな民家、2階建てあり）。shapeWeights/furniture は未使用、cover は遮蔽物のブロック。ラッシャーなし。 */
     public static final SectionTheme V = register(new SectionTheme(
             "v", "V",
             new SectionTheme.Palette(
-                    Blocks.DIRT_PATH::defaultBlockState, Blocks.OAK_PLANKS::defaultBlockState, Blocks.SPRUCE_PLANKS::defaultBlockState,
+                    Blocks.SPRUCE_PLANKS::defaultBlockState, Blocks.OAK_PLANKS::defaultBlockState, Blocks.DARK_OAK_PLANKS::defaultBlockState, // 床は全高ブロック（土の道は壁下に隙間が見えた）
                     () -> Blocks.SPRUCE_DOOR,
                     () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
             new int[]{3, 0, 2, 1, 2},                       // 廊下なし、ホール/L字多め
