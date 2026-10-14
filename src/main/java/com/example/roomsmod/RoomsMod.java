@@ -67,6 +67,9 @@ public class RoomsMod {
     public static final DeferredHolder<SoundEvent, SoundEvent> V35_KNOCK = SOUND_EVENTS.register("v35_knock", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v35_knock")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V35_SCREAM = SOUND_EVENTS.register("v35_scream", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v35_scream")));
     public static final DeferredHolder<SoundEvent, SoundEvent> V50_APPROACH = SOUND_EVENTS.register("v50_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V50_TICK = SOUND_EVENTS.register("v50_tick", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_tick")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V50_BUZZER = SOUND_EVENTS.register("v50_buzzer", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_buzzer")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> V50_EXPLODE = SOUND_EVENTS.register("v50_explode", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "v50_explode")));
 
     // ---- V（Village）区画のエンティティ（仮名。改名は id・VSpawns.Kind・lang・テクスチャ名）----
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.v.V10Entity>> V10 = ENTITIES.register("v10",

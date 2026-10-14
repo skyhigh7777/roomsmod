@@ -40,6 +40,12 @@ public abstract class VPathWalker extends VEntity {
     /** 接近ループの再生間隔（tick、音声ファイルの長さに合わせる）。 */
     protected int loopTicks() { return 40; }
 
+    /** true を返す間は移動・当たり判定をしない。既定は graceTicks() 待ち。 */
+    protected boolean holdTick(ServerLevel level) {
+        if (grace < graceTicks()) { grace++; return true; }
+        return false;
+    }
+
     private List<BlockPos> waypoints() {
         if (wps == null && level() instanceof ServerLevel sl) {
             RoomsState rs = RoomsState.get(sl);
@@ -69,7 +75,7 @@ public abstract class VPathWalker extends VEntity {
     @Override
     protected void serverTick(ServerLevel level) {
         List<BlockPos> w = waypoints();
-        if (grace < graceTicks()) { grace++; return; }
+        if (holdTick(level)) return;
         if (w.isEmpty() || waypointIndex >= w.size()) { leave("path end (" + w.size() + " waypoints)"); return; }
         int idx = mover.step(this, vName(), w, waypointIndex, w.size() - 1, speed(), reached);
         if (idx < w.size()) faceTowards(net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(idx)));

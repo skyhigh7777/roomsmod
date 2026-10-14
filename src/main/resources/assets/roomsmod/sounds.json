@@ -58,5 +58,23 @@
       "roomsmod:v50_approach"
     ],
     "subtitle": "subtitles.roomsmod.v50_approach"
+  },
+  "v50_tick": {
+    "sounds": [
+      "roomsmod:v50_tick"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_tick"
+  },
+  "v50_buzzer": {
+    "sounds": [
+      "roomsmod:v50_buzzer"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_buzzer"
+  },
+  "v50_explode": {
+    "sounds": [
+      "roomsmod:v50_explode"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_explode"
   }
 }
