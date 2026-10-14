@@ -88,5 +88,14 @@
       "roomsmod:v25_buffed_reveal"
     ],
     "subtitle": "subtitles.roomsmod.v25_buffed_reveal"
+  },
+  "v100_watch": {
+    "sounds": [
+      {
+        "name": "roomsmod:v100_watch",
+        "stream": true
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.v100_watch"
   }
 }

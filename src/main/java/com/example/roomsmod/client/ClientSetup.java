@@ -23,6 +23,7 @@ public class ClientSetup {
     @SubscribeEvent
     public static void onClientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
         com.example.roomsmod.util.ApproachSoundHook.set(ApproachSoundInstance::start);
+        com.example.roomsmod.util.ApproachSoundHook.setLoop((e, s) -> { if (e instanceof com.example.roomsmod.entity.v.V100Entity v) WatchSoundInstance.start(v, s); });
     }
 
     @SubscribeEvent

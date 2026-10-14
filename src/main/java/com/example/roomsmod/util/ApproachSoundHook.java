@@ -19,4 +19,9 @@ public final class ApproachSoundHook {
     public static void set(Starter s) { starter = s; }
 
     public static void start(Entity entity, SoundEvent sound) { starter.start(entity, sound); }
+
+    /** エンティティ追従のループ音（V-100 の見張り音など）。クライアントが実装を入れる。 */
+    private static volatile Starter loopStarter = (e, s) -> {};
+    public static void setLoop(Starter s) { loopStarter = s; }
+    public static void startLoop(Entity entity, SoundEvent sound) { loopStarter.start(entity, sound); }
 }

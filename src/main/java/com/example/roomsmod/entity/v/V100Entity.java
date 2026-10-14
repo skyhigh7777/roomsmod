@@ -53,6 +53,8 @@ public class V100Entity extends VEntity {
     private BlockPos window = null;
     private Direction windowOut = null;
     private int knockStart = 0;
+    /** クライアント：見張り音を再生中か（WatchSoundInstance が更新）。 */
+    public boolean watchSoundActive = false;
     private final Map<UUID, Integer> moves = new HashMap<>();
     private final Map<UUID, Vec3> lastPos = new HashMap<>();
 
@@ -211,6 +213,7 @@ public class V100Entity extends VEntity {
 
     @Override
     protected void clientTick() {
+        if (isPeeking() && !watchSoundActive) com.example.roomsmod.util.ApproachSoundHook.startLoop(this, RoomsMod.V100_WATCH.get());
         if (isPeeking() && tickCount % 10 == 0)
             level().addParticle(net.minecraft.core.particles.ParticleTypes.SMOKE, getX(), getY() + 1.6, getZ(), 0, 0.01, 0);
     }
