@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 
 /**
  * 部屋の照明の段階的な減光（セクション内の部屋番号ごと）。
- * 次元は has_skylight=false / ambient_light=0 なので、明るさは置いた光源だけで決まる。
+ * 次元は ambient_light=0。has_skylight=true（固定昼）だが部屋は不透明ブロックで密閉され空の光は0なので、明るさは置いた光源だけで決まる。
  * 段階（tier = (localRoom - fadeStart) / fadeStep）:
  * 0: ランタン間隔5（最大10） / 1: 間隔6（最大6） / 2: 間隔8（最大4） / 3: 間隔10（最大2）
  * 4: 魂のランタン(光10)間隔8（最大3） / 5: 間隔10（最大2） / 6: 魂のランタン1個 / 7+: 隅にろうそく3本(光9)×3

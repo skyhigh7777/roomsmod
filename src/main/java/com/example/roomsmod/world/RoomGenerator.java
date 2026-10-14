@@ -53,6 +53,8 @@ public class RoomGenerator {
         level.setBlockAndUpdate(doorPos, doorLower());
         level.setBlockAndUpdate(doorPos.above(), doorLower().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
 
+        sealExit(level, doorPos);
+
         // 出口と大きめ看板
         placeExitSign(level, origin.offset(10, 3, depth - 2), com.example.roomsmod.world.section.Sections.formatRoom(RoomsState.get(level), 1));
 
@@ -69,18 +71,53 @@ public class RoomGenerator {
     }
 
     /**
-     * ロビーの内装。今は家具なし・壁は空けたまま（将来アイテム関連やモード切替ボタン等を置く余白）で、
-     * 天窓（天井の白い色付きガラス越しにグロウストーン）で明るくする。次元に空の光は無いので、ロビーの明るさはこの光源だけ。
-     * 追加物はここに足す。中央の通路 x=10（入口 z=2 → 出口扉 z=depth-1）は空けておくこと。
+     * ロビーの内装（クォーツ基調・家具なし）。壁と床は将来のアイテムスタンドやモード切替ボタン用に空けておく。
+     * 天井の透明ガラスの天窓（5枚・左右対称）から本物の空の光が入る（次元は has_skylight=true・固定昼）。
+     * 天窓は出口扉から離して置き、扉の先の部屋1に空の光が届かない距離（マンハッタン距離15以上）にしてある。
+     * 扉側の半分は天井埋め込みのシーランタンで明るくする。中央の通路 x=9..11（入口 z=2 → 出口扉 z=depth-1）は空けておくこと。
      */
     private static void buildLobbyInterior(ServerLevel level, BlockPos origin, int width, int depth, int height) {
-        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17 / 21..25 に計6枚（左右対称・等間隔）
-        for (int cx : new int[]{5, 14}) for (int cz : new int[]{7, 15, 23})
-            for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) {
-                BlockPos g = origin.offset(cx + dx, height, cz + dz);
-                level.setBlockAndUpdate(g, Blocks.WHITE_STAINED_GLASS.defaultBlockState());
-                level.setBlockAndUpdate(g.above(), Blocks.GLOWSTONE.defaultBlockState());
+        var quartz = Blocks.QUARTZ_BLOCK.defaultBlockState();
+        var smooth = Blocks.SMOOTH_QUARTZ.defaultBlockState();
+        var bricks = Blocks.QUARTZ_BRICKS.defaultBlockState();
+        var pillar = Blocks.QUARTZ_PILLAR.defaultBlockState();
+        for (int x = 0; x < width; x++) for (int z = 0; z < depth; z++) {
+            boolean wall = x == 0 || x == width - 1 || z == 0 || z == depth - 1;
+            // 床: スムーズクォーツ、外周1マスと中央通路はクォーツレンガ
+            boolean trim = x == 1 || x == width - 2 || z == 1 || z == depth - 2 || (x >= 9 && x <= 11);
+            level.setBlockAndUpdate(origin.offset(x, 0, z), wall ? quartz : trim ? bricks : smooth);
+            level.setBlockAndUpdate(origin.offset(x, height, z), smooth);
+            if (!wall) continue;
+            // 壁: クォーツブロック。角と一定間隔に柱、最上段はレンガの帯
+            boolean post = (x == 0 || x == width - 1) ? z % 6 == 1 || z == depth - 1 || z == 0 : x % 6 == 1 || x == width - 1 || x == 0;
+            for (int y = 1; y < height; y++)
+                level.setBlockAndUpdate(origin.offset(x, y, z), post ? pillar : y == height - 1 ? bricks : quartz);
+        }
+        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17、中央に 3x3（x=9..11, z=10..12）。上は空まで何もなし
+        java.util.List<int[]> panes = new ArrayList<>();
+        for (int cx : new int[]{5, 14}) for (int cz : new int[]{7, 15})
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) panes.add(new int[]{cx + dx, cz + dz});
+        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) panes.add(new int[]{10 + dx, 11 + dz});
+        for (int[] g : panes) {
+            level.setBlockAndUpdate(origin.offset(g[0], height, g[1]), Blocks.GLASS.defaultBlockState());
+            // 枠: 天窓の周囲の天井はクォーツレンガ
+            for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) {
+                BlockPos f = origin.offset(g[0] + dx, height, g[1] + dz);
+                if (level.getBlockState(f).is(Blocks.SMOOTH_QUARTZ)) level.setBlockAndUpdate(f, bricks);
             }
+        }
+        // 扉側は天井埋め込みのシーランタン（以前のグロウストーン天窓と同程度の位置）
+        for (int cx : new int[]{5, 14}) for (int cz : new int[]{23, 27})
+            level.setBlockAndUpdate(origin.offset(cx, height, cz), Blocks.SEA_LANTERN.defaultBlockState());
+    }
+
+    /**
+     * まだ次の部屋がない出口扉の外側（+z 側の2マス）をふさぐ。扉は光を通すので、これがないと外の空の光（固定昼）が
+     * 最前の部屋に入る。次の部屋の入口（z=0 の開口）を作るときに空気で上書きされる。
+     */
+    static void sealExit(ServerLevel level, BlockPos door) {
+        level.setBlockAndUpdate(door.south(), Blocks.BLACK_CONCRETE.defaultBlockState());
+        level.setBlockAndUpdate(door.south().above(), Blocks.BLACK_CONCRETE.defaultBlockState());
     }
 
     // ===================== 通常部屋生成 =====================
@@ -143,6 +180,7 @@ public class RoomGenerator {
         BlockPos exitDoor = origin.offset(plan.exitX, 1, plan.exitZ);
         level.setBlockAndUpdate(exitDoor, doorLower());
         level.setBlockAndUpdate(exitDoor.above(), doorLower().setValue(net.minecraft.world.level.block.DoorBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER));
+        sealExit(level, exitDoor);
 
         // 照明: セクション内の部屋番号が進むほど少なく・暗く（RoomLighting）
         placeLights(level, origin, plan, com.example.roomsmod.world.section.Sections.localRoom(state, roomNumber));

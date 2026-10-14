@@ -228,6 +228,7 @@ final class VillageRooms {
         buildShell(c, theme);
         BlockPos exitDoor = base.offset(p.exitX, p.exitLevel + 1, p.exitZ);
         door(level, exitDoor, Direction.NORTH);
+        RoomGenerator.sealExit(level, exitDoor);
         for (int[] d : p.innerDoors) door(level, base.offset(d[0], 1, d[1]), d[2] == 1 ? Direction.EAST : Direction.WEST);
         if (p.hasStairs) buildStairs(c);
         furnish(c, theme, Sections.localRoom(state, roomNumber));
