@@ -47,6 +47,9 @@ public class GKQuizEntity extends GKTimedEntity {
         return c;
     }
 
+    /** 正解のカーペットの位置（テスト・デバッグ用）。 */
+    public BlockPos correctCarpet() { return placed.size() > correct ? placed.get(correct) : null; }
+
     private Component question(int left) {
         return Component.translatable("message.roomsmod.gk_quiz", a, b, answers[0], answers[1], answers[2], left);
     }
