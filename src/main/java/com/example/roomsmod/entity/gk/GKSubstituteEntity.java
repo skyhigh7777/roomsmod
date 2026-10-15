@@ -26,12 +26,14 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 
-/** GK-Substitute：偽の扉。 */
+/** GK-Substitute：偽の扉。壁の元のブロックを保存して戻すので、どのセクションの部屋でも使える。 */
 public class GKSubstituteEntity extends VEntity {
     public static final int LIFE = 20 * 60;
     public static final float DAMAGE = 10f;
     private BlockPos door = null;
     private boolean restored = false;
+    /** 扉を置く前の壁ブロック（下・上）。どのセクションの部屋でも元に戻せるように保存する。 */
+    private BlockState wallLower = null, wallUpper = null;
     public GKSubstituteEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "GK-Substitute"; }
     @Override protected int maxLifeTicks() { return Math.min(LIFE, GKEntity.MAX_LIFE_TICKS); }
@@ -61,6 +63,7 @@ public class GKSubstituteEntity extends VEntity {
         Object[] c = cand.get(level.random.nextInt(cand.size()));
         door = (BlockPos) c[0];
         Direction in = (Direction) c[1];
+        wallLower = level.getBlockState(door); wallUpper = level.getBlockState(door.above());
         BlockState lower = Blocks.DARK_OAK_DOOR.defaultBlockState().setValue(DoorBlock.FACING, in.getOpposite());
         level.setBlock(door, lower, 3);
         level.setBlock(door.above(), lower.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), 3);
@@ -87,8 +90,8 @@ public class GKSubstituteEntity extends VEntity {
         if (restored || door == null || !(level() instanceof ServerLevel sl)) return;
         restored = true;
         if (sl.getBlockState(door).getBlock() instanceof DoorBlock) {
-            sl.setBlock(door.above(), Blocks.WHITE_TERRACOTTA.defaultBlockState(), 2 | 16);
-            sl.setBlock(door, Blocks.STRIPPED_DARK_OAK_WOOD.defaultBlockState(), 2 | 16);
+            sl.setBlock(door.above(), wallUpper != null ? wallUpper : Blocks.WHITE_TERRACOTTA.defaultBlockState(), 2 | 16);
+            sl.setBlock(door, wallLower != null ? wallLower : Blocks.STRIPPED_DARK_OAK_WOOD.defaultBlockState(), 2 | 16);
             sl.sendBlockUpdated(door, sl.getBlockState(door), sl.getBlockState(door), 3);
             RoomsDebug.log("GK-Substitute fake door removed at {}", door);
         }
@@ -112,6 +115,10 @@ public class GKSubstituteEntity extends VEntity {
         if (tickCount % 5 == 0) level().addParticle(ParticleTypes.SMOKE, getX(), getY() + 1, getZ(), 0, 0.02, 0);
     }
     @Override protected String debugState() { return "room=" + startRoom + " door=" + door; }
-    @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); if (door != null) t.put("Door", NbtUtils.writeBlockPos(door)); t.putBoolean("Restored", restored); }
-    @Override public void readAdditionalSaveData(CompoundTag t) { super.readAdditionalSaveData(t); door = NbtUtils.readBlockPos(t, "Door").orElse(null); restored = t.getBoolean("Restored"); }
+    @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); if (door != null) t.put("Door", NbtUtils.writeBlockPos(door)); t.putBoolean("Restored", restored);
+        if (wallLower != null) t.put("WallLower", NbtUtils.writeBlockState(wallLower)); if (wallUpper != null) t.put("WallUpper", NbtUtils.writeBlockState(wallUpper)); }
+    @Override public void readAdditionalSaveData(CompoundTag t) { super.readAdditionalSaveData(t); door = NbtUtils.readBlockPos(t, "Door").orElse(null); restored = t.getBoolean("Restored");
+        var lk = level().holderLookup(net.minecraft.core.registries.Registries.BLOCK);
+        if (t.contains("WallLower")) wallLower = NbtUtils.readBlockState(lk, t.getCompound("WallLower"));
+        if (t.contains("WallUpper")) wallUpper = NbtUtils.readBlockState(lk, t.getCompound("WallUpper")); }
 }
