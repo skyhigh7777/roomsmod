@@ -29,11 +29,10 @@ public class GKDetentionEntity extends VEntity {
 
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
-        startRoom = playerRoom;
-        List<BlockPos> path = playerRoom < rs.roomPaths.size() ? rs.roomPaths.get(playerRoom) : List.of();
-        if (path.size() < 2) return null;
-        door = path.get(path.size() - 1);
-        if (rs.generatedDoors.contains(door)) { RoomsDebug.log("GK-Detention spawn skipped: room {} exit {} already used", playerRoom, door); return null; }
+        // 次に開ける出口扉（最新の部屋の出口）を施錠する
+        startRoom = rs.roomPaths.size() - 1;
+        door = rs.expectedExitDoor;
+        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("GK-Detention spawn skipped: no unopened exit door ({})", door); return null; }
         BlockPos s = door.north();
         setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
         level.playSound(null, s, RoomsMod.GK_DETENTION_CHAIN.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
