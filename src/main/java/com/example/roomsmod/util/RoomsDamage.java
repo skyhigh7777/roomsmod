@@ -24,7 +24,7 @@ public final class RoomsDamage {
     public static boolean hurt(Entity attacker, Player p, float amount) {
         float before = p.getHealth();
         boolean ok = p.hurt(source(attacker), amount);
-        RoomsDebug.log("damage attacker={} player={} amount={} applied={} health {} -> {}", attacker.getName().getString(), p.getGameProfile().getName(), amount, ok, before, p.getHealth());
+        RoomsDebug.log("damage attacker={} player={} amount={} applied={} health {} -> {}", attacker instanceof com.example.roomsmod.entity.v.VEntity v ? v.vName() : attacker.getName().getString(), p.getGameProfile().getName(), amount, ok, before, p.getHealth());
         return ok;
     }
 }

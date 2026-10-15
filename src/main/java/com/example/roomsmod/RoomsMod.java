@@ -114,7 +114,7 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKChimeEntity>> GK_CHIME = ENTITIES.register("gk_chime",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKChimeEntity::new, MobCategory.MONSTER)
                     .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_chime"));
-    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKMimicEntity>> GK_MIMIC = ENTITIES.register("gk_rollcall",
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKMimicEntity>> GK_MIMIC = ENTITIES.register("gk_mimic",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKMimicEntity::new, MobCategory.MONSTER)
                     .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("gk_mimic"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKMothEntity>> GK_MOTH = ENTITIES.register("gk_moth",
@@ -146,7 +146,7 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKEraserEntity>> GK_ERASER = ENTITIES.register("gk_eraser",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKEraserEntity::new, MobCategory.MONSTER)
                     .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_eraser"));
-    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKQuizEntity>> GK_QUIZ = ENTITIES.register("gk_desk",
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKQuizEntity>> GK_QUIZ = ENTITIES.register("gk_quiz",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKQuizEntity::new, MobCategory.MONSTER)
                     .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("gk_quiz"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKPAEntity>> GK_PA = ENTITIES.register("gk_pa",
@@ -164,7 +164,7 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKBell2Entity>> GK_BELL2 = ENTITIES.register("gk_bell2",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKBell2Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_bell2"));
-    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKRewindEntity>> GK_REWIND = ENTITIES.register("gk_homework",
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKRewindEntity>> GK_REWIND = ENTITIES.register("gk_rewind",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKRewindEntity::new, MobCategory.MONSTER)
                     .sized(0.8f, 1.6f).clientTrackingRange(12).updateInterval(1).build("gk_rewind"));
 
