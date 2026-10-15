@@ -41,10 +41,12 @@ public class V100Entity extends VEntity {
     public static final int PEEK_TICKS = 20 * 12;    // 覗いている時間
     /** ノックが終わってから判定が始まるまでの反応の猶予（tick）。 */
     public static final int REACT_TICKS = 20;
-    /** しゃがまずに動いた tick の累計がこれに達すると攻撃（V-100 1体・プレイヤーごと、減らない）。 */
+    /** 動いた回数（ジャンプ1回＝1、歩きは連続の始まりで1＋WALK_REPEAT_TICKS ごとに1）の累計がこれに達すると攻撃（V-100 1体・プレイヤーごと、減らない）。 */
     public static final int MOVE_KILL_TICKS = 3;
     /** 1tick の水平移動がこれ以下なら「止まっている」（揺れ・押され対策、ブロック）。歩き 0.216/tick、しゃがみ歩き 0.065。 */
     public static final double MOVE_EPSILON = 0.03;
+    /** 歩き続けている間、何 tick ごとに1回数えるか（最初の tick で1回目）。1秒歩き続けると 1+2=3 回でアウト。 */
+    public static final int WALK_REPEAT_TICKS = 10;
     /** ジャンプとみなす上向きの移動（ブロック/tick、接地していない時）。 */
     public static final double JUMP_EPSILON = 0.05;
     public static final float DAMAGE = 40.0f;        // ほぼ即死
@@ -57,6 +59,8 @@ public class V100Entity extends VEntity {
     public boolean watchSoundActive = false;
     private final Map<UUID, Integer> moves = new HashMap<>();
     private final Map<UUID, Vec3> lastPos = new HashMap<>();
+    private final java.util.Set<UUID> airborne = new java.util.HashSet<>();
+    private final Map<UUID, Integer> walkRun = new HashMap<>();
 
     public V100Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
 
@@ -194,8 +198,24 @@ public class V100Entity extends VEntity {
         if (com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()) != startRoom) return false;
         if (HidingRules.isHiding(p)) return false; // 隠れ場所の中は動けない
         double dx = now.x - prev.x, dz = now.z - prev.z, dy = now.y - prev.y;
-        boolean jumped = dy > JUMP_EPSILON && !p.onGround();
-        boolean walked = Math.sqrt(dx * dx + dz * dz) > MOVE_EPSILON && !p.isShiftKeyDown();
+        UUID id = p.getUUID();
+        boolean jumped = false, walked = false;
+        if (!p.onGround()) {
+            // 空中：踏み切り（上向き）の最初の tick だけ1回。着地するまで数えない。空中の水平移動（勢い・落下）も数えない
+            if (dy > JUMP_EPSILON && airborne.add(id)) jumped = true;
+            else airborne.add(id);
+            walkRun.remove(id);
+        } else {
+            if (airborne.remove(id)) { walkRun.remove(id); return false; } // 着地の tick（落下・勢いの水平移動）は数えない
+            boolean moving = Math.sqrt(dx * dx + dz * dz) > MOVE_EPSILON && !p.isShiftKeyDown();
+            if (!moving) walkRun.remove(id);
+            else {
+                // 歩き：連続して歩いている間、最初の tick で1回、その後 WALK_REPEAT_TICKS ごとに1回（ちょっとの一歩は1回だけ）
+                int run = walkRun.getOrDefault(id, 0);
+                walked = run % WALK_REPEAT_TICKS == 0;
+                walkRun.put(id, run + 1);
+            }
+        }
         if (!jumped && !walked) return false;
         int n = moves.getOrDefault(p.getUUID(), 0) + 1; // 累積
         moves.put(p.getUUID(), n);
@@ -205,7 +225,7 @@ public class V100Entity extends VEntity {
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.V100_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
         boolean immune = p.isCreative() || p.isSpectator();
         RoomsDebug.log(p, immune ? "V-100: would kill（クリエイティブ）" : "V-100 に見つかったわ",
-                "V-100 attack player={} after {} moving ticks creative={}{}", p.getGameProfile().getName(), n, p.isCreative(), immune ? " -> would kill" : "");
+                "V-100 attack player={} after {} moves creative={}{}", p.getGameProfile().getName(), n, p.isCreative(), immune ? " -> would kill" : "");
         if (!immune) p.hurt(damageSources().mobAttack(this), DAMAGE);
         leave("attacked");
         return true;
