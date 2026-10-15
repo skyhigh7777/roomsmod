@@ -69,7 +69,7 @@ public final class Sections {
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25T, 25, 0.12f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25L, 25, 0.12f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25_BUFFED, 125, 0.10f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V100, 100, 0.15f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V100, 100, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V50, 50, 0.12f)),
             new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
             1, 7));

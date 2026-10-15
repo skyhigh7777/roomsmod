@@ -38,7 +38,7 @@ import java.util.UUID;
  */
 public class V100Entity extends VEntity {
     public static final int KNOCK_TICKS = 30;        // ノック〜出現（1.5秒）
-    public static final int PEEK_TICKS = 20 * 12;    // 覗いている時間
+    public static final int PEEK_TICKS = 20 * 8;     // 覗いている時間（約8秒）
     /** ノックが終わってから判定が始まるまでの反応の猶予（tick）。 */
     public static final int REACT_TICKS = 20;
     /** 動いた回数（ジャンプ1回＝1、歩きは連続の始まりで1＋WALK_REPEAT_TICKS ごとに1）の累計がこれに達すると攻撃（V-100 1体・プレイヤーごと、減らない）。 */
