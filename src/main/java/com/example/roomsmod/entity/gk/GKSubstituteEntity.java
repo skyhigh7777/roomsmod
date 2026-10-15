@@ -29,7 +29,7 @@ import java.util.List;
 /** GK-Substitute：偽の扉。 */
 public class GKSubstituteEntity extends VEntity {
     public static final int LIFE = 20 * 60;
-    public static final float DAMAGE = 6f;
+    public static final float DAMAGE = 10f;
     private BlockPos door = null;
     private boolean restored = false;
     public GKSubstituteEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
@@ -77,7 +77,7 @@ public class GKSubstituteEntity extends VEntity {
         level.playSound(null, door, RoomsMod.GK_SUBSTITUTE_CREAK.get(), SoundSource.HOSTILE, 2.5f, 0.5f);
         RoomsDebug.log(p, "GK-Substitute: 偽の扉だったわ", "GK-Substitute fake door opened {} player={} creative={}", door, p == null ? "?" : p.getGameProfile().getName(), p != null && p.isCreative());
         if (p != null && !p.isCreative()) {
-            p.hurt(damageSources().mobAttack(this), DAMAGE);
+            com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
             p.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 60));
         }
         leave("fake door used");

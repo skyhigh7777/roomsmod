@@ -21,7 +21,7 @@ public class GKJanitorEntity extends VPathWalker {
     @Override protected double speed() { return 0.19; }
     @Override protected int graceTicks() { return 60; }
     @Override protected double hitRange() { return 4.0; }
-    @Override protected float damage() { return 6f; }
+    @Override protected float damage() { return 40f; }
     @Override protected int loopTicks() { return 20; }
     @Override protected SoundEvent approachSound() { return RoomsMod.GK_JANITOR_SQUEAK.get(); }
     @Override

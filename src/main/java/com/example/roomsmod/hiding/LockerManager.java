@@ -96,6 +96,7 @@ public final class LockerManager {
             RoomsDebug.log(player, "ロッカーは使用中よ", "locker enter denied pos={} player={} (occupied)", base, player.getGameProfile().getName());
             return;
         }
+        if (com.example.roomsmod.entity.gk.GKDoorTricks.onLockerEnter(player.serverLevel(), player, base)) return;
         HIDING.put(player.getUUID(), new Hide(Spot.LOCKER, player.serverLevel(), base.immutable(), base.relative(facing), !player.isShiftKeyDown()));
         player.stopRiding();
         player.setDeltaMovement(Vec3.ZERO);

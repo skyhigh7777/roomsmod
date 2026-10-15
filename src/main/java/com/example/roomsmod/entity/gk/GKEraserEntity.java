@@ -25,7 +25,7 @@ public class GKEraserEntity extends VPathWalker {
     @Override protected double speed() { return 0.55; }
     @Override protected int graceTicks() { return 70; }
     @Override protected double hitRange() { return 10.0; }
-    @Override protected float damage() { return 8f; }
+    @Override protected float damage() { return 40f; }
     @Override protected SoundEvent approachSound() { return RoomsMod.GK_ERASER_SCRATCH.get(); }
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {

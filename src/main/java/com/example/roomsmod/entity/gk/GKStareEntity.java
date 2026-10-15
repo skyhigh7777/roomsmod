@@ -18,7 +18,7 @@ public class GKStareEntity extends GKRoomWatcher {
     @Override protected int telegraphTicks() { return 40; }
     @Override protected int watchTicks() { return 240; }
     @Override protected int limit() { return 20; }
-    @Override protected float damage() { return 12f; }
+    @Override protected float damage() { return 20f; }
     @Override protected SoundEvent cue() { return RoomsMod.GK_STARE_HUM.get(); }
     @Override protected int cueInterval() { return 40; }
     @Override protected String chatStart() { return "GK-12 のうなり（予告 2秒）"; }

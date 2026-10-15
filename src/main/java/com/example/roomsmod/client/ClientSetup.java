@@ -37,20 +37,20 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.V100.get(), c -> new VRenderer<>(c, "v100", 1.1f, 0.05f).withEyes("v100_eyes"));
         event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
         event.registerEntityRenderer(RoomsMod.GK_CHIME.get(), c -> new VRenderer<>(c, "gk_chime", 2.0f, 0.4f));
-        event.registerEntityRenderer(RoomsMod.GK_ROLLCALL.get(), c -> new VRenderer<>(c, "gk_rollcall", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_MIMIC.get(), c -> new VRenderer<>(c, "gk_mimic", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_MOTH.get(), c -> new VRenderer<>(c, "gk_moth", 1.4f, 0.3f));
         event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_WHISPER.get(), c -> new VRenderer<>(c, "gk_whisper", 2.0f, 0.3f));
         event.registerEntityRenderer(RoomsMod.GK_DETENTION.get(), c -> new VRenderer<>(c, "gk_detention", 2.4f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f));
         event.registerEntityRenderer(RoomsMod.GK_ERASER.get(), c -> new VRenderer<>(c, "gk_eraser", 2.2f, 0.4f));
-        event.registerEntityRenderer(RoomsMod.GK_DESK.get(), c -> new VRenderer<>(c, "gk_desk", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_QUIZ.get(), c -> new VRenderer<>(c, "gk_quiz", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_PA.get(), c -> new VRenderer<>(c, "gk_pa", 1.0f, 0.05f));
         event.registerEntityRenderer(RoomsMod.GK_JANITOR.get(), c -> new VRenderer<>(c, "gk_janitor", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_MIRROR.get(), c -> new VRenderer<>(c, "gk_mirror", 2.0f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_07.get(), c -> new VRenderer<>(c, "gk07", 2.2f, 0.03f));
         event.registerEntityRenderer(RoomsMod.GK_BELL2.get(), c -> new VRenderer<>(c, "gk_bell2", 2.0f, 0.5f));
-        event.registerEntityRenderer(RoomsMod.GK_HOMEWORK.get(), c -> new VRenderer<>(c, "gk_homework", 1.8f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_REWIND.get(), c -> new VRenderer<>(c, "gk_rewind", 1.8f, 0.1f));
     }
 
     private static class A20Renderer extends EntityRenderer<A20Entity> {

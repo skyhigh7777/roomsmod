@@ -37,6 +37,14 @@ public class DoorEventHandler {
         if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION)) {
             BlockState s0 = event.getLevel().getBlockState(event.getPos());
             if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
+                BlockPos dp = s0.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? event.getPos().below() : event.getPos();
+                if (com.example.roomsmod.entity.gk.GKDoorTricks.closableOpenDoor(event.getLevel(), dp)) {
+                    // GK-07 が見張る扉だけは閉められる（サーバーで閉める）
+                    event.setCanceled(true);
+                    if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl)
+                        com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(sl, RoomsState.get(sl), event.getEntity(), dp);
+                    return;
+                }
                 event.setCanceled(true);
                 if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
                     RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
@@ -65,6 +73,7 @@ public class DoorEventHandler {
         BlockState state = level.getBlockState(event.getPos());
         // このディメンションはベッドが爆発する（bed_works=false）ので、飾りのベッドは使えないようにする
         if (state.getBlock() instanceof net.minecraft.world.level.block.BedBlock) { event.setCanceled(true); return; }
+        if (state.getBlock() instanceof net.minecraft.world.level.block.BellBlock) { com.example.roomsmod.entity.gk.GKDoorTricks.onBell(level, event.getEntity(), event.getPos().immutable()); return; }
         if (!(state.getBlock() instanceof DoorBlock)) return;
 
         // 下半分に正規化
@@ -100,6 +109,7 @@ public class DoorEventHandler {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
                 || b instanceof com.example.roomsmod.block.HidingTableBlock
+                || b instanceof net.minecraft.world.level.block.BellBlock // GK-Chime のベル
                 || b instanceof DoorBlock;
     }
 

@@ -21,7 +21,7 @@ import java.util.List;
 /** GK-PA：校内放送。 */
 public class GKPAEntity extends VEntity {
     public static final int TELEGRAPH = 40, COUNTDOWN = 20 * 25;
-    public static final float DAMAGE = 10f;
+    public static final float DAMAGE = 20f;
     private int phase = 0;
     public GKPAEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "GK-PA"; }
@@ -64,7 +64,7 @@ public class GKPAEntity extends VEntity {
             if (p.isSpectator()) continue;
             boolean ok = safe(rs, p);
             RoomsDebug.log(p, "GK-PA: " + (ok ? "移動済み、セーフ" : "移動していない、攻撃"), "GK-PA end player={} room={} safe={} creative={}", p.getGameProfile().getName(), RoomTracker.roomIndexAt(rs, p.blockPosition()), ok, p.isCreative());
-            if (!ok && !p.isCreative()) p.hurt(damageSources().mobAttack(this), DAMAGE);
+            if (!ok && !p.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("countdown over");
     }

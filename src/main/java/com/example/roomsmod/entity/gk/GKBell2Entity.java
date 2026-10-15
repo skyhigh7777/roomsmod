@@ -25,7 +25,7 @@ public class GKBell2Entity extends VPathWalker {
     @Override protected double speed() { return 1.2; }
     @Override protected int graceTicks() { return 80; }
     @Override protected double hitRange() { return 15.0; }
-    @Override protected float damage() { return 8f; }
+    @Override protected float damage() { return 40f; }
     @Override protected SoundEvent approachSound() { return RoomsMod.GK_BELL2_BELL.get(); }
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
