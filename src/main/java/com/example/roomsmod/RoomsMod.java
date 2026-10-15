@@ -42,7 +42,7 @@ public class RoomsMod {
                     .noOcclusion());
     public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.BlockItem> HIDING_TABLE_ITEM = ITEMS.registerSimpleBlockItem("hiding_table", HIDING_TABLE);
     public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.BlockItem> LOCKER_ITEM = ITEMS.registerSimpleBlockItem("locker", LOCKER);
-    public static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(MOD_ID);
+    public static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(net.minecraft.core.registries.Registries.DATA_COMPONENT_TYPE, MOD_ID);
     public static final DeferredHolder<net.minecraft.core.component.DataComponentType<?>, net.minecraft.core.component.DataComponentType<com.example.roomsmod.item.FlashlightData>> FLASHLIGHT_DATA =
             DATA_COMPONENTS.registerComponentType("flashlight", b -> b.persistent(com.example.roomsmod.item.FlashlightData.CODEC).networkSynchronized(com.example.roomsmod.item.FlashlightData.STREAM_CODEC));
     public static final net.neoforged.neoforge.registries.DeferredBlock<com.example.roomsmod.block.FlashlightLightBlock> FLASHLIGHT_LIGHT = BLOCKS.registerBlock("flashlight_light",
@@ -113,6 +113,7 @@ public class RoomsMod {
         ITEMS.register(modEventBus);
         DATA_COMPONENTS.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.item.FlashlightHandler.class);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DebugNoDeath.class);
         ENTITIES.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomTracker.class);
