@@ -100,7 +100,7 @@ public class V50Entity extends VPathWalker {
             if (!(e instanceof V50Entity v) || !v.isAlive() || v.phase >= 3 || !v.isWaitingDoor(rs, door)) continue;
             RoomsDebug.log(player, "V-50: 扉を開けるのが早すぎたわ",
                     "V-50 door opened early -> punish player={} door={} phase={} creative={}", player.getGameProfile().getName(), door, v.phase, player.isCreative());
-            if (!player.isCreative() && !player.isSpectator()) player.hurt(v.damageSources().mobAttack(v), OPEN_DOOR_DAMAGE);
+            if (!player.isCreative() && !player.isSpectator()) com.example.roomsmod.util.RoomsDamage.hurt(v, player, OPEN_DOOR_DAMAGE);
             v.burst(level, false);
         }
     }

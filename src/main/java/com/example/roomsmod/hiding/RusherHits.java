@@ -35,7 +35,7 @@ public final class RusherHits {
         report(rusher, name, player, spared, spot, player.isCreative());
         if (spared) return false;
         if (player.isCreative()) return false;
-        return player.hurt(rusher.damageSources().mobAttack(rusher), damage);
+        return com.example.roomsmod.util.RoomsDamage.hurt(rusher, player, damage);
     }
 
     private static boolean rateLimited(Mob rusher, Player player) {

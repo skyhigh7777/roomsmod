@@ -220,7 +220,7 @@ public class V100Entity extends VEntity {
         boolean immune = p.isCreative() || p.isSpectator();
         RoomsDebug.log(p, immune ? "V-100: would kill（クリエイティブ）" : "V-100 に見つかったわ",
                 "V-100 attack player={} after {} moves creative={}{}", p.getGameProfile().getName(), n, p.isCreative(), immune ? " -> would kill" : "");
-        if (!immune) p.hurt(damageSources().mobAttack(this), DAMAGE);
+        if (!immune) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
         leave("attacked");
         return true;
     }
