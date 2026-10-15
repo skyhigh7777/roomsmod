@@ -25,6 +25,8 @@ public class DoorEventHandler {
     public static final int baseFloorY = 1;
     /** A-20 が出現する、プレイヤーから何部屋後ろか。 */
     public static final int A20_ROOMS_BEHIND = 10;
+    /** GK 区画で1回の抽選で出る最大数。 */
+    public static final int GK_MAX_PER_ROLL = 2;
 
     // ラッシャー出現率（調整用）
     // 出現する部屋・確率は SectionTheme.rushers()（Sections.A）
@@ -71,6 +73,11 @@ public class DoorEventHandler {
 
         RoomsState rs = RoomsState.get(level);
         // V-50 の待機中に、潜んでいる部屋の扉を開けたら罰（隠れ・視線無視）
+        // GK の扉の仕掛け（施錠・偽の扉）：扉を開けさせない
+        if (!state.getValue(DoorBlock.OPEN) && com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(level, rs, event.getEntity(), doorPos)) {
+            event.setCanceled(true);
+            return;
+        }
         if (!state.getValue(DoorBlock.OPEN))
             com.example.roomsmod.entity.v.V50Entity.onDoorOpened(level, rs, event.getEntity(), doorPos);
         // 現在の部屋の出口扉以外（使用済みの扉など）は普通に開閉するだけ
@@ -183,6 +190,16 @@ public class DoorEventHandler {
             for (int k : c) if (k != win) {
                 hit[k] = false;
                 RoomsDebug.log("rusher roll room={} {} skipped: exclusion group {} ({} spawned this roll)", room, table.get(k).name(), e.getKey(), table.get(win).name());
+            }
+        }
+        // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
+        if (theme == com.example.roomsmod.world.section.Sections.GK) {
+            java.util.List<Integer> c = new java.util.ArrayList<>();
+            for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
+            java.util.Collections.shuffle(c, new java.util.Random(level.random.nextLong()));
+            for (int n = GK_MAX_PER_ROLL; n < c.size(); n++) {
+                hit[c.get(n)] = false;
+                RoomsDebug.log("rusher roll room={} {} skipped: per-roll cap {}", room, table.get(c.get(n)).name(), GK_MAX_PER_ROLL);
             }
         }
         for (int k = 0; k < table.size(); k++) {

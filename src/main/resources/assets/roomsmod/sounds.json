@@ -127,5 +127,71 @@
       "roomsmod:gk_stare_hum"
     ],
     "subtitle": "subtitles.roomsmod.gk_stare_hum"
+  },
+  "gk_whisper": {
+    "sounds": [
+      "roomsmod:gk_whisper"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_whisper"
+  },
+  "gk_detention_chain": {
+    "sounds": [
+      "roomsmod:gk_detention_chain"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_detention_chain"
+  },
+  "gk_substitute_creak": {
+    "sounds": [
+      "roomsmod:gk_substitute_creak"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_substitute_creak"
+  },
+  "gk_eraser_scratch": {
+    "sounds": [
+      "roomsmod:gk_eraser_scratch"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_eraser_scratch"
+  },
+  "gk_desk_check": {
+    "sounds": [
+      "roomsmod:gk_desk_check"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_desk_check"
+  },
+  "gk_pa_chime": {
+    "sounds": [
+      "roomsmod:gk_pa_chime"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_pa_chime"
+  },
+  "gk_janitor_squeak": {
+    "sounds": [
+      "roomsmod:gk_janitor_squeak"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_janitor_squeak"
+  },
+  "gk_mirror_chime": {
+    "sounds": [
+      "roomsmod:gk_mirror_chime"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_mirror_chime"
+  },
+  "gk_07_knock": {
+    "sounds": [
+      "roomsmod:gk_07_knock"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_07_knock"
+  },
+  "gk_bell2_bell": {
+    "sounds": [
+      "roomsmod:gk_bell2_bell"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_bell2_bell"
+  },
+  "gk_homework_page": {
+    "sounds": [
+      "roomsmod:gk_homework_page"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_homework_page"
   }
 }

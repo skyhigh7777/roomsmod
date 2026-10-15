@@ -29,7 +29,18 @@ public final class VSpawns {
         GK_CHIME("GK-Chime", "gkchime", null, RoomsMod.GK_CHIME),
         GK_ROLLCALL("GK-Rollcall", "gkrollcall", "searcher", RoomsMod.GK_ROLLCALL),
         GK_MOTH("GK-Moth", "gkmoth", "gk_sense", RoomsMod.GK_MOTH),
-        GK_STARE("GK-12", "gk12", "gk_sense", RoomsMod.GK_STARE);
+        GK_STARE("GK-12", "gk12", "gk_sense", RoomsMod.GK_STARE),
+        GK_WHISPER("GK-Whisper", "gkwhisper", null, RoomsMod.GK_WHISPER),
+        GK_DETENTION("GK-Detention", "gkdetention", "gk_door", RoomsMod.GK_DETENTION),
+        GK_SUBSTITUTE("GK-Substitute", "gksubstitute", "gk_door", RoomsMod.GK_SUBSTITUTE),
+        GK_ERASER("GK-Eraser", "gkeraser", "gk_rush", RoomsMod.GK_ERASER),
+        GK_DESK("GK-Desk", "gkdesk", "searcher", RoomsMod.GK_DESK),
+        GK_PA("GK-PA", "gkpa", "gk_door", RoomsMod.GK_PA),
+        GK_JANITOR("GK-Janitor", "gkjanitor", null, RoomsMod.GK_JANITOR),
+        GK_MIRROR("GK-Mirror", "gkmirror", "gk_sense", RoomsMod.GK_MIRROR),
+        GK_07("GK-07", "gk07", null, RoomsMod.GK_07),
+        GK_BELL2("GK-Bell2", "gkbell2", "gk_rush", RoomsMod.GK_BELL2),
+        GK_HOMEWORK("GK-Homework", "gkhomework", null, RoomsMod.GK_HOMEWORK);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。

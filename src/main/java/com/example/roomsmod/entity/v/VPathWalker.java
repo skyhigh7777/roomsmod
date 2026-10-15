@@ -75,6 +75,17 @@ public abstract class VPathWalker extends VEntity {
         return wps;
     }
 
+    /** 経路の終点に着いたとき。true を返すと消えずに続ける（例：reversePath で折り返す）。 */
+    protected boolean onPathEnd(ServerLevel level) { return false; }
+
+    /** 今の経路を逆向きにして先頭から走り直す（startRoom/endRoom も入れ替えるので、以後は新しい部屋の延長をしない）。 */
+    protected void reversePath() {
+        if (wps == null) return;
+        java.util.Collections.reverse(wps);
+        int t = startRoom; startRoom = endRoom; endRoom = t;
+        waypointIndex = 0;
+    }
+
     /** startRoom→endRoom の経路の先頭に置く。 */
     protected BlockPos placeAtStart(RoomsState rs, int from, int to) {
         startRoom = from; endRoom = to; wps = null;
@@ -95,7 +106,7 @@ public abstract class VPathWalker extends VEntity {
         List<BlockPos> w = waypoints();
         if (holdTick(level)) return;
         w = extendIfNewRooms(level, w);
-        if (w.isEmpty() || waypointIndex >= w.size()) { leave("path end (" + w.size() + " waypoints)"); return; }
+        if (w.isEmpty() || waypointIndex >= w.size()) { if (!w.isEmpty() && onPathEnd(level)) return; leave("path end (" + w.size() + " waypoints)"); return; }
         int idx = mover.step(this, vName(), w, waypointIndex, w.size() - 1, speed(), reached);
         if (idx < w.size()) faceTowards(net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(idx)));
         waypointIndex = reached[0] ? w.size() : idx;

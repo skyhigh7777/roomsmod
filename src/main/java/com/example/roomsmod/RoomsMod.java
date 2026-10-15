@@ -123,6 +123,50 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKStareEntity>> GK_STARE = ENTITIES.register("gk12",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKStareEntity::new, MobCategory.MONSTER)
                     .sized(0.8f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk12"));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_WHISPER_SOUND = SOUND_EVENTS.register("gk_whisper", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_whisper")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_DETENTION_CHAIN = SOUND_EVENTS.register("gk_detention_chain", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_detention_chain")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_SUBSTITUTE_CREAK = SOUND_EVENTS.register("gk_substitute_creak", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_substitute_creak")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_ERASER_SCRATCH = SOUND_EVENTS.register("gk_eraser_scratch", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_eraser_scratch")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_DESK_CHECK = SOUND_EVENTS.register("gk_desk_check", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_desk_check")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_PA_CHIME = SOUND_EVENTS.register("gk_pa_chime", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_pa_chime")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_JANITOR_SQUEAK = SOUND_EVENTS.register("gk_janitor_squeak", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_janitor_squeak")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_MIRROR_CHIME = SOUND_EVENTS.register("gk_mirror_chime", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_mirror_chime")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_07_KNOCK = SOUND_EVENTS.register("gk_07_knock", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_07_knock")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_BELL2_BELL = SOUND_EVENTS.register("gk_bell2_bell", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_bell2_bell")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> GK_HOMEWORK_PAGE = SOUND_EVENTS.register("gk_homework_page", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_homework_page")));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKWhisperEntity>> GK_WHISPER = ENTITIES.register("gk_whisper",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKWhisperEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.8f).clientTrackingRange(12).updateInterval(1).build("gk_whisper"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKDetentionEntity>> GK_DETENTION = ENTITIES.register("gk_detention",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKDetentionEntity::new, MobCategory.MONSTER)
+                    .sized(0.9f, 2.1f).clientTrackingRange(12).updateInterval(1).build("gk_detention"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKSubstituteEntity>> GK_SUBSTITUTE = ENTITIES.register("gk_substitute",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKSubstituteEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_substitute"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKEraserEntity>> GK_ERASER = ENTITIES.register("gk_eraser",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKEraserEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_eraser"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKDeskEntity>> GK_DESK = ENTITIES.register("gk_desk",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKDeskEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.2f).clientTrackingRange(12).updateInterval(1).build("gk_desk"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKPAEntity>> GK_PA = ENTITIES.register("gk_pa",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKPAEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 0.8f).clientTrackingRange(12).updateInterval(1).build("gk_pa"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKJanitorEntity>> GK_JANITOR = ENTITIES.register("gk_janitor",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKJanitorEntity::new, MobCategory.MONSTER)
+                    .sized(0.9f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_janitor"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKMirrorEntity>> GK_MIRROR = ENTITIES.register("gk_mirror",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKMirrorEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_mirror"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GK07Entity>> GK_07 = ENTITIES.register("gk07",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GK07Entity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk07"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKBell2Entity>> GK_BELL2 = ENTITIES.register("gk_bell2",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKBell2Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("gk_bell2"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.gk.GKHomeworkEntity>> GK_HOMEWORK = ENTITIES.register("gk_homework",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKHomeworkEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.6f).clientTrackingRange(12).updateInterval(1).build("gk_homework"));
 
     public RoomsMod(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, com.example.roomsmod.config.RoomsConfig.SPEC);
@@ -162,7 +206,7 @@ public class RoomsMod {
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
-        for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_ROLLCALL, GK_MOTH, GK_STARE))
+        for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_ROLLCALL, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_DESK, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_HOMEWORK))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 
