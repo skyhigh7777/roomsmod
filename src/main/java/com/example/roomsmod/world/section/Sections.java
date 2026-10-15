@@ -74,6 +74,30 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
             1, 7));
 
+    /**
+     * GK（学校 / Gakkou）区画。部屋は GKRooms（教室・廊下・準備室、内寸 5〜15、A 寄りの中間サイズ）。
+     * どの部屋にもロッカーとテーブルを最低1つずつ置く。進行上は V の後（/rooms section gk now で開始）。
+     * palette.floor/wall/ceiling/door/light と hidingMix・hidingMin/Extra・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
+     */
+    public static final SectionTheme GK = register(new SectionTheme(
+            "gk", "GK",
+            new SectionTheme.Palette(
+                    Blocks.BIRCH_PLANKS::defaultBlockState, Blocks.WHITE_TERRACOTTA::defaultBlockState, Blocks.SMOOTH_QUARTZ::defaultBlockState,
+                    () -> Blocks.BIRCH_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{1, 1, 1, 1, 1},
+            A.furniture(), A.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.5f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.5f)),
+            3, 2,
+            List.of(
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_CHIME, 8, 0.30f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_ROLLCALL, 15, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_MOTH, 22, 0.10f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_STARE, 33, 0.10f)),
+            new SectionTheme.SignStyle(() -> Blocks.BIRCH_WALL_SIGN, DyeColor.BLACK, false),
+            1, 8));
+
     private Sections() {}
 
     private static SectionTheme.RusherSpawn vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind k, int minRoom, float chance) {

@@ -193,6 +193,7 @@ public class RoomGenerator {
         var prevTheme = com.example.roomsmod.world.section.Sections.forRoom(state, roomNumber - 1);
         if (prevTheme != theme) RoomsDebug.log("section change at room {}: {} -> {}", roomNumber, prevTheme.id(), theme.id());
         if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.GK) return GKRooms.generate(level, origin, roomNumber, rand, state);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         String planInfo = lastPlanInfo;
         buildShell(level, origin, plan);

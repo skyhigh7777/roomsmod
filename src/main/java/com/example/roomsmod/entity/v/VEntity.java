@@ -42,6 +42,9 @@ public abstract class VEntity extends Mob {
         this.setPersistenceRequired();
     }
 
+    /** 寿命の上限（tick）。GK は 120 秒未満に抑えるため上書きする。 */
+    protected int maxLifeTicks() { return MAX_LIFE_TICKS; }
+
     /** 表示名（"V-10" など）。ログ用。 */
     public abstract String vName();
 
@@ -70,7 +73,7 @@ public abstract class VEntity extends Mob {
         lastForcedChunk = c;
         boolean dbg = RoomsDebug.isEnabled();
         if (isCurrentlyGlowing() != dbg) setGlowingTag(dbg); // 輪郭はデバッグ時のみ
-        if (++life > MAX_LIFE_TICKS) { leave("max lifetime " + MAX_LIFE_TICKS + " ticks"); return; }
+        if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
         serverTick(sl);
         setDeltaMovement(Vec3.ZERO);
         if (dbg && life % 100 == 0)
