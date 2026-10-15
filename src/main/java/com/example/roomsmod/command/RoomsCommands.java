@@ -98,6 +98,12 @@ public class RoomsCommands {
     }
 
     /** ロビー（/rooms enter と同じ地点）へ送る。ロビーは毎回生成し直す（従来どおり）。 */
+    private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BATTERY.get(), n));
+        src.sendSuccess(() -> Component.translatable("item.roomsmod.battery").append(" x" + n), false);
+        return n;
+    }
+
     public static boolean sendToLobby(ServerPlayer player) {
         ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) return false;
@@ -176,6 +182,15 @@ public class RoomsCommands {
                     ctx.getSource().sendSuccess(() -> Component.literal("Roomsデバッグ: " + (com.example.roomsmod.util.RoomsDebug.isEnabled() ? "ON" : "OFF")), false);
                     return 1;
                 })))
+            .then(Commands.literal("give")
+                .requires(src -> src.hasPermission(2))
+                .then(Commands.literal("flashlight").executes(ctx -> {
+                    ctx.getSource().getPlayerOrException().getInventory().add(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS));
+                    ctx.getSource().sendSuccess(() -> Component.translatable("item.roomsmod.flashlight"), false);
+                    return 1;
+                }))
+                .then(Commands.literal("battery").executes(ctx -> giveBattery(ctx.getSource(), 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false)))

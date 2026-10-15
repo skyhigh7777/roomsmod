@@ -52,5 +52,16 @@
   "roomsmod.v25_buffed.say.locker.12": "I'll make them rattle",
   "roomsmod.v25_buffed.say.locker.13": "The tables get a day off",
   "roomsmod.v25_buffed.say.locker.14": "Standing tall won't save you",
-  "subtitles.roomsmod.v100_watch": "V-100 hums, watching"
+  "subtitles.roomsmod.v100_watch": "V-100 hums, watching",
+  "item.roomsmod.flashlight": "Flashlight",
+  "item.roomsmod.battery": "Battery",
+  "block.roomsmod.flashlight_light": "Flashlight Light",
+  "item.roomsmod.flashlight.battery": "Battery %s",
+  "item.roomsmod.flashlight.state_on": "ON",
+  "item.roomsmod.flashlight.state_off": "OFF",
+  "item.roomsmod.flashlight.hint": "Right-click: on/off  Sneak + right-click: load battery",
+  "item.roomsmod.flashlight.actionbar": "Battery %s",
+  "item.roomsmod.flashlight.no_battery": "No battery",
+  "item.roomsmod.flashlight.dead": "The battery ran out",
+  "item.roomsmod.flashlight.full": "Battery is still full"
 }

@@ -42,6 +42,17 @@ public class RoomsMod {
                     .noOcclusion());
     public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.BlockItem> HIDING_TABLE_ITEM = ITEMS.registerSimpleBlockItem("hiding_table", HIDING_TABLE);
     public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.BlockItem> LOCKER_ITEM = ITEMS.registerSimpleBlockItem("locker", LOCKER);
+    public static final DeferredRegister.DataComponents DATA_COMPONENTS = DeferredRegister.createDataComponents(MOD_ID);
+    public static final DeferredHolder<net.minecraft.core.component.DataComponentType<?>, net.minecraft.core.component.DataComponentType<com.example.roomsmod.item.FlashlightData>> FLASHLIGHT_DATA =
+            DATA_COMPONENTS.registerComponentType("flashlight", b -> b.persistent(com.example.roomsmod.item.FlashlightData.CODEC).networkSynchronized(com.example.roomsmod.item.FlashlightData.STREAM_CODEC));
+    public static final net.neoforged.neoforge.registries.DeferredBlock<com.example.roomsmod.block.FlashlightLightBlock> FLASHLIGHT_LIGHT = BLOCKS.registerBlock("flashlight_light",
+            com.example.roomsmod.block.FlashlightLightBlock::new,
+            net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().replaceable().noCollission().noOcclusion().noLootTable()
+                    .instabreak().pushReaction(net.minecraft.world.level.material.PushReaction.DESTROY)
+                    .lightLevel(st -> com.example.roomsmod.item.FlashlightHandler.BRIGHTNESS));
+    public static final net.neoforged.neoforge.registries.DeferredItem<com.example.roomsmod.item.FlashlightItem> FLASHLIGHT = ITEMS.registerItem("flashlight",
+            com.example.roomsmod.item.FlashlightItem::new, new net.minecraft.world.item.Item.Properties().stacksTo(1));
+    public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.Item> BATTERY = ITEMS.registerSimpleItem("battery", new net.minecraft.world.item.Item.Properties().stacksTo(16));
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
     public static final DeferredHolder<SoundEvent, SoundEvent> A20_APPROACH = SOUND_EVENTS.register("a20_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a20_approach")));
     public static final DeferredHolder<SoundEvent, SoundEvent> A40_APPROACH = SOUND_EVENTS.register("a40_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a40_approach")));
@@ -100,12 +111,15 @@ public class RoomsMod {
         LOGGER.info("Rooms Mod is loading!");
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
+        DATA_COMPONENTS.register(modEventBus);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.item.FlashlightHandler.class);
         ENTITIES.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomTracker.class);
         com.example.roomsmod.hiding.HidingRules.addHidingCheck(com.example.roomsmod.hiding.LockerManager::isUnderTable);
         modEventBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(LOCKER_ITEM.get()); e.accept(HIDING_TABLE_ITEM.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS)); e.accept(BATTERY.get()); }
         });
         SOUND_EVENTS.register(modEventBus);
         modEventBus.addListener(RoomsMod::onEntityAttributeCreation);

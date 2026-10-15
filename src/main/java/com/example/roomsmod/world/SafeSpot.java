@@ -39,6 +39,16 @@ public final class SafeSpot {
     }
 
     /** 足の位置（ブロック中央の下面）。 */
+    /** 部屋の内側の安全な床からランダムに1か所（無ければ null）。 */
+    public static Vec3 findRandom(ServerLevel l, RoomsState rs, int room, net.minecraft.util.RandomSource r) {
+        if (room < 0 || room >= rs.generatedRooms.size()) return null;
+        List<BlockPos> ok = new ArrayList<>();
+        for (BoundingBox b : rs.generatedRooms.get(room))
+            for (BlockPos q : BlockPos.betweenClosed(b.minX() + 1, b.minY() + 1, b.minZ() + 1, b.maxX() - 1, b.maxY() - 2, b.maxZ() - 1))
+                if (isSafe(l, rs, room, q)) ok.add(q.immutable());
+        return ok.isEmpty() ? null : Vec3.atBottomCenterOf(ok.get(r.nextInt(ok.size())));
+    }
+
     public static Vec3 find(ServerLevel l, RoomsState rs, int room) {
         List<BlockPos> path = room >= 0 && room < rs.roomPaths.size() ? rs.roomPaths.get(room) : List.of();
         List<BlockPos> cand = new ArrayList<>();

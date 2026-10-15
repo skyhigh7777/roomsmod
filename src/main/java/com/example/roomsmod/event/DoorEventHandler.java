@@ -44,6 +44,11 @@ public class DoorEventHandler {
         // 部屋ディメンションでは、Mod 自身の操作できるブロック（ロッカー・隠れテーブル・まだ閉じている扉）以外の右クリックを全て取り消す
         //（作業台・かまど・チェスト・樽・金床・ベッド・トラップドア・フェンスゲート・音符ブロック等の GUI や操作を防ぐ）。両手・サーバー/クライアント両方。
         if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION) && !isAllowedInteraction(event.getLevel().getBlockState(event.getPos()))) {
+            if (event.getItemStack().getItem() instanceof com.example.roomsmod.item.FlashlightItem) {
+                // 懐中電灯：ブロックの操作だけ禁止して、アイテムの使用（ON/OFF）は通す
+                event.setUseBlock(net.neoforged.neoforge.common.util.TriState.FALSE);
+                return;
+            }
             event.setCanceled(true);
             if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
                 RoomsDebug.log("block use cancelled pos={} block={} player={}", event.getPos(), event.getLevel().getBlockState(event.getPos()).getBlock(), event.getEntity().getGameProfile().getName());

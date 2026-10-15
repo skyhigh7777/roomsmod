@@ -30,5 +30,16 @@
   "roomsmod.v25_buffed.say.locker.12": "ガチャガチャ鳴らしてやる",
   "roomsmod.v25_buffed.say.locker.13": "テーブルは今日は休みだ",
   "roomsmod.v25_buffed.say.locker.14": "背筋を伸ばしても無駄だぞ",
-  "subtitles.roomsmod.v100_watch": "V-100 が見張っている（低いうなり）"
+  "subtitles.roomsmod.v100_watch": "V-100 が見張っている（低いうなり）",
+  "item.roomsmod.flashlight": "懐中電灯",
+  "item.roomsmod.battery": "電池",
+  "block.roomsmod.flashlight_light": "懐中電灯の光",
+  "item.roomsmod.flashlight.battery": "電池 %s",
+  "item.roomsmod.flashlight.state_on": "ON",
+  "item.roomsmod.flashlight.state_off": "OFF",
+  "item.roomsmod.flashlight.hint": "右クリック：ON/OFF　しゃがみ＋右クリック：電池を入れる",
+  "item.roomsmod.flashlight.actionbar": "電池 %s",
+  "item.roomsmod.flashlight.no_battery": "電池がない",
+  "item.roomsmod.flashlight.dead": "電池が切れた",
+  "item.roomsmod.flashlight.full": "電池はまだ満タン"
 }
