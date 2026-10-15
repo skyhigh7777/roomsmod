@@ -100,4 +100,5 @@ PREP_ROOM (9-12 classroom + 5-7 side room through an inner door; exit in the sid
 Every GK room gets at least one locker and one hiding table (forced placement as a fallback; a WARN is logged if
 that ever fails). Paths are kept 3 wide; the exit is always on the max-Z wall; overlapping plans fall back to a 9x9 classroom.
 Progression: after V. Start it with `/rooms section gk now` (or `/rooms section gk <globalRoom>`), rooms read `GK-001`...
+GK has 15 entities in `entity/gk`; at most 2 GK entities spawn per door roll (`DoorEventHandler.GK_MAX_PER_ROLL`).
 GK entities live in `entity/gk` and despawn after at most 100 s (`GKEntity.MAX_LIFE_TICKS`, below the 120 s hard cap).
