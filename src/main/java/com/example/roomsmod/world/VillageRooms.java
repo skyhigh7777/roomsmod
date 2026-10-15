@@ -290,11 +290,12 @@ final class VillageRooms {
     private static void buildStairs(Ctx c) {
         Plan p = c.p;
         Direction up = p.sdz > 0 ? Direction.SOUTH : Direction.NORTH;
-        for (int k = 1; k <= 3; k++) {
+        // 4段すべて階段ブロック（最上段 k=STORY は2階の床の高さに置くので上面が2階と揃う）。しゃがみ歩きで上れる（段差は全て0.5）。
+        for (int k = 1; k <= STORY; k++) {
             int z = p.zb + k * p.sdz;
             for (int y = 1; y < k; y++) c.set(p.sx, y, z, Blocks.SPRUCE_PLANKS.defaultBlockState());
             c.set(p.sx, k, z, Blocks.SPRUCE_STAIRS.defaultBlockState().setValue(StairBlock.FACING, up));
-            c.set(p.sx, STORY, z, Blocks.AIR.defaultBlockState());
+            if (k < STORY) c.set(p.sx, STORY, z, Blocks.AIR.defaultBlockState());
         }
         // 2階の手すり（吹き抜けの内側と、着地の反対側）
         int in = p.sx == p.rects.get(0).x0() + 1 ? 1 : -1;
