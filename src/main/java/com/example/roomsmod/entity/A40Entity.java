@@ -248,14 +248,7 @@ public class A40Entity extends Mob {
 
     /** A-20 と同じ：プレイヤーから本体方向へ最大8ブロックの位置で鳴らし、遠くても届くようにする。 */
     private void playNearPlayer(ServerLevel sl, SoundEvent sound, float pitch) {
-        Player p = sl.getNearestPlayer(this, 500);
-        if (p == null) return;
-        double dist = this.distanceTo(p);
-        Vec3 to = this.position().subtract(p.position());
-        to = to.lengthSqr() > 1.0E-6 ? to.normalize() : Vec3.ZERO;
-        Vec3 src = p.position().add(to.scale(Math.min(dist, 8.0)));
-        float vol = (float) Math.max(0.3, Math.min(1.0, 1.0 - dist / 150.0)) * 3.0f;
-        sl.playSound(null, src.x, src.y, src.z, sound, SoundSource.HOSTILE, Math.max(0.9f, vol), pitch);
+        A20Entity.playApproachCue(sl, this, sound, pitch); // 接近ループと同じ線形カーブ（以前は最低0.9固定で遠くでも大きかった）
     }
 
     private void spawnVisualParticles() {
