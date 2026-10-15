@@ -160,13 +160,7 @@ public class V100Entity extends VEntity {
     @Override
     protected void serverTick(ServerLevel level) {
         RoomsState rs = RoomsState.get(level);
-        // プレイヤーが別の部屋へ移ったら、その部屋の窓に移り直す（ノックからやり直し）
-        int fr = furthestPlayerRoom(level, rs);
-        if (fr >= 0 && fr != startRoom) {
-            RoomsDebug.log("V-100 player moved room {} -> {}: re-pick window", startRoom, fr);
-            if (isPeeking()) entityData.set(PEEKING, false);
-            pickWindow(level, rs, fr);
-        }
+        // 部屋の追従はしない：出現した部屋（startRoom）の窓に留まり、その部屋の中のプレイヤーだけを見張る。
         // 窓が壊れた・無効になった
         if (window != null && !isValidWindow(level, rs, startRoom, window, windowOut)) {
             RoomsDebug.log("V-100 window {} no longer valid: re-pick", window);

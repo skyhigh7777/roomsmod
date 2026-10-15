@@ -25,15 +25,17 @@ import net.minecraft.world.level.Level;
 /**
  * V25-BUFFED：強化版の捜索者（V-25-T/L と同じ排他グループ "searcher"）。
  * 出現直後は実体なし（描画なし・当たり判定なし・攻撃なし）で、ディメンション内の全員の画面中央に
- * カウントダウン（COUNTDOWN_SECONDS 秒、毎秒チック音）→ 指示文を ANNOUNCE_TICKS 表示 → 姿を現して
+ * カウントダウン（COUNTDOWN_SECONDS 秒、毎秒チック音）→ 指示文を ANNOUNCE_TICKS（1秒）表示 → 消して WAIT_TICKS（3秒）待つ → 姿を現して
  * 指示文どおりの種類の隠れ場所だけを高速で調べる（プレイヤーの部屋＋次の部屋）→ 出口で消える。
  * 指示文は lang の "roomsmod.v25_buffed.say.<table|locker>.<n>"（n=1,2,… 連番、en_us に全キー必須）。
  * table = テーブルを調べる（ロッカーは安全）、locker = ロッカーを調べる（テーブルは安全）。
  */
 public class V25BuffedEntity extends VSearcherEntity {
     public static final int COUNTDOWN_SECONDS = 5;
-    /** 指示文を表示してから姿を現すまで（tick）。この間は調べも攻撃もしない（読んで隠れ直す猶予）。 */
-    public static final int ANNOUNCE_TICKS = 40;
+    /** カウントダウン後に指示文を表示する時間（tick）。1秒。 */
+    public static final int ANNOUNCE_TICKS = 20;
+    /** 指示文が消えてから姿を現して捜索を始めるまで（tick）。3秒。姿を現すまでは調べも攻撃もしない。 */
+    public static final int WAIT_TICKS = 60;
     public static final double FAST_WALK_SPEED = 0.6;  // V-25 は 0.14（スプリント約0.28の2倍強）
     public static final int FAST_CHECK_TICKS = 6;      // V-25 は 40
     public static final int FAST_STEP_INTERVAL = 3;
@@ -112,12 +114,17 @@ public class V25BuffedEntity extends VSearcherEntity {
             if (++phaseTicks >= COUNTDOWN_SECONDS * 20) {
                 msgIndex = 1 + random.nextInt(messageCount(target));
                 enter(1, "announce");
+                RoomsDebug.log("V25-BUFFED phase announce target={} msg={} (shown {} ticks, then wait {} ticks)", target, key(target, msgIndex), ANNOUNCE_TICKS, WAIT_TICKS);
                 title(level, Component.translatable(key(target, msgIndex)).withStyle(net.minecraft.ChatFormatting.DARK_RED), Component.empty(), ANNOUNCE_TICKS);
             }
             return true;
         }
         if (phase == 1) {
-            if (++phaseTicks >= ANNOUNCE_TICKS) {
+            if (phaseTicks == ANNOUNCE_TICKS) {
+                for (ServerPlayer p : level.players()) p.connection.send(new net.minecraft.network.protocol.game.ClientboundClearTitlesPacket(true));
+                RoomsDebug.log("V25-BUFFED phase wait (text cleared)");
+            }
+            if (++phaseTicks >= ANNOUNCE_TICKS + WAIT_TICKS) {
                 RoomsState rs = RoomsState.get(level);
                 int fr = furthestPlayerRoom(rs);
                 if (fr >= 0 && fr != startRoom && relocateTo(rs, fr))

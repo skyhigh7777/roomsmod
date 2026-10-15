@@ -100,8 +100,27 @@ public class DoorEventHandler {
      * 出口扉を通って次へ：扉を生成済みにし（以後は普通の扉）、次の部屋を生成し、出現抽選をする。
      * プレイヤーのクリックと V-50 の飛び出し（扉を開ける）で共用。player は null 可。
      */
+    /** エンティティ（A-20・V-50 など）が扉を開ける：プレイヤーと同じ開く音を鳴らして開け、出口扉なら次の部屋を生成して抽選。 */
+    public static boolean openDoorByEntity(ServerLevel level, RoomsState rs, net.minecraft.world.entity.Entity by, BlockPos door, String what) {
+        BlockState s = level.getBlockState(door);
+        if (!(s.getBlock() instanceof DoorBlock db)) return false;
+        if (!s.getValue(DoorBlock.OPEN)) {
+            // バニラの setOpen と同じ状態変更（上下とも）＋ゲームイベント。音は source なしで全員に鳴らす（プレイヤーが開けたときと同じ音・音量・ピッチ）
+            level.setBlock(door, s.setValue(DoorBlock.OPEN, true), 10);
+            level.gameEvent(by, net.minecraft.world.level.gameevent.GameEvent.BLOCK_OPEN, door);
+            level.playSound(null, door, db.type().doorOpen(), net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+            RoomsDebug.log("{} door open sound at {}", what, door);
+        }
+        return advanceThroughExitDoor(level, rs, null, door, what);
+    }
+
     public static boolean advanceThroughExitDoor(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, BlockPos doorPos, String by) {
         if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos) || rs.generatedDoors.contains(doorPos)) return false;
+        if (player == null) {
+            // エンティティが開けた：扉に一番近いプレイヤーを基準に（部屋の判定・デバッグ通知はプレイヤーが開けたときと同じ）
+            player = level.getNearestPlayer(doorPos.getX() + 0.5, doorPos.getY(), doorPos.getZ() + 0.5, -1, false);
+            if (player != null) RoomsDebug.log(player, by + "（" + doorPos.toShortString() + "）", "{} pos={} -> notify {}", by, doorPos, player.getGameProfile().getName());
+        }
         rs.markDoorGenerated(doorPos);
         int room = rs.currentRoom + 1;
         BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, doorPos.getY() - 1, doorPos.getZ() + 1); // 扉の床の高さ（V の2階建てで上がる）
@@ -154,9 +173,11 @@ public class DoorEventHandler {
         java.util.Map<String, java.util.List<Integer>> groups = new java.util.LinkedHashMap<>();
         for (int k = 0; k < table.size(); k++)
             if (hit[k] && !alive[k] && table.get(k).exclusionGroup() != null)
-                groups.computeIfAbsent(table.get(k).exclusionGroup(), g -> new java.util.ArrayList<>()).add(k);
+                for (String g : table.get(k).exclusionGroup().split(","))
+                    groups.computeIfAbsent(g.trim(), x -> new java.util.ArrayList<>()).add(k);
         for (var e : groups.entrySet()) {
-            var c = e.getValue();
+            var c = new java.util.ArrayList<Integer>();
+            for (int k : e.getValue()) if (hit[k]) c.add(k); // 先のグループで外れたものは除く
             if (c.size() < 2) continue;
             int win = c.get(level.random.nextInt(c.size()));
             for (int k : c) if (k != win) {

@@ -82,8 +82,7 @@ public class A20Entity extends Mob {
             com.example.roomsmod.util.RoomsDebug.log("A-20 reached path end {} (not the unopened exit door, expected={})", door, rs.expectedExitDoor);
             return;
         }
-        if (!s.getValue(net.minecraft.world.level.block.DoorBlock.OPEN)) db.setOpen(null, sl, s, door, true);
-        boolean gen = com.example.roomsmod.event.DoorEventHandler.advanceThroughExitDoor(sl, rs, null, door, "A-20 opened door");
+        boolean gen = com.example.roomsmod.event.DoorEventHandler.openDoorByEntity(sl, rs, this, door, "A-20 opened door");
         com.example.roomsmod.util.RoomsDebug.log("A-20 opened exit door {} generatedNext={}", door, gen);
         if (gen) refreshWaypointsIfGrown();
     }

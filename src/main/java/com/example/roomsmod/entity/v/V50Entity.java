@@ -81,8 +81,7 @@ public class V50Entity extends VPathWalker {
         net.minecraft.world.level.block.state.BlockState s = level.getBlockState(door);
         if (!(s.getBlock() instanceof net.minecraft.world.level.block.DoorBlock db)) { RoomsDebug.log("V-50 burst: no door at {}", door); return; }
         if (s.getValue(net.minecraft.world.level.block.DoorBlock.OPEN)) { RoomsDebug.log("V-50 burst: door {} already open", door); return; }
-        db.setOpen(null, level, s, door, true);
-        boolean gen = com.example.roomsmod.event.DoorEventHandler.advanceThroughExitDoor(level, rs, null, door, "V-50 burst opened door");
+        boolean gen = com.example.roomsmod.event.DoorEventHandler.openDoorByEntity(level, rs, this, door, "V-50 burst opened door");
         RoomsDebug.log("V-50 burst opened door {} generatedNext={}", door, gen);
     }
 

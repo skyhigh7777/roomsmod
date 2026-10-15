@@ -23,11 +23,12 @@ public final class VSpawns {
     public enum Kind {
         V10("V-10", "v10", null, RoomsMod.V10),
         V25T("V-25-T", "v25t", "searcher", RoomsMod.V25T), V25L("V-25-L", "v25l", "searcher", RoomsMod.V25L),
-        V25_BUFFED("V25-BUFFED", "v25buffed", "searcher", RoomsMod.V25_BUFFED),
-        V100("V-100", "v100", null, RoomsMod.V100), V50("V-50", "v50", null, RoomsMod.V50);
+        V25_BUFFED("V25-BUFFED", "v25buffed", "searcher,buffed_v100", RoomsMod.V25_BUFFED),
+        V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", null, RoomsMod.V50);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。
+         * カンマ区切りで複数のグループに入れる（V25-BUFFED は searcher と buffed_v100：V-25-T/L とも V-100 とも同時に出ない）。
          * それ以外は通常ルール（同種は1体まで、別種は共存可）。
          */
         public final String exclusionGroup;
@@ -36,11 +37,18 @@ public final class VSpawns {
         /** 同種、または同じ排他グループの種類が生存中か。 */
         public boolean alive(ServerLevel level) {
             for (Kind k : values())
-                if ((k == this || (exclusionGroup != null && exclusionGroup.equals(k.exclusionGroup))) && isAlive(level, k.type.get())) return true;
+                if ((k == this || sharesGroup(exclusionGroup, k.exclusionGroup)) && isAlive(level, k.type.get())) return true;
             return false;
         }
         public static Kind byId(String id) { for (Kind k : values()) if (k.id.equals(id)) return k; return null; }
         public boolean spawn(ServerLevel level, RoomsState rs, Player player) { return VSpawns.spawn(this, level, rs, player); }
+    }
+
+    /** 排他グループ（カンマ区切り）が1つでも共通か。 */
+    public static boolean sharesGroup(String a, String b) {
+        if (a == null || b == null) return false;
+        for (String x : a.split(",")) for (String y : b.split(",")) if (x.trim().equals(y.trim())) return true;
+        return false;
     }
 
     public static boolean isAlive(ServerLevel level, EntityType<?> type) {
