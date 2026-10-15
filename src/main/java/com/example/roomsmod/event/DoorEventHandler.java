@@ -41,6 +41,14 @@ public class DoorEventHandler {
                 return;
             }
         }
+        // 部屋ディメンションでは、Mod 自身の操作できるブロック（ロッカー・隠れテーブル・まだ閉じている扉）以外の右クリックを全て取り消す
+        //（作業台・かまど・チェスト・樽・金床・ベッド・トラップドア・フェンスゲート・音符ブロック等の GUI や操作を防ぐ）。両手・サーバー/クライアント両方。
+        if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION) && !isAllowedInteraction(event.getLevel().getBlockState(event.getPos()))) {
+            event.setCanceled(true);
+            if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
+                RoomsDebug.log("block use cancelled pos={} block={} player={}", event.getPos(), event.getLevel().getBlockState(event.getPos()).getBlock(), event.getEntity().getGameProfile().getName());
+            return;
+        }
         if (event.getLevel().isClientSide()) return;
         // MAIN_HAND / OFF_HAND の2回発火を防ぐ
         if (event.getHand() != InteractionHand.MAIN_HAND) return;
@@ -73,6 +81,14 @@ public class DoorEventHandler {
         }
 
         advanceThroughExitDoor(level, rs, event.getEntity(), doorPos, "door click hand=" + event.getHand());
+    }
+
+    /** 部屋ディメンションで右クリックしてよいブロック（許可リスト）。開いた扉は手前で取り消し済み。 */
+    public static boolean isAllowedInteraction(BlockState s) {
+        var b = s.getBlock();
+        return b instanceof com.example.roomsmod.block.LockerBlock
+                || b instanceof com.example.roomsmod.block.HidingTableBlock
+                || b instanceof DoorBlock;
     }
 
     /**
