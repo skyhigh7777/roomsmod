@@ -94,7 +94,9 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V50Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 2.4f).clientTrackingRange(12).updateInterval(1).build("v50"));
 
-    public RoomsMod(IEventBus modEventBus) {
+    public RoomsMod(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
+        container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, com.example.roomsmod.config.RoomsConfig.SPEC);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomsSpawnHandler.class);
         LOGGER.info("Rooms Mod is loading!");
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);

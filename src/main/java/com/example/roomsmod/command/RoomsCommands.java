@@ -97,15 +97,21 @@ public class RoomsCommands {
         return 1;
     }
 
+    /** ロビー（/rooms enter と同じ地点）へ送る。ロビーは毎回生成し直す（従来どおり）。 */
+    public static boolean sendToLobby(ServerPlayer player) {
+        ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
+        if (roomsLevel == null) return false;
+        player.teleportTo(roomsLevel, 10.5, 2, 16.5, 0, 0);
+        com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, new BlockPos(0, 1, 0));
+        return true;
+    }
+
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rooms")
             .then(Commands.literal("enter")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
-                    ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
-                    if (roomsLevel != null) {
-                        player.teleportTo(roomsLevel, 10.5, 2, 16.5, 0, 0);
-                        com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, new BlockPos(0, 1, 0));
+                    if (sendToLobby(player)) {
                         player.sendSystemMessage(Component.literal("Roomsディメンションへ移動したわ"));
                     } else {
                         player.sendSystemMessage(Component.literal("ディメンションが見つからないわ"));
