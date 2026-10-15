@@ -92,3 +92,12 @@ is the exit door's floor (door y - 1). Path waypoints include every stair step (
 
 ## Lobby
 `RoomGenerator.buildLobbyInterior` holds the lobby interior (skylights only; walls/floor deliberately empty for future item stands / mode buttons). Keep the centre path x=10 clear. The rooms dimension has no sky light and ambient_light 0, so the lobby is lit only by its own skylight glowstone.
+
+## GK (Gakkou / school) rooms
+GK uses its own generator (`world/GKRooms.java`): interiors between A and V (closer to A), height 5.
+Layouts: CLASSROOM (11-15 x 11-17, desk grid, blackboard), HALLWAY (5-7 x 15-21, locker-heavy),
+PREP_ROOM (9-12 classroom + 5-7 side room through an inner door; exit in the side room).
+Every GK room gets at least one locker and one hiding table (forced placement as a fallback; a WARN is logged if
+that ever fails). Paths are kept 3 wide; the exit is always on the max-Z wall; overlapping plans fall back to a 9x9 classroom.
+Progression: after V. Start it with `/rooms section gk now` (or `/rooms section gk <globalRoom>`), rooms read `GK-001`...
+GK entities live in `entity/gk` and despawn after at most 100 s (`GKEntity.MAX_LIFE_TICKS`, below the 120 s hard cap).
