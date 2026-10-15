@@ -24,7 +24,12 @@ public final class VSpawns {
         V10("V-10", "v10", null, RoomsMod.V10),
         V25T("V-25-T", "v25t", "searcher", RoomsMod.V25T), V25L("V-25-L", "v25l", "searcher", RoomsMod.V25L),
         V25_BUFFED("V25-BUFFED", "v25buffed", "searcher,buffed_v100", RoomsMod.V25_BUFFED),
-        V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", null, RoomsMod.V50);
+        V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", null, RoomsMod.V50),
+        // GK（学校）区画
+        GK_CHIME("GK-Chime", "gkchime", null, RoomsMod.GK_CHIME),
+        GK_ROLLCALL("GK-Rollcall", "gkrollcall", "searcher", RoomsMod.GK_ROLLCALL),
+        GK_MOTH("GK-Moth", "gkmoth", "gk_sense", RoomsMod.GK_MOTH),
+        GK_STARE("GK-12", "gk12", "gk_sense", RoomsMod.GK_STARE);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。

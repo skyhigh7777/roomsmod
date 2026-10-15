@@ -63,5 +63,14 @@
   "item.roomsmod.flashlight.actionbar": "Battery %s",
   "item.roomsmod.flashlight.no_battery": "No battery",
   "item.roomsmod.flashlight.dead": "The battery ran out",
-  "item.roomsmod.flashlight.full": "Battery is still full"
+  "item.roomsmod.flashlight.full": "Battery is still full",
+  "entity.roomsmod.gk_chime": "GK-Chime",
+  "entity.roomsmod.gk_rollcall": "GK-Rollcall",
+  "entity.roomsmod.gk_moth": "GK-Moth",
+  "entity.roomsmod.gk12": "GK-12",
+  "subtitles.roomsmod.gk_chime_approach": "A school chime approaches",
+  "subtitles.roomsmod.gk_rollcall_step": "Footsteps in the classroom",
+  "subtitles.roomsmod.gk_rollcall_check": "Roll call",
+  "subtitles.roomsmod.gk_moth_flutter": "Wings flutter",
+  "subtitles.roomsmod.gk_stare_hum": "A low hum"
 }

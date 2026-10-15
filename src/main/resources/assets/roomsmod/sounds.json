@@ -97,5 +97,35 @@
       }
     ],
     "subtitle": "subtitles.roomsmod.v100_watch"
+  },
+  "gk_chime_approach": {
+    "sounds": [
+      "roomsmod:gk_chime_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_chime_approach"
+  },
+  "gk_rollcall_step": {
+    "sounds": [
+      "roomsmod:gk_rollcall_step"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_rollcall_step"
+  },
+  "gk_rollcall_check": {
+    "sounds": [
+      "roomsmod:gk_rollcall_check"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_rollcall_check"
+  },
+  "gk_moth_flutter": {
+    "sounds": [
+      "roomsmod:gk_moth_flutter"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_moth_flutter"
+  },
+  "gk_stare_hum": {
+    "sounds": [
+      "roomsmod:gk_stare_hum"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_stare_hum"
   }
 }

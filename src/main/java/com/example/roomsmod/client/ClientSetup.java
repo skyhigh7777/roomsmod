@@ -36,6 +36,10 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.V25_BUFFED.get(), c -> new VRenderer<>(c, "v25_buffed", 2.6f, 0.15f));
         event.registerEntityRenderer(RoomsMod.V100.get(), c -> new VRenderer<>(c, "v100", 1.1f, 0.05f).withEyes("v100_eyes"));
         event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
+        event.registerEntityRenderer(RoomsMod.GK_CHIME.get(), c -> new VRenderer<>(c, "gk_chime", 2.0f, 0.4f));
+        event.registerEntityRenderer(RoomsMod.GK_ROLLCALL.get(), c -> new VRenderer<>(c, "gk_rollcall", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_MOTH.get(), c -> new VRenderer<>(c, "gk_moth", 1.4f, 0.3f));
+        event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
     }
 
     private static class A20Renderer extends EntityRenderer<A20Entity> {

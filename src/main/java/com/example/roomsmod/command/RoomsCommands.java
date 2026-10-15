@@ -203,7 +203,11 @@ public class RoomsCommands {
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
                 .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v100"))) // 旧名の別名
-                .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50"))))
+                .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50")))
+                .then(Commands.literal("gkchime").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
+                .then(Commands.literal("gkrollcall").executes(ctx -> spawnV(ctx.getSource(), "gkrollcall")))
+                .then(Commands.literal("gkmoth").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
+                .then(Commands.literal("gk12").executes(ctx -> spawnV(ctx.getSource(), "gk12"))))
             .then(Commands.literal("section")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("reset").executes(ctx -> resetSections(ctx.getSource())))
