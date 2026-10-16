@@ -89,8 +89,11 @@ public final class FlashlightHandler {
         d = FlashlightItem.data(s);
         int c = d.charge() - 1;
         FlashlightItem.setData(s, d.withCharge(c));
-        if (p.tickCount % ACTIONBAR_TICKS == 0 && com.example.roomsmod.util.RoomsHud.batteryAllowed(p))
-            p.displayClientMessage(Component.translatable("item.roomsmod.flashlight.actionbar", FlashlightItem.time(c)), true);
+        if (p.tickCount % ACTIONBAR_TICKS == 0) {
+            if (com.example.roomsmod.util.RoomsHud.batteryAllowed(p))
+                p.displayClientMessage(Component.translatable("item.roomsmod.flashlight.actionbar", FlashlightItem.time(c)), true);
+            else RoomsDebug.log("flashlight actionbar suppressed (entity message shown) player={}", p.getGameProfile().getName());
+        }
         Beam b = BEAMS.get(p.getUUID());
         if (b != null && !b.dim().equals(p.level().dimension())) { clear(p); b = null; }
         if (b == null || p.tickCount % BEAM_UPDATE_TICKS == 0) updateBeam(p);
