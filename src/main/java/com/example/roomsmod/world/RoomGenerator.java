@@ -66,6 +66,7 @@ public class RoomGenerator {
         state.addRoom(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
                 origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)), path);
         state.setExpectedExitDoor(doorPos);
+        if (origin.equals(LobbyPanels.ORIGIN)) LobbyPanels.build(level);
 
         return doorPos;
     }
@@ -169,6 +170,7 @@ public class RoomGenerator {
         BlockPos exit = generateNextRoomInner(level, origin, roomNumber);
         try { placeBattery(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("battery placement failed room=" + roomNumber, e); }
+        LobbyPanels.refreshDeepest(level);
         return exit;
     }
 

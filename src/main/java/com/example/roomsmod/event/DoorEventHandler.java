@@ -33,6 +33,14 @@ public class DoorEventHandler {
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+        // ロビーのパネル：ブロック操作禁止の例外（パネルとして処理し、ブロック本来の操作・看板の編集はさせない）
+        if (com.example.roomsmod.world.LobbyPanels.isPanel(event.getLevel(), event.getPos())) {
+            event.setCanceled(true);
+            if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND
+                    && event.getLevel() instanceof ServerLevel sl && event.getEntity() instanceof net.minecraft.server.level.ServerPlayer sp)
+                com.example.roomsmod.world.LobbyPanels.click(sl, sp, event.getPos().immutable());
+            return;
+        }
         // 一度開いた扉は閉められない（両手・上下どちらの半分も、クライアントでも取り消して予測で閉じないようにする）
         if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION)) {
             BlockState s0 = event.getLevel().getBlockState(event.getPos());
@@ -105,6 +113,15 @@ public class DoorEventHandler {
     }
 
     /** 部屋ディメンションで右クリックしてよいブロック（許可リスト）。開いた扉は手前で取り消し済み。 */
+    /** ロビーのパネルは壊せない（クリエイティブでも）。 */
+    @SubscribeEvent
+    public static void onBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (event.getLevel() instanceof net.minecraft.world.level.Level l && com.example.roomsmod.world.LobbyPanels.isPanel(l, event.getPos())) {
+            event.setCanceled(true);
+            RoomsDebug.log("lobby panel break cancelled pos={} player={}", event.getPos(), event.getPlayer().getGameProfile().getName());
+        }
+    }
+
     public static boolean isAllowedInteraction(BlockState s) {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
