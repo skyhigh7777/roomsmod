@@ -25,6 +25,7 @@ public final class RoomsTravel {
 
     private static ServerLevel level;
     private static UUID player;
+    private static ServerPlayer playerRef;
     private static int target, next;
     private static BlockPos currentExit;
     private static long startedMs;
@@ -36,7 +37,7 @@ public final class RoomsTravel {
         BlockPos origin = new BlockPos(0, 1, 0);
         BlockPos lobbyExit = RoomGenerator.generateLobby(lv, origin);
         RoomsState.get(lv).markDoorGenerated(lobbyExit);
-        level = lv; player = p.getUUID(); target = n; next = 1; startedMs = System.currentTimeMillis();
+        level = lv; player = p.getUUID(); playerRef = p; target = n; next = 1; startedMs = System.currentTimeMillis();
         currentExit = lobbyExit != null ? lobbyExit : origin.offset(10, 1, 31);
         RoomsDebug.log("rooms to {}: start by {} ({} rooms/tick)", n, p.getGameProfile().getName(), ROOMS_PER_TICK);
         step();
@@ -57,6 +58,7 @@ public final class RoomsTravel {
             }
         }
         ServerPlayer p = level.getServer().getPlayerList().getPlayer(player);
+        if (p == null && playerRef != null && !playerRef.isRemoved()) p = playerRef;
         if (next <= target) {
             if (p != null && (next - 1) % 40 < ROOMS_PER_TICK) p.displayClientMessage(Component.literal("部屋を生成中… " + (next - 1) + " / " + target), true);
             return;
@@ -71,6 +73,6 @@ public final class RoomsTravel {
             p.teleportTo(level, at.x, at.y, at.z, 0, 0);
             p.sendSystemMessage(Component.literal(Sections.formatRoom(state, target) + " まで生成してワープしたわ"));
         }
-        level = null; player = null;
+        level = null; player = null; playerRef = null;
     }
 }
