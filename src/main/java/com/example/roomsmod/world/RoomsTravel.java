@@ -21,7 +21,7 @@ import java.util.UUID;
 public final class RoomsTravel {
     private RoomsTravel() {}
 
-    public static final int ROOMS_PER_TICK = 8;
+    public static final int ROOMS_PER_TICK = 4;
 
     private static ServerLevel level;
     private static UUID player;
