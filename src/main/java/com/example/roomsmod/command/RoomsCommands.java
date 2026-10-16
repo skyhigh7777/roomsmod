@@ -104,42 +104,15 @@ public class RoomsCommands {
         return n;
     }
 
-    /** ロビーを作り直して部屋 1..target を生成し、最後の部屋の安全な床へワープ（/rooms to とロビーの GO パネル）。 */
+    /** ロビーを作り直して部屋 1..target を生成し、最後の部屋の安全な床へワープ（/rooms to とロビーの GO パネル）。
+     *  生成は数 tick に分けて行う（RoomsTravel）。 */
     public static boolean goToRoom(ServerPlayer player, int target) {
         ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) {
             player.sendSystemMessage(Component.literal("ディメンションが見つからないわ"));
             return false;
         }
-
-        BlockPos origin = new BlockPos(0, 1, 0);
-        BlockPos lobbyExit = com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, origin);
-        var state = com.example.roomsmod.world.RoomsState.get(roomsLevel);
-        state.markDoorGenerated(lobbyExit);
-
-        BlockPos currentExit = lobbyExit != null ? lobbyExit : origin.offset(10, 1, 31);
-        for (int i = 1; i <= target; i++) {
-            BlockPos nextOrigin = new BlockPos(currentExit.getX() - 10, currentExit.getY() - 1, currentExit.getZ() + 1);
-            BlockPos exitDoor = com.example.roomsmod.world.RoomGenerator.generateNextRoom(roomsLevel, nextOrigin, i);
-            if (exitDoor != null) {
-                currentExit = exitDoor;
-                if (i < target) {
-                    state.markDoorGenerated(exitDoor);
-                }
-            }
-        }
-
-        // 生成器が expectedExitDoor = 最後の部屋の出口 に設定済み
-        state.setCurrentRoom(target);
-
-        // 最後の部屋の中央付近にワープ（出口扉の手前）
-        // 部屋の床の上の安全な場所へ（V の部屋は2階建てで床の高さが変わるので固定 y は使わない）
-        net.minecraft.world.phys.Vec3 at = com.example.roomsmod.world.SafeSpot.find(roomsLevel, state, target);
-        if (at == null) at = new net.minecraft.world.phys.Vec3(currentExit.getX() + 0.5, currentExit.getY(), currentExit.getZ() - 0.5);
-        com.example.roomsmod.util.RoomsDebug.log("rooms to {}: teleport to ({}, {}, {})", target, at.x, at.y, at.z);
-        player.teleportTo(roomsLevel, at.x, at.y, at.z, 0, 0);
-        player.sendSystemMessage(Component.literal(com.example.roomsmod.world.section.Sections.formatRoom(state, target) + " まで生成してワープしたわ"));
-        return true;
+        return com.example.roomsmod.world.RoomsTravel.start(roomsLevel, player, target);
     }
 
     public static boolean sendToLobby(ServerPlayer player) {

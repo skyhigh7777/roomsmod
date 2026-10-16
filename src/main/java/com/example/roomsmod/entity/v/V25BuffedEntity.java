@@ -90,6 +90,7 @@ public class V25BuffedEntity extends VSearcherEntity {
 
     private void title(ServerLevel level, Component main, Component sub, int stay) {
         for (ServerPlayer p : level.players()) {
+            com.example.roomsmod.util.RoomsHud.hold(p, stay + 4);
             p.connection.send(new ClientboundSetTitlesAnimationPacket(0, stay, 4));
             p.connection.send(new ClientboundSetSubtitleTextPacket(sub));
             p.connection.send(new ClientboundSetTitleTextPacket(main));

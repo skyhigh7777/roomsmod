@@ -37,8 +37,8 @@ import java.util.List;
 public final class LobbyPanels {
     private LobbyPanels() {}
 
-    public static final int MAX_ROOM = 1000;
-    public static final int[] STEPS = {1, 50, 100, 150, 200, 250, 300, 400, 500, 600, 700, 800, 900, 1000};
+    public static final int MAX_ROOM = 500;
+    public static final int[] STEPS = {1, 50, 100, 150, 200, 250, 300, 400, 500};
     static final BlockPos ORIGIN = new BlockPos(0, 1, 0);
 
     enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL }
@@ -156,7 +156,7 @@ public final class LobbyPanels {
 
     /** 右クリック（サーバー・メインハンド）。 */
     public static void click(ServerLevel level, ServerPlayer player, BlockPos pos) {
-        Kind k = kindAt(pos);
+        Kind k = kindAt(pos.subtract(ORIGIN));
         if (k == null) return;
         List<String> ids = new ArrayList<>(Sections.ids());
         switch (k) {
@@ -181,6 +181,7 @@ public final class LobbyPanels {
     }
 
     static void go(ServerLevel level, ServerPlayer player) {
+        if (RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
         rs.sections.clear();
@@ -188,9 +189,8 @@ public final class LobbyPanels {
         if (!"a".equals(s)) rs.addSection(s, 1);
         rs.setDirty();
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
-        long t0 = System.currentTimeMillis();
+        if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         RoomsCommands.goToRoom(player, n);
-        RoomsDebug.log("lobby panel go done {} rooms in {} ms player at {}", n, System.currentTimeMillis() - t0, player.blockPosition());
     }
 
     static void deepest(ServerLevel level, ServerPlayer player) {

@@ -60,6 +60,6 @@ public final class GKUtil {
     }
 
     public static void actionbar(List<Player> ps, Component c) {
-        for (Player p : ps) if (p instanceof ServerPlayer sp) sp.displayClientMessage(c, true);
+        for (Player p : ps) if (p instanceof ServerPlayer sp) com.example.roomsmod.util.RoomsHud.entity(sp, c);
     }
 }

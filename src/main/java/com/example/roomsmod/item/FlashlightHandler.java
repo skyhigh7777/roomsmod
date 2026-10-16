@@ -89,7 +89,7 @@ public final class FlashlightHandler {
         d = FlashlightItem.data(s);
         int c = d.charge() - 1;
         FlashlightItem.setData(s, d.withCharge(c));
-        if (p.tickCount % ACTIONBAR_TICKS == 0)
+        if (p.tickCount % ACTIONBAR_TICKS == 0 && com.example.roomsmod.util.RoomsHud.batteryAllowed(p))
             p.displayClientMessage(Component.translatable("item.roomsmod.flashlight.actionbar", FlashlightItem.time(c)), true);
         Beam b = BEAMS.get(p.getUUID());
         if (b != null && !b.dim().equals(p.level().dimension())) { clear(p); b = null; }

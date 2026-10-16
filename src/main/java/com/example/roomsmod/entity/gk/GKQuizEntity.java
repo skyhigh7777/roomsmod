@@ -35,15 +35,18 @@ public class GKQuizEntity extends GKTimedEntity {
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
-        List<BlockPos> s = GKUtil.freeSpots(level, rs, playerRoom, level.random, 3);
+        List<BlockPos> s = new ArrayList<>(GKUtil.freeSpots(level, rs, playerRoom, level.random, 4));
         if (s.size() < 3) { RoomsDebug.log("GK-Quiz spawn skipped: only {} carpet spots", s.size()); return null; }
         a = 2 + level.random.nextInt(8); b = 2 + level.random.nextInt(8);
         List<Integer> opts = new ArrayList<>(List.of(a + b, a + b + 1 + level.random.nextInt(2), a + b - 1 - level.random.nextInt(2)));
-        Collections.shuffle(opts, new java.util.Random(level.random.nextLong()));
+        java.util.Random shuf = new java.util.Random(level.random.nextLong());
+        Collections.shuffle(opts, shuf);
+        Collections.shuffle(s, shuf);
         for (int i = 0; i < 3; i++) { answers[i] = opts.get(i); if (opts.get(i) == a + b) correct = i; place(level, s.get(i), CARPETS[i].defaultBlockState()); }
-        BlockPos c = s.get(0);
+        // 立ち位置は選択肢と無関係に：4つ目の空き床があればそこ、なければランダムな選択肢の上
+        BlockPos c = s.size() > 3 ? s.get(3) : s.get(level.random.nextInt(3));
         setPos(c.getX() + 0.5, c.getY(), c.getZ() + 0.5);
-        RoomsDebug.log("GK-Quiz {}+{} answers red={} green={} blue={} correct={} carpets={}", a, b, answers[0], answers[1], answers[2], COLORS[correct], placed);
+        RoomsDebug.log("GK-Quiz {}+{} answers red={} green={} blue={} correct={} carpets={} standsAt={}", a, b, answers[0], answers[1], answers[2], COLORS[correct], placed, c);
         return c;
     }
 

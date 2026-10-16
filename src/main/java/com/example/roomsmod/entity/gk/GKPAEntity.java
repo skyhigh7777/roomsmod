@@ -56,7 +56,7 @@ public class GKPAEntity extends VEntity {
         if (left % 20 == 0)
             for (Player p : playersNear(64))
                 if (p instanceof ServerPlayer sp)
-                    sp.displayClientMessage(Component.translatable(safe(rs, p) ? "message.roomsmod.gk_pa_safe" : "message.roomsmod.gk_pa_countdown", left / 20), true);
+                    com.example.roomsmod.util.RoomsHud.entity(sp, Component.translatable(safe(rs, p) ? "message.roomsmod.gk_pa_safe" : "message.roomsmod.gk_pa_countdown", left / 20));
         if (left > 0 && left <= 100 && left % 20 == 0)
             level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_PA_CHIME.get(), SoundSource.HOSTILE, 1.5f, 1.6f);
         if (left > 0) return;
