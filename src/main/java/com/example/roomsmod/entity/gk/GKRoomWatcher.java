@@ -41,6 +41,8 @@ public abstract class GKRoomWatcher extends VEntity {
     protected abstract String chatStart();
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;

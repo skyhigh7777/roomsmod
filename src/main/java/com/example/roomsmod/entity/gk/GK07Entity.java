@@ -31,6 +31,8 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
     @Override public String vName() { return "GK-07"; }
     @Override protected int maxLifeTicks() { return TIME + 20; }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         if (playerRoom < 1) return null;

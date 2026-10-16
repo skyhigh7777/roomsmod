@@ -28,6 +28,8 @@ public class GKMothEntity extends com.example.roomsmod.entity.v.VEntity {
     @Override public String vName() { return "GK-Moth"; }
     @Override protected int maxLifeTicks() { return 20 * 60; }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;

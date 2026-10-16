@@ -84,6 +84,9 @@ public abstract class VEntity extends Mob {
     /** 出現前に位置と内部状態を決める。返り値は出現位置（null なら出現しない）。playerRoom はプレイヤーのいる部屋 index。 */
     protected abstract BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom);
 
+    /** true なら prepare には「いま開けた部屋」（扉の先＝最新の部屋。V-100 と同じ）を渡す。プレイヤーがすでに最新の部屋ならそこ。 */
+    public boolean targetsOpenedRoom() { return false; }
+
     protected void clientTick() {}
     protected abstract void serverTick(ServerLevel level);
     protected String debugState() { return ""; }

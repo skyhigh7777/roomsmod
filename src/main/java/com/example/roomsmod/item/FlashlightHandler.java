@@ -162,9 +162,31 @@ public final class FlashlightHandler {
     }
 
     /** 部屋ディメンションに初めて入ったプレイヤーに、電池1本分充電済みの懐中電灯を渡す（1回だけ）。 */
+    static final String RESPAWN_KEY = "roomsmod_flashlight_respawn";
+
+    /** 死亡からのリスポーン時に呼ぶ（次に部屋ディメンションにいるとき giveFirstFlashlight で渡す）。 */
+    public static void markRespawn(ServerPlayer p) {
+        CompoundTag persisted = p.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);
+        persisted.putBoolean(RESPAWN_KEY, true);
+        p.getPersistentData().put(Player.PERSISTED_NBT_TAG, persisted);
+    }
+
     static void giveFirstFlashlight(ServerPlayer p) {
         if (p.tickCount % 20 != 0 || !p.level().dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)) return;
         CompoundTag persisted = p.getPersistentData().getCompound(Player.PERSISTED_NBT_TAG);
+        if (persisted.getBoolean(RESPAWN_KEY)) {
+            // 死亡後のリスポーン：持っていなければ満充電の懐中電灯を渡す（keepInventory などで持っていれば渡さない）
+            persisted.remove(RESPAWN_KEY);
+            p.getPersistentData().put(Player.PERSISTED_NBT_TAG, persisted);
+            if (p.getInventory().countItem(RoomsMod.FLASHLIGHT.get()) > 0) {
+                RoomsDebug.log("flashlight not given after respawn (already has one) player={}", p.getGameProfile().getName());
+            } else {
+                ItemStack s = newFlashlight(FlashlightItem.BATTERY_TICKS);
+                if (!p.getInventory().add(s)) p.drop(s, false);
+                RoomsDebug.log("flashlight given (respawn) player={}", p.getGameProfile().getName());
+            }
+            if (persisted.getBoolean(GIVEN_KEY)) return;
+        }
         if (persisted.getBoolean(GIVEN_KEY)) return;
         persisted.putBoolean(GIVEN_KEY, true);
         p.getPersistentData().put(Player.PERSISTED_NBT_TAG, persisted);

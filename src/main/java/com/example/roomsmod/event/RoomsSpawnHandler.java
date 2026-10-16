@@ -30,6 +30,7 @@ public final class RoomsSpawnHandler {
 
     @SubscribeEvent
     public static void onRespawn(PlayerEvent.PlayerRespawnEvent event) {
+        if (!event.isEndConquered() && event.getEntity() instanceof ServerPlayer p0) com.example.roomsmod.item.FlashlightHandler.markRespawn(p0);
         if (event.isEndConquered() || !(event.getEntity() instanceof ServerPlayer sp) || !RoomsConfig.spawnInRooms()) return;
         if (sp.getRespawnPosition() != null) return; // ベッド・アンカーあり（または /spawnpoint）
         RoomsDebug.log("respawn {} without bed/anchor -> rooms lobby", sp.getGameProfile().getName());

@@ -38,6 +38,8 @@ public class GKSubstituteEntity extends VEntity {
     @Override public String vName() { return "GK-Substitute"; }
     @Override protected int maxLifeTicks() { return Math.min(LIFE, GKEntity.MAX_LIFE_TICKS); }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;

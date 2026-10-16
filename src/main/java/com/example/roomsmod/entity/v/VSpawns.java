@@ -86,6 +86,7 @@ public final class VSpawns {
         int room = playerRoom(rs, player);
         VEntity e = k.type.get().create(level);
         if (e == null) { RoomsDebug.warn("{} spawn failed: create returned null", k.display); return false; }
+        if (e.targetsOpenedRoom()) room = Math.min(room + 1, rs.roomPaths.size() - 1);
         BlockPos at = e.prepare(level, rs, room);
         if (at == null) { RoomsDebug.log("{} spawn skipped: no valid position near room {}", k.display, room); return false; }
         RusherChunks.prepareSpawn(level, e, new ChunkPos(at));

@@ -27,6 +27,8 @@ public class GKRewindEntity extends com.example.roomsmod.entity.v.VEntity {
     @Override public String vName() { return "GK-Rewind"; }
     @Override protected int maxLifeTicks() { return TELEGRAPH + 20; }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         if (playerRoom < 1) return null;

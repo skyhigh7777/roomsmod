@@ -32,6 +32,8 @@ public class GKQuizEntity extends GKTimedEntity {
     public GKQuizEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "GK-Quiz"; }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;

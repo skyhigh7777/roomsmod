@@ -31,6 +31,8 @@ public class GKMirrorEntity extends com.example.roomsmod.entity.v.VEntity {
     @Override public String vName() { return "GK-Mirror"; }
     @Override protected int maxLifeTicks() { return TELEGRAPH + CHASE + 20; }
 
+    @Override public boolean targetsOpenedRoom() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
