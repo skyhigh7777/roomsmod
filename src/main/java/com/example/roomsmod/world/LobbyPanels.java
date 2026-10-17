@@ -41,16 +41,18 @@ public final class LobbyPanels {
     public static final int[] STEPS = {1, 50, 100, 150, 200, 250, 300, 400, 500};
     static final BlockPos ORIGIN = new BlockPos(0, 1, 0);
 
-    enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL }
+    enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD }
 
     // 左の壁: ボタンは壁の中（x=19, y=2）、看板は壁の手前（x=18）
     static final int LX = 19, BY = 2;
     static final int Z_SECTION = 11, Z_MINUS = 13, Z_DISPLAY = 15, Z_PLUS = 17, Z_GO = 19;
+    /** ハードモードの切り替え（左の壁、スタート選択から少し離す）。 */
+    static final int Z_HARD = 24;
     // 正面（扉側）: 扉は x=10 なので x=14（扉の両脇 x=9..11 から離す）
     static final int FZ = 31, FX = 14;
 
     /** 共有の選択。 */
-    static String section = "a";
+    static String section = "b";
     static int stepIndex = 0;
 
     public static String selectedSection() { return section; }
@@ -59,13 +61,14 @@ public final class LobbyPanels {
     private static BlockPos at(int x, int y, int z) { return ORIGIN.offset(x, y, z); }
 
     static List<BlockPos> buttons() {
-        return List.of(at(LX, BY, Z_SECTION), at(LX, BY, Z_MINUS), at(LX, BY, Z_PLUS), at(LX, BY, Z_GO), at(FX, BY, FZ));
+        return List.of(at(LX, BY, Z_SECTION), at(LX, BY, Z_MINUS), at(LX, BY, Z_PLUS), at(LX, BY, Z_GO), at(FX, BY, FZ), at(LX, BY, Z_HARD));
     }
     static List<BlockPos> signs() {
         List<BlockPos> l = new ArrayList<>();
         for (int z : new int[]{Z_SECTION, Z_MINUS, Z_DISPLAY, Z_PLUS, Z_GO}) l.add(at(LX - 1, BY + 1, z));
         l.add(at(LX - 1, BY, Z_DISPLAY));
         l.add(at(FX, BY + 1, FZ - 1));
+        l.add(at(LX - 1, BY + 1, Z_HARD));
         return l;
     }
 
@@ -76,6 +79,7 @@ public final class LobbyPanels {
             if (p.getZ() == Z_MINUS) return Kind.MINUS;
             if (p.getZ() == Z_PLUS) return Kind.PLUS;
             if (p.getZ() == Z_GO) return Kind.GO;
+            if (p.getZ() == Z_HARD) return Kind.HARD;
             if (p.getZ() == Z_DISPLAY && (p.getX() == LX - 1)) return Kind.LABEL;
         }
         if (p.getX() == FX && (p.getZ() == FZ || p.getZ() == FZ - 1)) return Kind.DEEPEST;
@@ -104,6 +108,7 @@ public final class LobbyPanels {
         sign(level, at(LX - 1, BY + 1, Z_DISPLAY), Direction.WEST, "START ROOM", "スタート部屋", "", "");
         refreshSelection(level);
         refreshDeepest(level);
+        refreshHard(level);
         RoomsDebug.log("lobby panels built selection={} deepest={}", label(), deepestLabel(RoomsState.get(level)));
     }
 
@@ -114,9 +119,11 @@ public final class LobbyPanels {
         setText(level, p, lines);
     }
 
-    private static void setText(ServerLevel level, BlockPos p, String... lines) {
+    private static void setText(ServerLevel level, BlockPos p, String... lines) { setText(level, p, DyeColor.WHITE, lines); }
+
+    private static void setText(ServerLevel level, BlockPos p, DyeColor color, String... lines) {
         if (!(level.getBlockEntity(p) instanceof SignBlockEntity be)) return;
-        SignText t = new SignText().setColor(DyeColor.WHITE).setHasGlowingText(true);
+        SignText t = new SignText().setColor(color).setHasGlowingText(true);
         for (int i = 0; i < 4; i++) t = t.setMessage(i, Component.literal(i < lines.length ? lines[i] : ""));
         be.setText(t, true);
         be.setWaxed(true);
@@ -126,7 +133,7 @@ public final class LobbyPanels {
 
     static String label() {
         SectionTheme t = Sections.find(section);
-        return (t == null ? "A" : t.prefix()) + "-" + String.format("%03d", selectedRoom());
+        return (t == null ? "B" : t.prefix()) + "-" + String.format("%03d", selectedRoom());
     }
 
     static String deepestLabel(RoomsState rs) {
@@ -152,6 +159,17 @@ public final class LobbyPanels {
         setText(level, p, "DEEPEST ROOM", "最奥の部屋", deepestLabel(rs), "右クリックでワープ");
     }
 
+    /** ハードモードのボタンと看板（ON=赤、OFF=灰）。ロビーがなければ何もしない。 */
+    public static void refreshHard(ServerLevel level) {
+        BlockPos b = at(LX, BY, Z_HARD), sp = at(LX - 1, BY + 1, Z_HARD);
+        if (!level.isLoaded(b) || !level.getBlockState(at(LX, BY, Z_GO)).is(Blocks.GOLD_BLOCK)) return;
+        boolean on = RoomsState.get(level).hardMode;
+        place(level, b, (on ? Blocks.RED_CONCRETE : Blocks.LIGHT_GRAY_CONCRETE).defaultBlockState());
+        if (!(level.getBlockEntity(sp) instanceof SignBlockEntity))
+            level.setBlockAndUpdate(sp, Blocks.DARK_OAK_WALL_SIGN.defaultBlockState().setValue(WallSignBlock.FACING, Direction.WEST));
+        setText(level, sp, on ? DyeColor.RED : DyeColor.LIGHT_GRAY, "HARD MODE", on ? "ON" : "OFF", "ハードモード", "右クリックで切替");
+    }
+
     // ===================== 操作 =====================
 
     /** 右クリック（サーバー・メインハンド）。 */
@@ -170,6 +188,12 @@ public final class LobbyPanels {
             case LABEL -> player.displayClientMessage(Component.literal("スタート: " + label()), true);
             case GO -> go(level, player);
             case DEEPEST -> deepest(level, player);
+            case HARD -> {
+                boolean on = !RoomsState.get(level).hardMode;
+                level.playSound(null, player.blockPosition(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.6f, on ? 0.7f : 1.2f);
+                RoomsDebug.log(player, "ロビーパネル: HARD MODE " + (on ? "ON" : "OFF"), "lobby panel hard by {} -> {}", player.getGameProfile().getName(), on);
+                HardMode.set(level, on, player.getGameProfile().getName());
+            }
         }
     }
 
@@ -185,8 +209,8 @@ public final class LobbyPanels {
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
         rs.sections.clear();
-        rs.sections.add(new RoomsState.SectionStart("a", 0));
-        if (!"a".equals(s)) rs.addSection(s, 1);
+        rs.sections.add(new RoomsState.SectionStart("b", 0));
+        if (!"b".equals(s)) rs.addSection(s, 1);
         rs.setDirty();
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }

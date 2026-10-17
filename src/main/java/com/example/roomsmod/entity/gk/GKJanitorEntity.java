@@ -28,7 +28,7 @@ public class GKJanitorEntity extends VPathWalker {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         int from = Math.max(0, playerRoom - ROOMS_BEHIND);
         BlockPos s = placeAtStart(rs, from, rs.roomPaths.size() - 1);
-        RoomsDebug.log("GK-Janitor start room={} (player room {})", from, playerRoom);
+        RoomsDebug.log("{} start room={} (player room {})", vName(), from, playerRoom);
         return s;
     }
     @Override protected void clientTick() {

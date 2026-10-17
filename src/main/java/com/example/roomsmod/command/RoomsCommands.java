@@ -35,15 +35,15 @@ public class RoomsCommands {
         boolean sameAlive = a40 ? com.example.roomsmod.event.DoorEventHandler.isA40Alive(roomsLevel)
                                 : com.example.roomsmod.event.DoorEventHandler.isA20Alive(roomsLevel);
         if (sameAlive) {
-            src.sendFailure(Component.literal((a40 ? "A-40" : "A-20") + "はすでに生存中よ")); return 0;
+            src.sendFailure(Component.literal((a40 ? "B-40" : "B-20") + "はすでに生存中よ")); return 0;
         }
         var player = src.getPlayer();
         if (a40) {
-            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("A-40の出現に失敗したわ")); return 0; }
+            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
         } else {
             com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player);
         }
-        src.sendSuccess(() -> Component.literal((a40 ? "A-40" : "A-20") + "を出現させたわ"), true);
+        src.sendSuccess(() -> Component.literal((a40 ? "B-40" : "B-20") + "を出現させたわ"), true);
         return 1;
     }
 
@@ -69,7 +69,7 @@ public class RoomsCommands {
     private static int addSection(CommandSourceStack src, String id, Integer startRoom) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
-        id = id.toLowerCase(java.util.Locale.ROOT);
+        id = com.example.roomsmod.world.section.Sections.canonical(id);
         var theme = com.example.roomsmod.world.section.Sections.find(id);
         if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
@@ -90,10 +90,10 @@ public class RoomsCommands {
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         rs.sections.clear();
-        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("a", 0));
+        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("b", 0));
         rs.setDirty();
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を A のみに戻したわ"), true);
+        src.sendSuccess(() -> Component.literal("セクション表を B のみに戻したわ"), true);
         return 1;
     }
 
@@ -140,6 +140,17 @@ public class RoomsCommands {
                     .executes(ctx -> {
                         return goToRoom(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
                     })))
+            .then(Commands.literal("hard")
+                .then(Commands.literal("on").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), true)))
+                .then(Commands.literal("off").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), false)))
+                .then(Commands.literal("status").executes(ctx -> {
+                    ServerLevel lv = ctx.getSource().getServer().getLevel(ROOMS_DIMENSION);
+                    if (lv == null) return 0;
+                    boolean on = com.example.roomsmod.world.HardMode.isOn(lv);
+                    com.example.roomsmod.util.RoomsDebug.log("hard mode status {}", on ? "on" : "off");
+                    ctx.getSource().sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), false);
+                    return on ? 1 : 0;
+                })))
             .then(Commands.literal("debug")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("on").executes(ctx -> setDebug(ctx.getSource(), true)))
@@ -169,8 +180,10 @@ public class RoomsCommands {
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
-                .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
-                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
+                .then(Commands.literal("b20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
+                .then(Commands.literal("b40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
+                .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false))) // 旧名の別名（非推奨）
+                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true)))  // 旧名の別名（非推奨）
                 .then(Commands.literal("v10").executes(ctx -> spawnV(ctx.getSource(), "v10")))
                 .then(Commands.literal("v25t").executes(ctx -> spawnV(ctx.getSource(), "v25t")))
                 .then(Commands.literal("v25l").executes(ctx -> spawnV(ctx.getSource(), "v25l")))
@@ -194,7 +207,20 @@ public class RoomsCommands {
                 .then(Commands.literal("gkmirror").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
                 .then(Commands.literal("gk07").executes(ctx -> spawnV(ctx.getSource(), "gk07")))
                 .then(Commands.literal("gkbell2").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
-                .then(Commands.literal("gkrewind").executes(ctx -> spawnV(ctx.getSource(), "gkrewind"))))
+                .then(Commands.literal("gkrewind").executes(ctx -> spawnV(ctx.getSource(), "gkrewind")))
+                .then(Commands.literal("bgrin").executes(ctx -> spawnV(ctx.getSource(), "bgrin")))
+                .then(Commands.literal("bmask").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
+                .then(Commands.literal("beye").executes(ctx -> spawnV(ctx.getSource(), "beye")))
+                .then(Commands.literal("bchorus").executes(ctx -> spawnV(ctx.getSource(), "bchorus")))
+                .then(Commands.literal("bstatic").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
+                .then(Commands.literal("berror").executes(ctx -> spawnV(ctx.getSource(), "berror")))
+                .then(Commands.literal("bargus").executes(ctx -> spawnV(ctx.getSource(), "bargus")))
+                .then(Commands.literal("bmaw").executes(ctx -> spawnV(ctx.getSource(), "bmaw")))
+                .then(Commands.literal("bscatter").executes(ctx -> spawnV(ctx.getSource(), "bscatter")))
+                .then(Commands.literal("breach").executes(ctx -> spawnV(ctx.getSource(), "breach")))
+                .then(Commands.literal("bsmile").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
+                .then(Commands.literal("bvoid").executes(ctx -> spawnV(ctx.getSource(), "bvoid")))
+                .then(Commands.literal("b17").executes(ctx -> spawnV(ctx.getSource(), "b17"))))
             .then(Commands.literal("section")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("reset").executes(ctx -> resetSections(ctx.getSource())))
@@ -212,5 +238,13 @@ public class RoomsCommands {
                     return 1;
                 }))
         );
+    }
+
+    private static int setHard(CommandSourceStack src, boolean on) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) return 0;
+        com.example.roomsmod.world.HardMode.set(lv, on, src.getTextName());
+        src.sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), true);
+        return 1;
     }
 }

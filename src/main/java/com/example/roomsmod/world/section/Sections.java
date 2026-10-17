@@ -18,8 +18,8 @@ public final class Sections {
     private static final Map<String, SectionTheme> THEMES = new LinkedHashMap<>();
 
     /** 現在のA区画（旧ハードコード値そのまま）。将来 B（Basement）に改名予定。 */
-    public static final SectionTheme A = register(new SectionTheme(
-            "a", "A",
+    public static final SectionTheme B = register(new SectionTheme(
+            "b", "B",
             new SectionTheme.Palette(
                     Blocks.STONE::defaultBlockState, Blocks.STONE_BRICKS::defaultBlockState, Blocks.STONE::defaultBlockState,
                     () -> Blocks.OAK_DOOR,
@@ -39,9 +39,23 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.7f)),
             3, 2,
             List.of(
-                    new SectionTheme.RusherSpawn("A-20", 20, 0.6f, DoorEventHandler::isA20Alive,
+                    new SectionTheme.RusherSpawn("B-20", 20, 0.6f, DoorEventHandler::isA20Alive,
                             (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }),
-                    new SectionTheme.RusherSpawn("A-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40)),
+                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40),
+                    // B: B-015〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_STATIC, 15, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MASK, 30, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_REACH, 50, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_EYE, 70, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SMILE, 90, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ERROR, 110, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_GRIN, 130, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MAW, 155, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ARGUS, 180, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SCATTER, 205, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_CHORUS, 230, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_VOID, 260, 0.04f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_17, 290, 0.04f)),
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 
@@ -86,7 +100,7 @@ public final class Sections {
                     () -> Blocks.BIRCH_DOOR,
                     () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
             new int[]{1, 1, 1, 1, 1},
-            A.furniture(), A.cover(),
+            B.furniture(), B.cover(),
             List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.5f),
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.5f)),
             3, 2,
@@ -121,16 +135,34 @@ public final class Sections {
         return t;
     }
 
-    public static SectionTheme byId(String id) { return THEMES.getOrDefault(id, A); }
+    public static SectionTheme byId(String id) { return THEMES.getOrDefault(canonical(id), B); }
 
     /** 登録済みなら定義、なければ null。 */
-    public static SectionTheme find(String id) { return THEMES.get(id); }
+    public static SectionTheme find(String id) { return THEMES.get(canonical(id)); }
+
+    /** 旧 ID の別名：セクション A は B に改名した（"a" は古いコマンド・保存データ用の非推奨の別名）。 */
+    public static String canonical(String id) {
+        if (id == null) return null;
+        String s = id.toLowerCase(java.util.Locale.ROOT);
+        return "a".equals(s) ? "b" : s;
+    }
+
+    /**
+     * ハードモードの抽選表：登録済みの全セクションの表をつなげたもの（同名は最初の1つ）。
+     * 各エンティティの出現開始部屋（minRoom）はそのまま、今いるセクション内の部屋番号と比べる。
+     */
+    public static List<SectionTheme.RusherSpawn> hardTable() {
+        List<SectionTheme.RusherSpawn> out = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (SectionTheme t : THEMES.values()) for (var r : t.rushers()) if (seen.add(r.name())) out.add(r);
+        return out;
+    }
 
     public static java.util.Set<String> ids() { return THEMES.keySet(); }
 
     /** 部屋番号 room が属するセクション（RoomsState のセクション開始表から）。 */
     public static SectionTheme forRoom(RoomsState rs, int room) {
-        SectionTheme cur = A;
+        SectionTheme cur = B;
         for (RoomsState.SectionStart s : rs.sections) if (room >= s.startRoom()) cur = byId(s.themeId());
         return cur;
     }

@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A-20：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
+ * B-20：高速で部屋を突進し、有限距離の視線が通ったプレイヤーにダメージを与える。
  * 隠れ場所（オーク板）で視線を遮れば回避可能。
  */
 public class A20Entity extends Mob {
@@ -79,11 +79,11 @@ public class A20Entity extends Mob {
         BlockPos door = waypoints.get(waypoints.size() - 1);
         net.minecraft.world.level.block.state.BlockState s = sl.getBlockState(door);
         if (!(s.getBlock() instanceof net.minecraft.world.level.block.DoorBlock db) || !door.equals(rs.expectedExitDoor)) {
-            com.example.roomsmod.util.RoomsDebug.log("A-20 reached path end {} (not the unopened exit door, expected={})", door, rs.expectedExitDoor);
+            com.example.roomsmod.util.RoomsDebug.log("B-20 reached path end {} (not the unopened exit door, expected={})", door, rs.expectedExitDoor);
             return;
         }
-        boolean gen = com.example.roomsmod.event.DoorEventHandler.openDoorByEntity(sl, rs, this, door, "A-20 opened door");
-        com.example.roomsmod.util.RoomsDebug.log("A-20 opened exit door {} generatedNext={}", door, gen);
+        boolean gen = com.example.roomsmod.event.DoorEventHandler.openDoorByEntity(sl, rs, this, door, "B-20 opened door");
+        com.example.roomsmod.util.RoomsDebug.log("B-20 opened exit door {} generatedNext={}", door, gen);
         if (gen) refreshWaypointsIfGrown();
     }
 
@@ -107,7 +107,7 @@ public class A20Entity extends Mob {
             int idx = waypointIndex;
             buildWaypoints();
             waypointIndex = idx >= old.size() ? Math.min(idx, waypoints.size()) : WaypointMover.preserveIndex(old, idx, waypoints);
-            if (waypointIndex != idx) com.example.roomsmod.util.RoomsDebug.log("A-20 path extend remapped waypoint {} -> {}", idx, waypointIndex);
+            if (waypointIndex != idx) com.example.roomsmod.util.RoomsDebug.log("B-20 path extend remapped waypoint {} -> {}", idx, waypointIndex);
         }
     }
     private int lastPathPointCount = 0;
@@ -121,7 +121,7 @@ public class A20Entity extends Mob {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putInt("GraceTicks", graceTicks);
-        com.example.roomsmod.util.RoomsDebug.log("A-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
+        com.example.roomsmod.util.RoomsDebug.log("B-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
         tag.putInt("WaypointIndex", waypointIndex);
         tag.putBoolean("OpenedExit", openedExit);
@@ -131,7 +131,7 @@ public class A20Entity extends Mob {
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         graceTicks = tag.contains("GraceTicks") ? tag.getInt("GraceTicks") : GRACE_TICKS;
-        com.example.roomsmod.util.RoomsDebug.log("A-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
+        com.example.roomsmod.util.RoomsDebug.log("B-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
         waypointIndex = tag.getInt("WaypointIndex");
         openedExit = tag.getBoolean("OpenedExit");
@@ -159,7 +159,7 @@ public class A20Entity extends Mob {
 
     @Override
     public void remove(RemovalReason reason) {
-        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("A-20 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
+        if (!this.level().isClientSide()) com.example.roomsmod.util.RoomsDebug.log("B-20 removed reason={} waypoint={}/{}", reason, waypointIndex, waypoints.size());
         super.remove(reason);
     }
 
@@ -169,7 +169,7 @@ public class A20Entity extends Mob {
         super.onRemovedFromLevel();
         if (this.level() instanceof ServerLevel sl) {
             RemovalReason r = this.getRemovalReason();
-            com.example.roomsmod.util.RoomsDebug.log("A-20 removed from level reason={} saved={} pos=({}, {}, {})", r, r != null && r.shouldSave(),
+            com.example.roomsmod.util.RoomsDebug.log("B-20 removed from level reason={} saved={} pos=({}, {}, {})", r, r != null && r.shouldSave(),
                     String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
             if (r == null || r.shouldDestroy() || r == RemovalReason.CHANGED_DIMENSION) {
                 if (lastForcedChunk != null) RusherChunks.force(sl, this, lastForcedChunk, false);
@@ -221,7 +221,7 @@ public class A20Entity extends Mob {
             if (waypointIndex < waypoints.size()) {
                 // 終端（size-1）まで進み、到達したら index=size（経路終端後モード）
                 int last = waypoints.size() - 1;
-                int idx = mover.step(this, "A-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
+                int idx = mover.step(this, "B-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
                 waypointIndex = reachedBuf[0] ? waypoints.size() : idx;
                 if (reachedBuf[0]) openDeepestExitDoor();
             } else {
@@ -238,8 +238,8 @@ public class A20Entity extends Mob {
             Player nearest = sl.getNearestPlayer(this, 500);
             double nd = nearest != null ? this.distanceTo(nearest) : -1;
             com.example.roomsmod.util.RoomsDebug.log(nearest,
-                nearest != null ? "A-20 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
-                "A-20 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
+                nearest != null ? "B-20 at Z: " + String.format("%.1f", this.getZ()) + " (player Z: " + String.format("%.1f", nearest.getZ()) + ")" : null,
+                "B-20 progress waypoint={}/{} pos=({}, {}, {}) nearestPlayerDist={}",
                 waypointIndex, waypoints.size(), String.format("%.1f", this.getX()), String.format("%.1f", this.getY()), String.format("%.1f", this.getZ()), String.format("%.1f", nd));
         }
 
@@ -249,13 +249,13 @@ public class A20Entity extends Mob {
         if (nearest2 != null) {
             double ahead = this.getZ() - nearest2.getZ();
             if (ahead > 120.0) {
-                com.example.roomsmod.util.RoomsDebug.log("A-20 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
+                com.example.roomsmod.util.RoomsDebug.log("B-20 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
                 this.discard();
                 return;
             }
         } else if (this.tickCount > 1200) {
             // プレイヤーがいない場合の保険
-            com.example.roomsmod.util.RoomsDebug.log("A-20 despawn: no player within 500 blocks after {} ticks", this.tickCount);
+            com.example.roomsmod.util.RoomsDebug.log("B-20 despawn: no player within 500 blocks after {} ticks", this.tickCount);
             this.discard();
             return;
         }
@@ -268,7 +268,7 @@ public class A20Entity extends Mob {
         for (Player player : this.level().getEntitiesOfClass(Player.class, searchBox)) {
             if (player.isSpectator() || !player.isAlive()) continue;
             if (this.distanceTo(player) > MAX_RAYCAST_DISTANCE) continue;
-            com.example.roomsmod.hiding.RusherHits.tryHit(this, "A-20", player, hasLineOfSight(player), DAMAGE);
+            com.example.roomsmod.hiding.RusherHits.tryHit(this, "B-20", player, hasLineOfSight(player), DAMAGE);
         }
     }
 
@@ -344,7 +344,7 @@ public class A20Entity extends Mob {
     }
 
     /**
-     * サーバー側の一発キュー音（A-20出現・A-40折り返し）。接近ループと同じ approachVolume を使い、
+     * サーバー側の一発キュー音（B-20出現・B-40折り返し）。接近ループと同じ approachVolume を使い、
      * MIN_APPROACH_VOLUME 未満なら鳴らさない。プレイヤーからエンティティ方向へ最大8ブロックの位置で鳴らす。
      */
     public static void playApproachCue(ServerLevel sl, Entity e, net.minecraft.sounds.SoundEvent sound, float pitch) {
