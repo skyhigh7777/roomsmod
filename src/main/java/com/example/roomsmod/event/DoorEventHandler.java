@@ -56,8 +56,17 @@ public class DoorEventHandler {
                     return;
                 }
                 event.setCanceled(true);
-                if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
+                if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl) {
+                    RoomsState rs0 = RoomsState.get(sl);
+                    // 詰み防止：開いているのに次の部屋ができていない出口扉（生成失敗・扉だけ開いた等）は、もう一度生成を試す
+                    if (dp.equals(rs0.expectedExitDoor)) {
+                        rs0.generatedDoors.remove(dp);
+                        RoomsDebug.log(event.getEntity(), "開いた出口扉の先に部屋がないので生成し直すわ", "door click pos={} -> open exit door without next room: retry generation", dp);
+                        advanceThroughExitDoor(sl, rs0, event.getEntity(), dp, "stuck open exit door retry");
+                        return;
+                    }
                     RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
+                }
                 return;
             }
         }
@@ -164,6 +173,7 @@ public class DoorEventHandler {
             RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
         } catch (RuntimeException e) {
             RoomsDebug.error("room generation failed (room=" + room + ", origin=" + nextOrigin + ")", e);
+            rs.generatedDoors.remove(doorPos); // もう一度クリックすれば再試行できるように
             return false;
         }
         if (player != null) RoomsDebug.log(player, "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",

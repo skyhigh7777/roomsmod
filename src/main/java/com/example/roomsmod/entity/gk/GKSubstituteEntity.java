@@ -55,6 +55,7 @@ public class GKSubstituteEntity extends VEntity {
                 for (int z = b.minZ() + 2; z <= b.maxZ() - 2; z++) {
                     BlockPos w = new BlockPos(x, y, z), inside = w.relative(in);
                     if (w.distManhattan(entrance) < 4 || w.distManhattan(exit) < 4) continue;
+                    if (nearDoor(level, w)) continue; // 本物の扉（他の部屋の入口・出口を含む）の近くには作らない
                     if (!level.getBlockState(w).isSolid() || !level.getBlockState(w.above()).isSolid()) continue;
                     if (!level.getBlockState(inside).isAir() || !level.getBlockState(inside.above()).isAir()) continue;
                     if (!level.getBlockState(w.north()).isSolid() || !level.getBlockState(w.south()).isSolid()) continue;
@@ -76,6 +77,12 @@ public class GKSubstituteEntity extends VEntity {
         return at;
     }
 
+    private static boolean nearDoor(ServerLevel level, BlockPos w) {
+        for (BlockPos q : BlockPos.betweenClosed(w.offset(-2, -1, -2), w.offset(2, 2, 2)))
+            if (level.getBlockState(q).getBlock() instanceof DoorBlock) return true;
+        return false;
+    }
+
     public boolean isFake(BlockPos p) { return door != null && !restored && door.equals(p); }
 
     public void trigger(ServerLevel level, Player p) {
@@ -91,7 +98,12 @@ public class GKSubstituteEntity extends VEntity {
     private void restore() {
         if (restored || door == null || !(level() instanceof ServerLevel sl)) return;
         restored = true;
-        if (sl.getBlockState(door).getBlock() instanceof DoorBlock) {
+        RoomsState rs = RoomsState.get(sl);
+        // 自分の偽の扉（閉じた暗いオークの扉）だけを壁に戻す。本物の扉（出口・生成済み）は絶対に上書きしない
+        var st = sl.getBlockState(door);
+        boolean real = rs.generatedDoors.contains(door) || door.equals(rs.expectedExitDoor) || (st.getBlock() instanceof DoorBlock && st.getValue(DoorBlock.OPEN));
+        if (real) RoomsDebug.warn("GK-Substitute restore skipped: {} is a real/open door", door);
+        else if (st.is(Blocks.DARK_OAK_DOOR)) {
             sl.setBlock(door.above(), wallUpper != null ? wallUpper : Blocks.WHITE_TERRACOTTA.defaultBlockState(), 2 | 16);
             sl.setBlock(door, wallLower != null ? wallLower : Blocks.STRIPPED_DARK_OAK_WOOD.defaultBlockState(), 2 | 16);
             sl.sendBlockUpdated(door, sl.getBlockState(door), sl.getBlockState(door), 3);
