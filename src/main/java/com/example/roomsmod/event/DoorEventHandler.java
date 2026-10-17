@@ -25,12 +25,53 @@ public class DoorEventHandler {
     public static final int baseFloorY = 1;
     /** A-20 が出現する、プレイヤーから何部屋後ろか。 */
     public static final int A20_ROOMS_BEHIND = 10;
+    /** GK 区画で1回の抽選で出る最大数。 */
+    public static final int GK_MAX_PER_ROLL = 2;
 
     // ラッシャー出現率（調整用）
     // 出現する部屋・確率は SectionTheme.rushers()（Sections.A）
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
+        // ロビーのパネル：ブロック操作禁止の例外（パネルとして処理し、ブロック本来の操作・看板の編集はさせない）
+        if (com.example.roomsmod.world.LobbyPanels.isPanel(event.getLevel(), event.getPos())) {
+            event.setCanceled(true);
+            if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND
+                    && event.getLevel() instanceof ServerLevel sl && event.getEntity() instanceof net.minecraft.server.level.ServerPlayer sp)
+                com.example.roomsmod.world.LobbyPanels.click(sl, sp, event.getPos().immutable());
+            return;
+        }
+        // 一度開いた扉は閉められない（両手・上下どちらの半分も、クライアントでも取り消して予測で閉じないようにする）
+        if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION)) {
+            BlockState s0 = event.getLevel().getBlockState(event.getPos());
+            if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
+                BlockPos dp = s0.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? event.getPos().below() : event.getPos();
+                if (com.example.roomsmod.entity.gk.GKDoorTricks.closableOpenDoor(event.getLevel(), dp)) {
+                    // GK-07 が見張る扉だけは閉められる（サーバーで閉める）
+                    event.setCanceled(true);
+                    if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl)
+                        com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(sl, RoomsState.get(sl), event.getEntity(), dp);
+                    return;
+                }
+                event.setCanceled(true);
+                if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
+                    RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
+                return;
+            }
+        }
+        // 部屋ディメンションでは、Mod 自身の操作できるブロック（ロッカー・隠れテーブル・まだ閉じている扉）以外の右クリックを全て取り消す
+        //（作業台・かまど・チェスト・樽・金床・ベッド・トラップドア・フェンスゲート・音符ブロック等の GUI や操作を防ぐ）。両手・サーバー/クライアント両方。
+        if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION) && !isAllowedInteraction(event.getLevel().getBlockState(event.getPos()))) {
+            if (event.getItemStack().getItem() instanceof com.example.roomsmod.item.FlashlightItem) {
+                // 懐中電灯：ブロックの操作だけ禁止して、アイテムの使用（ON/OFF）は通す
+                event.setUseBlock(net.neoforged.neoforge.common.util.TriState.FALSE);
+                return;
+            }
+            event.setCanceled(true);
+            if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
+                RoomsDebug.log("block use cancelled pos={} block={} player={}", event.getPos(), event.getLevel().getBlockState(event.getPos()).getBlock(), event.getEntity().getGameProfile().getName());
+            return;
+        }
         if (event.getLevel().isClientSide()) return;
         // MAIN_HAND / OFF_HAND の2回発火を防ぐ
         if (event.getHand() != InteractionHand.MAIN_HAND) return;
@@ -40,6 +81,7 @@ public class DoorEventHandler {
         BlockState state = level.getBlockState(event.getPos());
         // このディメンションはベッドが爆発する（bed_works=false）ので、飾りのベッドは使えないようにする
         if (state.getBlock() instanceof net.minecraft.world.level.block.BedBlock) { event.setCanceled(true); return; }
+        if (state.getBlock() instanceof net.minecraft.world.level.block.BellBlock) { com.example.roomsmod.entity.gk.GKDoorTricks.onBell(level, event.getEntity(), event.getPos().immutable()); return; }
         if (!(state.getBlock() instanceof DoorBlock)) return;
 
         // 下半分に正規化
@@ -47,6 +89,14 @@ public class DoorEventHandler {
         if (state.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER) doorPos = doorPos.below();
 
         RoomsState rs = RoomsState.get(level);
+        // V-50 の待機中に、潜んでいる部屋の扉を開けたら罰（隠れ・視線無視）
+        // GK の扉の仕掛け（施錠・偽の扉）：扉を開けさせない
+        if (!state.getValue(DoorBlock.OPEN) && com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(level, rs, event.getEntity(), doorPos)) {
+            event.setCanceled(true);
+            return;
+        }
+        if (!state.getValue(DoorBlock.OPEN))
+            com.example.roomsmod.entity.v.V50Entity.onDoorOpened(level, rs, event.getEntity(), doorPos);
         // 現在の部屋の出口扉以外（使用済みの扉など）は普通に開閉するだけ
         if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos)) {
             RoomsDebug.log(event.getEntity(), "扉 " + doorPos.toShortString() + " 無視（出口扉ではない）",
@@ -59,6 +109,52 @@ public class DoorEventHandler {
             return;
         }
 
+        advanceThroughExitDoor(level, rs, event.getEntity(), doorPos, "door click hand=" + event.getHand());
+    }
+
+    /** 部屋ディメンションで右クリックしてよいブロック（許可リスト）。開いた扉は手前で取り消し済み。 */
+    /** ロビーのパネルは壊せない（クリエイティブでも）。 */
+    @SubscribeEvent
+    public static void onBreak(net.neoforged.neoforge.event.level.BlockEvent.BreakEvent event) {
+        if (event.getLevel() instanceof net.minecraft.world.level.Level l && com.example.roomsmod.world.LobbyPanels.isPanel(l, event.getPos())) {
+            event.setCanceled(true);
+            RoomsDebug.log("lobby panel break cancelled pos={} player={}", event.getPos(), event.getPlayer().getGameProfile().getName());
+        }
+    }
+
+    public static boolean isAllowedInteraction(BlockState s) {
+        var b = s.getBlock();
+        return b instanceof com.example.roomsmod.block.LockerBlock
+                || b instanceof com.example.roomsmod.block.HidingTableBlock
+                || b instanceof net.minecraft.world.level.block.BellBlock // GK-Chime のベル
+                || b instanceof DoorBlock;
+    }
+
+    /**
+     * 出口扉を通って次へ：扉を生成済みにし（以後は普通の扉）、次の部屋を生成し、出現抽選をする。
+     * プレイヤーのクリックと V-50 の飛び出し（扉を開ける）で共用。player は null 可。
+     */
+    /** エンティティ（A-20・V-50 など）が扉を開ける：プレイヤーと同じ開く音を鳴らして開け、出口扉なら次の部屋を生成して抽選。 */
+    public static boolean openDoorByEntity(ServerLevel level, RoomsState rs, net.minecraft.world.entity.Entity by, BlockPos door, String what) {
+        BlockState s = level.getBlockState(door);
+        if (!(s.getBlock() instanceof DoorBlock db)) return false;
+        if (!s.getValue(DoorBlock.OPEN)) {
+            // バニラの setOpen と同じ状態変更（上下とも）＋ゲームイベント。音は source なしで全員に鳴らす（プレイヤーが開けたときと同じ音・音量・ピッチ）
+            level.setBlock(door, s.setValue(DoorBlock.OPEN, true), 10);
+            level.gameEvent(by, net.minecraft.world.level.gameevent.GameEvent.BLOCK_OPEN, door);
+            level.playSound(null, door, db.type().doorOpen(), net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, level.getRandom().nextFloat() * 0.1f + 0.9f);
+            RoomsDebug.log("{} door open sound at {}", what, door);
+        }
+        return advanceThroughExitDoor(level, rs, null, door, what);
+    }
+
+    public static boolean advanceThroughExitDoor(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, BlockPos doorPos, String by) {
+        if (rs.expectedExitDoor == null || !rs.expectedExitDoor.equals(doorPos) || rs.generatedDoors.contains(doorPos)) return false;
+        if (player == null) {
+            // エンティティが開けた：扉に一番近いプレイヤーを基準に（部屋の判定・デバッグ通知はプレイヤーが開けたときと同じ）
+            player = level.getNearestPlayer(doorPos.getX() + 0.5, doorPos.getY(), doorPos.getZ() + 0.5, -1, false);
+            if (player != null) RoomsDebug.log(player, by + "（" + doorPos.toShortString() + "）", "{} pos={} -> notify {}", by, doorPos, player.getGameProfile().getName());
+        }
         rs.markDoorGenerated(doorPos);
         int room = rs.currentRoom + 1;
         BlockPos nextOrigin = new BlockPos(doorPos.getX() - 10, doorPos.getY() - 1, doorPos.getZ() + 1); // 扉の床の高さ（V の2階建てで上がる）
@@ -66,16 +162,18 @@ public class DoorEventHandler {
             RoomGenerator.generateNextRoom(level, nextOrigin, room); // currentRoom / expectedExitDoor を更新
         } catch (RuntimeException e) {
             RoomsDebug.error("room generation failed (room=" + room + ", origin=" + nextOrigin + ")", e);
-            return;
+            return false;
         }
-        RoomsDebug.log(event.getEntity(), "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
-            "door click pos={} hand={} expectedExitDoor={} -> generated room {} at {}", doorPos, event.getHand(), doorPos, room, nextOrigin);
+        if (player != null) RoomsDebug.log(player, "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
+            "{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
+        else RoomsDebug.log("{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
 
         try {
-            rollRushers(level, rs, event.getEntity(), room);
+            rollRushers(level, rs, player, room);
         } catch (RuntimeException e) {
             RoomsDebug.error("rusher spawn failed", e);
         }
+        return true;
     }
 
     /**
@@ -83,6 +181,11 @@ public class DoorEventHandler {
      * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
     private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        rollRushers(level, rs, player, room, false);
+    }
+
+    /** forceAll=true は全種類を当たり扱い（minRoom は無視しない）。テスト用。 */
+    public static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room, boolean forceAll) {
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         var table = theme.rushers();
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
@@ -90,7 +193,7 @@ public class DoorEventHandler {
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
-            hit[k] = local >= r.minRoom() && level.random.nextFloat() < r.chance();
+            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < r.chance() || forceAll);
         }
         StringBuilder sb = new StringBuilder();
         for (int k = 0; k < table.size(); k++) {
@@ -100,6 +203,32 @@ public class DoorEventHandler {
               .append(" (room>=").append(r.minRoom()).append(", ").append(r.chance()).append(") alive=").append(alive[k]);
         }
         RoomsDebug.log("rusher roll room={} local={} section={} {}", room, com.example.roomsmod.world.section.Sections.formatRoom(rs, room), theme.prefix(), sb);
+        // 排他グループ：同じ抽選で複数当たったら1つだけランダムに選ぶ（生存中のメンバーがいれば alive で全員スキップ）
+        java.util.Map<String, java.util.List<Integer>> groups = new java.util.LinkedHashMap<>();
+        for (int k = 0; k < table.size(); k++)
+            if (hit[k] && !alive[k] && table.get(k).exclusionGroup() != null)
+                for (String g : table.get(k).exclusionGroup().split(","))
+                    groups.computeIfAbsent(g.trim(), x -> new java.util.ArrayList<>()).add(k);
+        for (var e : groups.entrySet()) {
+            var c = new java.util.ArrayList<Integer>();
+            for (int k : e.getValue()) if (hit[k]) c.add(k); // 先のグループで外れたものは除く
+            if (c.size() < 2) continue;
+            int win = c.get(level.random.nextInt(c.size()));
+            for (int k : c) if (k != win) {
+                hit[k] = false;
+                RoomsDebug.log("rusher roll room={} {} skipped: exclusion group {} ({} spawned this roll)", room, table.get(k).name(), e.getKey(), table.get(win).name());
+            }
+        }
+        // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
+        if (theme == com.example.roomsmod.world.section.Sections.GK) {
+            java.util.List<Integer> c = new java.util.ArrayList<>();
+            for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
+            java.util.Collections.shuffle(c, new java.util.Random(level.random.nextLong()));
+            for (int n = GK_MAX_PER_ROLL; n < c.size(); n++) {
+                hit[c.get(n)] = false;
+                RoomsDebug.log("rusher roll room={} {} skipped: per-roll cap {}", room, table.get(c.get(n)).name(), GK_MAX_PER_ROLL);
+            }
+        }
         for (int k = 0; k < table.size(); k++) {
             if (!hit[k]) continue;
             var r = table.get(k);

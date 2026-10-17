@@ -1,4 +1,197 @@
 {
-  "a20_approach": { "sounds": ["roomsmod:a20_approach"], "subtitle": "subtitles.roomsmod.a20_approach" },
-  "a40_approach": { "sounds": ["roomsmod:a40_approach"], "subtitle": "subtitles.roomsmod.a40_approach" }
+  "a20_approach": {
+    "sounds": [
+      "roomsmod:a20_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.a20_approach"
+  },
+  "a40_approach": {
+    "sounds": [
+      "roomsmod:a40_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.a40_approach"
+  },
+  "v10_approach": {
+    "sounds": [
+      "roomsmod:v10_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.v10_approach"
+  },
+  "v25t_step": {
+    "sounds": [
+      "roomsmod:v25t_step"
+    ],
+    "subtitle": "subtitles.roomsmod.v25t_step"
+  },
+  "v25t_check": {
+    "sounds": [
+      "roomsmod:v25t_check"
+    ],
+    "subtitle": "subtitles.roomsmod.v25t_check"
+  },
+  "v25l_step": {
+    "sounds": [
+      "roomsmod:v25l_step"
+    ],
+    "subtitle": "subtitles.roomsmod.v25l_step"
+  },
+  "v25l_check": {
+    "sounds": [
+      "roomsmod:v25l_check"
+    ],
+    "subtitle": "subtitles.roomsmod.v25l_check"
+  },
+  "v100_knock": {
+    "sounds": [
+      "roomsmod:v100_knock"
+    ],
+    "subtitle": "subtitles.roomsmod.v100_knock"
+  },
+  "v100_scream": {
+    "sounds": [
+      "roomsmod:v100_scream"
+    ],
+    "subtitle": "subtitles.roomsmod.v100_scream"
+  },
+  "v50_approach": {
+    "sounds": [
+      "roomsmod:v50_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_approach"
+  },
+  "v50_tick": {
+    "sounds": [
+      "roomsmod:v50_tick"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_tick"
+  },
+  "v50_buzzer": {
+    "sounds": [
+      "roomsmod:v50_buzzer"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_buzzer"
+  },
+  "v50_explode": {
+    "sounds": [
+      "roomsmod:v50_explode"
+    ],
+    "subtitle": "subtitles.roomsmod.v50_explode"
+  },
+  "v25_buffed_tick": {
+    "sounds": [
+      "roomsmod:v25_buffed_tick"
+    ],
+    "subtitle": "subtitles.roomsmod.v25_buffed_tick"
+  },
+  "v25_buffed_reveal": {
+    "sounds": [
+      "roomsmod:v25_buffed_reveal"
+    ],
+    "subtitle": "subtitles.roomsmod.v25_buffed_reveal"
+  },
+  "v100_watch": {
+    "sounds": [
+      {
+        "name": "roomsmod:v100_watch",
+        "stream": true
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.v100_watch"
+  },
+  "gk_chime_approach": {
+    "sounds": [
+      "roomsmod:gk_chime_approach"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_chime_approach"
+  },
+  "gk_rollcall_step": {
+    "sounds": [
+      "roomsmod:gk_rollcall_step"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_rollcall_step"
+  },
+  "gk_rollcall_check": {
+    "sounds": [
+      "roomsmod:gk_rollcall_check"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_rollcall_check"
+  },
+  "gk_moth_flutter": {
+    "sounds": [
+      "roomsmod:gk_moth_flutter"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_moth_flutter"
+  },
+  "gk_stare_hum": {
+    "sounds": [
+      "roomsmod:gk_stare_hum"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_stare_hum"
+  },
+  "gk_whisper": {
+    "sounds": [
+      "roomsmod:gk_whisper"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_whisper"
+  },
+  "gk_detention_chain": {
+    "sounds": [
+      "roomsmod:gk_detention_chain"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_detention_chain"
+  },
+  "gk_substitute_creak": {
+    "sounds": [
+      "roomsmod:gk_substitute_creak"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_substitute_creak"
+  },
+  "gk_eraser_scratch": {
+    "sounds": [
+      "roomsmod:gk_eraser_scratch"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_eraser_scratch"
+  },
+  "gk_desk_check": {
+    "sounds": [
+      "roomsmod:gk_desk_check"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_desk_check"
+  },
+  "gk_pa_chime": {
+    "sounds": [
+      "roomsmod:gk_pa_chime"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_pa_chime"
+  },
+  "gk_janitor_squeak": {
+    "sounds": [
+      "roomsmod:gk_janitor_squeak"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_janitor_squeak"
+  },
+  "gk_mirror_chime": {
+    "sounds": [
+      "roomsmod:gk_mirror_chime"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_mirror_chime"
+  },
+  "gk_07_knock": {
+    "sounds": [
+      "roomsmod:gk_07_knock"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_07_knock"
+  },
+  "gk_bell2_bell": {
+    "sounds": [
+      "roomsmod:gk_bell2_bell"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_bell2_bell"
+  },
+  "gk_homework_page": {
+    "sounds": [
+      "roomsmod:gk_homework_page"
+    ],
+    "subtitle": "subtitles.roomsmod.gk_homework_page"
+  }
 }

@@ -45,7 +45,7 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 
-    /** V（Village）区画。部屋の形・家具は VillageRooms（小さな民家、2階建てあり）。shapeWeights/furniture は未使用、cover は遮蔽物のブロック。ラッシャーなし。 */
+    /** V（Village）区画。部屋の形・家具は VillageRooms（小さな民家、2階建てあり）。shapeWeights/furniture は未使用、cover は遮蔽物のブロック。エンティティは V-10/V-25-T/V-25-L/V-100/V-50。 */
     public static final SectionTheme V = register(new SectionTheme(
             "v", "V",
             new SectionTheme.Palette(
@@ -63,11 +63,58 @@ public final class Sections {
             List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.6f),
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.4f)),
             3, 2,
-            List.of(),
+            // V のエンティティ（minRoom はセクション内番号）。上から独立抽選、同種は1体まで、V-25-T/L は排他グループ。
+            List.of(
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V10, 10, 0.35f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25T, 25, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25L, 25, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25_BUFFED, 125, 0.10f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V100, 100, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V50, 50, 0.12f)),
             new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
             1, 7));
 
+    /**
+     * GK（学校 / Gakkou）区画。部屋は GKRooms（教室・廊下・準備室、内寸 5〜15、A 寄りの中間サイズ）。
+     * どの部屋にもロッカーとテーブルを最低1つずつ置く。進行上は V の後（/rooms section gk now で開始）。
+     * palette.floor/wall/ceiling/door/light と hidingMix・hidingMin/Extra・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
+     */
+    public static final SectionTheme GK = register(new SectionTheme(
+            "gk", "GK",
+            new SectionTheme.Palette(
+                    Blocks.BIRCH_PLANKS::defaultBlockState, Blocks.WHITE_TERRACOTTA::defaultBlockState, Blocks.SMOOTH_QUARTZ::defaultBlockState,
+                    () -> Blocks.BIRCH_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{1, 1, 1, 1, 1},
+            A.furniture(), A.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.5f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.5f)),
+            3, 2,
+            List.of(
+                    // GK: セクション内番号 GK-010〜GK-300 にかけて易しい順に解禁。1回の抽選で出るのは最大 GK_MAX_PER_ROLL 体（DoorEventHandler）
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_MOTH, 10, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_CHIME, 25, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_WHISPER, 45, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_DETENTION, 65, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_QUIZ, 85, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_SUBSTITUTE, 105, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_07, 125, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_REWIND, 145, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_MIMIC, 165, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_PA, 185, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_STARE, 205, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_JANITOR, 225, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_ERASER, 245, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_MIRROR, 270, 0.04f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_BELL2, 300, 0.04f)),
+            new SectionTheme.SignStyle(() -> Blocks.BIRCH_WALL_SIGN, DyeColor.BLACK, false),
+            1, 8));
+
     private Sections() {}
+
+    private static SectionTheme.RusherSpawn vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind k, int minRoom, float chance) {
+        return new SectionTheme.RusherSpawn(k.display, minRoom, chance, k::alive, k::spawn, k.exclusionGroup);
+    }
 
     public static SectionTheme register(SectionTheme t) {
         if (THEMES.putIfAbsent(t.id(), t) != null) throw new IllegalStateException("duplicate section " + t.id());

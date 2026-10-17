@@ -70,6 +70,23 @@ public class A20Entity extends Mob {
         updateExitDirection();
     }
 
+    /** 一度だけ：経路の終端（最も奥の部屋の出口扉）に着いたら、プレイヤーと同じく扉を開けて次の部屋を生成・出現抽選。 */
+    private boolean openedExit = false;
+    private void openDeepestExitDoor() {
+        if (openedExit || !(this.level() instanceof ServerLevel sl) || waypoints.isEmpty()) return;
+        openedExit = true;
+        RoomsState rs = RoomsState.get(sl);
+        BlockPos door = waypoints.get(waypoints.size() - 1);
+        net.minecraft.world.level.block.state.BlockState s = sl.getBlockState(door);
+        if (!(s.getBlock() instanceof net.minecraft.world.level.block.DoorBlock db) || !door.equals(rs.expectedExitDoor)) {
+            com.example.roomsmod.util.RoomsDebug.log("A-20 reached path end {} (not the unopened exit door, expected={})", door, rs.expectedExitDoor);
+            return;
+        }
+        boolean gen = com.example.roomsmod.event.DoorEventHandler.openDoorByEntity(sl, rs, this, door, "A-20 opened door");
+        com.example.roomsmod.util.RoomsDebug.log("A-20 opened exit door {} generatedNext={}", door, gen);
+        if (gen) refreshWaypointsIfGrown();
+    }
+
     private void updateExitDirection() {
         if (waypoints.size() >= 2) {
             BlockPos a = waypoints.get(waypoints.size() - 2), b = waypoints.get(waypoints.size() - 1);
@@ -107,6 +124,7 @@ public class A20Entity extends Mob {
         com.example.roomsmod.util.RoomsDebug.log("A-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
         tag.putInt("WaypointIndex", waypointIndex);
+        tag.putBoolean("OpenedExit", openedExit);
     }
 
     @Override
@@ -116,6 +134,7 @@ public class A20Entity extends Mob {
         com.example.roomsmod.util.RoomsDebug.log("A-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
         waypointIndex = tag.getInt("WaypointIndex");
+        openedExit = tag.getBoolean("OpenedExit");
         waypointsBuilt = false; // 次tickでRoomsStateから再構築
     }
 
@@ -204,6 +223,7 @@ public class A20Entity extends Mob {
                 int last = waypoints.size() - 1;
                 int idx = mover.step(this, "A-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
                 waypointIndex = reachedBuf[0] ? waypoints.size() : idx;
+                if (reachedBuf[0]) openDeepestExitDoor();
             } else {
                 // 生成済み経路の終端：出口方向へ進み続ける
                 Vec3 n = this.position().add(exitDirection.scale(SPEED));
@@ -240,33 +260,8 @@ public class A20Entity extends Mob {
             return;
         }
 
-        // 音（バニラのウォーデン近くの音を使う）
-        ServerLevel soundLevel = (ServerLevel) this.level();
-        Player nearestForSound = soundLevel.getNearestPlayer(this, 500);
-        if (nearestForSound != null) {
-            double dist = this.distanceTo(nearestForSound);
-            double t = Math.max(0.0, Math.min(1.0, (500.0 - dist) / 490.0));
-            float baseVolume = (float) (1.5f + 3.0f * Math.pow(t, 1.3));
-
-            Vec3 look = nearestForSound.getViewVector(1.0f);
-            Vec3 toEntity = this.position().subtract(nearestForSound.position()).normalize();
-            double facing = look.dot(toEntity);
-            float facingMul = (float) Math.max(0.6f, (facing + 1.0) * 0.5);
-
-            float volume = Math.min(5.0f, baseVolume * facingMul);
-
-            // 遠くても聞こえるよう、プレイヤーからA-20方向へ最大8ブロックの位置で鳴らす
-            // （位置で鳴らすと 16×音量 ブロック以内しか届かないため）
-            Vec3 pp = nearestForSound.position();
-            double off = Math.min(dist, 8.0);
-            Vec3 src = pp.add(toEntity.scale(off));
-            // 距離で音量を上げる（150ブロック以内で徐々に大きく）
-            float distVol = (float) Math.max(0.3, Math.min(1.0, 1.0 - dist / 150.0)) * 3.0f;
-            if (this.tickCount == 1) {
-                this.level().playSound(null, src.x, src.y, src.z,
-                        SoundEvents.WARDEN_SONIC_BOOM, SoundSource.HOSTILE, Math.max(1.0f, distVol), 0.5f);
-            }
-        }
+        // 出現時の一発音：接近ループと同じ線形カーブ（遠いと鳴らない）
+        if (this.tickCount == 1) playApproachCue((ServerLevel) this.level(), this, SoundEvents.WARDEN_SONIC_BOOM, 0.5f);
 
         // 近くのプレイヤーに視線判定ダメージ
         AABB searchBox = this.getBoundingBox().inflate(MAX_RAYCAST_DISTANCE);
@@ -334,17 +329,33 @@ public class A20Entity extends Mob {
         return hitDist >= targetDist - 0.5;
     }
 
-    /** 接近ループ音のフェードイン：MAX_RANGE以遠で0、FULL_RANGE以内で最大、間は t^CURVE_EXPONENT（t=線形の近さ0..1）。 */
+    /** 接近ループ音のフェードイン：MAX_RANGE以遠で0、FULL_RANGE以内で最大、間は線形（近さ t に比例）。 */
     public static final double APPROACH_MAX_RANGE = 160.0;
     public static final double APPROACH_FULL_RANGE = 4.0;
     public static final float APPROACH_MAX_VOLUME = 3.0f;
     public static final float MIN_APPROACH_VOLUME = 0.02f;
-    /** 1.0=線形、<1で遠くから早めに聞こえる（0.75・最大160: 100ブロックで約49%、150ブロックで約12%）。 */
-    public static final double APPROACH_CURVE_EXPONENT = 0.75;
+    /** 1.0=線形（120ブロックで約26%、80で約51%、40で約77%、20で約90%、8で約97%）。 */
+    public static final double APPROACH_CURVE_EXPONENT = 1.0;
 
     public static float approachVolume(double dist) {
         double t = (APPROACH_MAX_RANGE - dist) / (APPROACH_MAX_RANGE - APPROACH_FULL_RANGE);
         t = Math.max(0.0, Math.min(1.0, t));
         return (float) Math.pow(t, APPROACH_CURVE_EXPONENT) * APPROACH_MAX_VOLUME;
+    }
+
+    /**
+     * サーバー側の一発キュー音（A-20出現・A-40折り返し）。接近ループと同じ approachVolume を使い、
+     * MIN_APPROACH_VOLUME 未満なら鳴らさない。プレイヤーからエンティティ方向へ最大8ブロックの位置で鳴らす。
+     */
+    public static void playApproachCue(ServerLevel sl, Entity e, net.minecraft.sounds.SoundEvent sound, float pitch) {
+        Player p = sl.getNearestPlayer(e, APPROACH_MAX_RANGE);
+        if (p == null) return;
+        double dist = e.distanceTo(p);
+        float vol = approachVolume(dist);
+        if (vol < MIN_APPROACH_VOLUME) return;
+        Vec3 to = e.position().subtract(p.position());
+        to = to.lengthSqr() > 1.0E-6 ? to.normalize() : Vec3.ZERO;
+        Vec3 src = p.position().add(to.scale(Math.min(dist, 8.0)));
+        sl.playSound(null, src.x, src.y, src.z, sound, SoundSource.HOSTILE, vol, pitch);
     }
 }

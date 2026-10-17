@@ -23,12 +23,34 @@ public class ClientSetup {
     @SubscribeEvent
     public static void onClientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
         com.example.roomsmod.util.ApproachSoundHook.set(ApproachSoundInstance::start);
+        com.example.roomsmod.util.ApproachSoundHook.setLoop((e, s) -> { if (e instanceof com.example.roomsmod.entity.v.V100Entity v) WatchSoundInstance.start(v, s); });
     }
 
     @SubscribeEvent
     public static void registerRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerEntityRenderer(RoomsMod.A20.get(), A20Renderer::new);
         event.registerEntityRenderer(RoomsMod.A40.get(), A40Renderer::new);
+        event.registerEntityRenderer(RoomsMod.V10.get(), c -> new VRenderer<>(c, "v10", 2.0f, 0.5f));
+        event.registerEntityRenderer(RoomsMod.V25T.get(), c -> new VRenderer<>(c, "v25t", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.V25L.get(), c -> new VRenderer<>(c, "v25l", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.V25_BUFFED.get(), c -> new VRenderer<>(c, "v25_buffed", 2.6f, 0.15f));
+        event.registerEntityRenderer(RoomsMod.V100.get(), c -> new VRenderer<>(c, "v100", 1.1f, 0.05f).withEyes("v100_eyes"));
+        event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
+        event.registerEntityRenderer(RoomsMod.GK_CHIME.get(), c -> new VRenderer<>(c, "gk_chime", 2.0f, 0.4f));
+        event.registerEntityRenderer(RoomsMod.GK_MIMIC.get(), c -> new VRenderer<>(c, "gk_mimic", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_MOTH.get(), c -> new VRenderer<>(c, "gk_moth", 1.4f, 0.3f));
+        event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
+        event.registerEntityRenderer(RoomsMod.GK_WHISPER.get(), c -> new VRenderer<>(c, "gk_whisper", 2.0f, 0.3f));
+        event.registerEntityRenderer(RoomsMod.GK_DETENTION.get(), c -> new VRenderer<>(c, "gk_detention", 2.4f, 0.02f));
+        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.GK_ERASER.get(), c -> new VRenderer<>(c, "gk_eraser", 2.2f, 0.4f));
+        event.registerEntityRenderer(RoomsMod.GK_QUIZ.get(), c -> new VRenderer<>(c, "gk_quiz", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_PA.get(), c -> new VRenderer<>(c, "gk_pa", 1.0f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.GK_JANITOR.get(), c -> new VRenderer<>(c, "gk_janitor", 2.4f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.GK_MIRROR.get(), c -> new VRenderer<>(c, "gk_mirror", 2.0f, 0.02f));
+        event.registerEntityRenderer(RoomsMod.GK_07.get(), c -> new VRenderer<>(c, "gk07", 2.2f, 0.03f));
+        event.registerEntityRenderer(RoomsMod.GK_BELL2.get(), c -> new VRenderer<>(c, "gk_bell2", 2.0f, 0.5f));
+        event.registerEntityRenderer(RoomsMod.GK_REWIND.get(), c -> new VRenderer<>(c, "gk_rewind", 1.8f, 0.1f));
     }
 
     private static class A20Renderer extends EntityRenderer<A20Entity> {
@@ -114,5 +136,54 @@ public class ClientSetup {
         public ResourceLocation getTextureLocation(com.example.roomsmod.entity.A40Entity entity) {
             return TEX;
         }
+    }
+
+    /** V エンティティ共通：カメラを向く板（テクスチャで区別、仮）。V-100 はノック中は描画しない。 */
+    private static class VRenderer<T extends com.example.roomsmod.entity.v.VEntity> extends EntityRenderer<T> {
+        private final ResourceLocation tex;
+        private final float size, wobble;
+        private ResourceLocation eyes = null;
+        VRenderer<T> withEyes(String name) { eyes = ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/" + name + ".png"); return this; }
+
+        VRenderer(EntityRendererProvider.Context context, String name, float size, float wobble) {
+            super(context);
+            this.tex = ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/" + name + ".png");
+            this.size = size; this.wobble = wobble;
+            this.shadowRadius = 0.0f;
+        }
+
+        @Override
+        public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
+            if (entity instanceof com.example.roomsmod.entity.v.V100Entity v && !v.isPeeking()) return;
+            if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
+            float age = entity.tickCount + pt;
+            ps.pushPose();
+            ps.translate(0.0f, size * 0.5f, 0.0f);
+            ps.mulPose(this.entityRenderDispatcher.cameraOrientation());
+            float s = size * (1.0f + Mth.sin(age * 0.5f) * wobble * 0.2f);
+            ps.scale(s, s, s);
+            VertexConsumer vc = buf.getBuffer(RenderType.entityTranslucentEmissive(tex));
+            PoseStack.Pose pose = ps.last();
+            Matrix4f m = pose.pose();
+            int l = 15728880;
+            vc.addVertex(m, -0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, 0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, 0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, -0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            if (eyes != null) { // 発光する目（クモの目と同じ eyes レイヤー）。少し手前に重ねる
+                ps.translate(0f, 0f, 0.01f);
+                PoseStack.Pose pe = ps.last(); Matrix4f me = pe.pose();
+                VertexConsumer ve = buf.getBuffer(RenderType.eyes(eyes));
+                ve.addVertex(me, -0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+                ve.addVertex(me, 0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 1f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+                ve.addVertex(me, 0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+                ve.addVertex(me, -0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, 0f).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pe, 0f, 1f, 0f);
+            }
+            ps.popPose();
+            super.render(entity, yaw, pt, ps, buf, light);
+        }
+
+        @Override
+        public ResourceLocation getTextureLocation(T entity) { return tex; }
     }
 }

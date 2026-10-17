@@ -91,4 +91,23 @@ TWO_STORY (~22%, stairs; ascending at base height -> exit on 2nd floor, descendi
 is the exit door's floor (door y - 1). Path waypoints include every stair step (rise, then advance).
 
 ## Lobby
-`RoomGenerator.buildLobbyInterior` holds the lobby interior (skylights only; walls/floor deliberately empty for future item stands / mode buttons). Keep the centre path x=10 clear. The rooms dimension has no sky light and ambient_light 0, so the lobby is lit only by its own skylight glowstone.
+`RoomGenerator.buildLobbyInterior` holds the lobby interior (skylights, sea lanterns). Keep the centre path x=9..11 clear.
+The lobby is rebuilt on every lobby entry (`/rooms enter`, first join, respawn, `/rooms to`, lobby GO), which also resets the run.
+
+### Lobby panels (`world/LobbyPanels.java`)
+- Left wall (+X wall, x=19, facing the exit door): SECTION / − / ＋ / GO buttons set into the wall at y=2 with waxed glowing signs above;
+  the selection sign shows e.g. `GK-150`. Sections cycle over `Sections.ids()` (new sections appear automatically);
+  room steps 1, 50 … 300, 400, 500. Selection is shared server-wide (in memory). GO = section table `[(a,0),(s,1)]` + `/rooms to n`.
+- Door wall (x=14, z=31): deepest generated room (`roomPaths.size()-1`), refreshed by `RoomGenerator.generateNextRoom`; right-click teleports (no reset).
+- Panels are exempt from the rooms-dimension block-use rule and cannot be broken (`DoorEventHandler`).
+- `/rooms to` and GO generate rooms over several ticks (`world/RoomsTravel.java`, 4 rooms/tick, max 500), one job at a time.
+
+## GK (Gakkou / school) rooms
+GK uses its own generator (`world/GKRooms.java`): interiors between A and V (closer to A), height 5.
+Layouts: CLASSROOM (11-15 x 11-17, desk grid, blackboard), HALLWAY (5-7 x 15-21, locker-heavy),
+PREP_ROOM (9-12 classroom + 5-7 side room through an inner door; exit in the side room).
+Every GK room gets at least one locker and one hiding table (forced placement as a fallback; a WARN is logged if
+that ever fails). Paths are kept 3 wide; the exit is always on the max-Z wall; overlapping plans fall back to a 9x9 classroom.
+Progression: after V. Start it with `/rooms section gk now` (or `/rooms section gk <globalRoom>`), rooms read `GK-001`...
+GK has 15 entities in `entity/gk`; at most 2 GK entities spawn per door roll (`DoorEventHandler.GK_MAX_PER_ROLL`).
+GK entities live in `entity/gk` and despawn after at most 100 s (`GKEntity.MAX_LIFE_TICKS`, below the 120 s hard cap).

@@ -66,6 +66,7 @@ public class RoomGenerator {
         state.addRoom(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
                 origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)), path);
         state.setExpectedExitDoor(doorPos);
+        if (origin.equals(LobbyPanels.ORIGIN)) LobbyPanels.build(level);
 
         return doorPos;
     }
@@ -162,7 +163,30 @@ public class RoomGenerator {
 
     private static final int ENTRANCE_X = 10;
 
+    /** 電池が床に落ちている部屋の割合。 */
+    public static final double BATTERY_ROOM_CHANCE = 0.22;
+
     public static BlockPos generateNextRoom(ServerLevel level, BlockPos origin, int roomNumber) {
+        BlockPos exit = generateNextRoomInner(level, origin, roomNumber);
+        try { placeBattery(level, roomNumber); }
+        catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("battery placement failed room=" + roomNumber, e); }
+        LobbyPanels.refreshDeepest(level);
+        return exit;
+    }
+
+    /** BATTERY_ROOM_CHANCE で、部屋の安全な床の上に電池を1個（消えないアイテム）置く。 */
+    static void placeBattery(ServerLevel level, int room) {
+        if (room <= 0 || level.random.nextDouble() >= BATTERY_ROOM_CHANCE) return;
+        RoomsState rs = RoomsState.get(level);
+        net.minecraft.world.phys.Vec3 at = SafeSpot.findRandom(level, rs, room, level.random);
+        if (at == null) return;
+        var it = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y + 0.05, at.z, new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BATTERY.get()), 0, 0, 0);
+        it.setUnlimitedLifetime();
+        level.addFreshEntity(it);
+        com.example.roomsmod.util.RoomsDebug.log("battery placed room={} at {}", room, BlockPos.containing(at));
+    }
+
+    static BlockPos generateNextRoomInner(ServerLevel level, BlockPos origin, int roomNumber) {
         // シード付き乱数で再現性を確保
         Random rand = new Random(level.getSeed() * 31L + roomNumber * 0x9E3779B97F4A7C15L);
 
@@ -171,6 +195,7 @@ public class RoomGenerator {
         var prevTheme = com.example.roomsmod.world.section.Sections.forRoom(state, roomNumber - 1);
         if (prevTheme != theme) RoomsDebug.log("section change at room {}: {} -> {}", roomNumber, prevTheme.id(), theme.id());
         if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.GK) return GKRooms.generate(level, origin, roomNumber, rand, state);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         String planInfo = lastPlanInfo;
         buildShell(level, origin, plan);

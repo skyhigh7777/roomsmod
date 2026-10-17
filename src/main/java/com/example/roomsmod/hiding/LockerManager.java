@@ -48,6 +48,13 @@ public final class LockerManager {
         return h == null ? null : h.spot;
     }
 
+    /** 隠れている場所のブロック座標（ロッカーは下半分、隠れていなければ null）。サーバー側のみ。 */
+    public static BlockPos getSpotPos(Player player) {
+        if (player.level().isClientSide()) return null;
+        Hide h = HIDING.get(player.getUUID());
+        return h == null ? null : h.pos;
+    }
+
     public static boolean isInLocker(Player player) { return getSpot(player) == Spot.LOCKER; }
 
     public static boolean isUnderTable(Player player) { return getSpot(player) == Spot.TABLE; }
@@ -89,6 +96,7 @@ public final class LockerManager {
             RoomsDebug.log(player, "ロッカーは使用中よ", "locker enter denied pos={} player={} (occupied)", base, player.getGameProfile().getName());
             return;
         }
+        if (com.example.roomsmod.entity.gk.GKDoorTricks.onLockerEnter(player.serverLevel(), player, base)) return;
         HIDING.put(player.getUUID(), new Hide(Spot.LOCKER, player.serverLevel(), base.immutable(), base.relative(facing), !player.isShiftKeyDown()));
         player.stopRiding();
         player.setDeltaMovement(Vec3.ZERO);
