@@ -22,6 +22,12 @@ public class RoomsCommands {
             return 0;
         }
         com.example.roomsmod.world.RoomsState.get(roomsLevel).setDebug(on);
+        // 輪郭（壁越し表示）を即座に全個体へ反映（tick 待ちにしない。読み込み済みの全ディメンションの roomsmod エンティティ）
+        int n = 0;
+        for (ServerLevel lv : src.getServer().getAllLevels())
+            for (net.minecraft.world.entity.Entity e : lv.getAllEntities())
+                if ("roomsmod".equals(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace()) && e.hasGlowingTag() != on) { e.setGlowingTag(on); n++; }
+        com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] debug outline sync -> {} entities={}", on, n);
         com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] debug {} by {}", on ? "ON" : "OFF", src.getTextName());
         src.sendSuccess(() -> Component.literal("Roomsデバッグを" + (on ? "ON" : "OFF") + "にしたわ"), true);
         return 1;
