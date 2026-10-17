@@ -147,6 +147,7 @@ public class RoomsCommands {
                     ServerLevel lv = ctx.getSource().getServer().getLevel(ROOMS_DIMENSION);
                     if (lv == null) return 0;
                     boolean on = com.example.roomsmod.world.HardMode.isOn(lv);
+                    com.example.roomsmod.util.RoomsDebug.log("hard mode status {}", on ? "on" : "off");
                     ctx.getSource().sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), false);
                     return on ? 1 : 0;
                 })))
