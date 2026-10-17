@@ -1,7 +1,5 @@
 package com.example.roomsmod.entity.b;
 
-import com.example.roomsmod.entity.gk.GKJanitorEntity;
-import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.EntityType;
@@ -10,13 +8,13 @@ import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
 /** B-Smile。 */
-public class BSmileEntity extends GKJanitorEntity {
+public class BSmileEntity extends BRusher {
     public BSmileEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "B-Smile"; }
-    @Override protected double speed() { return 0.22; }
-    @Override protected SoundEvent approachSound() { return SoundEvents.PHANTOM_AMBIENT; }
-    @Override protected void clientTick() {
-        DustParticleOptions d = new DustParticleOptions(new Vector3f(0.9f, 0.05f, 0.1f), 1.3f);
-        level().addParticle(d, getX() + (random.nextDouble() - 0.5), getY() + 0.8 + random.nextDouble() * 0.4, getZ() + (random.nextDouble() - 0.5), 0, -0.08, 0);
-    }
+    @Override protected double speed() { return 1.15; }
+    @Override protected int roomsBehind() { return 5; }
+    @Override protected double hitRange() { return 15.0; }
+    @Override protected SoundEvent approachSound() { return SoundEvents.SOUL_ESCAPE.value(); }
+    @Override protected Vector3f color() { return new Vector3f(0.9f, 0.05f, 0.1f); }
+    @Override protected int graceTicks() { return 100; }
 }

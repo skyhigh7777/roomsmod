@@ -86,6 +86,17 @@ public abstract class VPathWalker extends VEntity {
         waypointIndex = 0;
     }
 
+    /** 今の経路の先頭に戻って走り直す（2回目の通過など）。 */
+    protected void restartPath() {
+        if (wps == null || wps.isEmpty()) return;
+        waypointIndex = 0;
+        BlockPos s = wps.get(0);
+        setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
+    }
+
+    /** 経路の長さ（まだ読み込んでいなければ 0）。 */
+    protected int pathSize() { return wps == null ? 0 : wps.size(); }
+
     /** startRoom→endRoom の経路の先頭に置く。 */
     protected BlockPos placeAtStart(RoomsState rs, int from, int to) {
         startRoom = from; endRoom = to; wps = null;
