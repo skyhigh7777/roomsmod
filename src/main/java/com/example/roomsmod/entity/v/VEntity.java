@@ -61,6 +61,8 @@ public abstract class VEntity extends Mob {
     @Override protected boolean canRide(Entity e) { return false; }
     @Override public boolean isInvulnerable() { return true; }
     @Override public boolean hurt(net.minecraft.world.damagesource.DamageSource s, float a) { return false; }
+    /** /kill コマンドで消せるように（通常のダメージは無効のまま）。 */
+    @Override public void kill() { discard(); }
 
     @Override
     public final void tick() {

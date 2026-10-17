@@ -16,12 +16,12 @@ import java.util.Set;
 
 /**
  * 部屋生成ロジック。
- * 照明はA-025からA-100で徐々に暗くする。
+ * 照明はB-025からB-100で徐々に暗くする。
  * 看板はText Displayで大きめに表示。
  */
 public class RoomGenerator {
     /** 生成中の部屋のセクション（サーバースレッドのみで使用）。値は SectionTheme を参照。 */
-    private static com.example.roomsmod.world.section.SectionTheme theme = com.example.roomsmod.world.section.Sections.A;
+    private static com.example.roomsmod.world.section.SectionTheme theme = com.example.roomsmod.world.section.Sections.B;
 
     private static net.minecraft.world.level.block.state.BlockState doorLower() { return theme.palette().door().get().defaultBlockState(); }
     /** 直近の choosePlan の結果（デバッグ用）。 */

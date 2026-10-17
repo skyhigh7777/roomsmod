@@ -49,6 +49,19 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.GK_JANITOR.get(), c -> new VRenderer<>(c, "gk_janitor", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_MIRROR.get(), c -> new VRenderer<>(c, "gk_mirror", 2.0f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_07.get(), c -> new VRenderer<>(c, "gk07", 2.2f, 0.03f));
+        event.registerEntityRenderer(RoomsMod.B_GRIN.get(), c -> new BRenderer<>(c, "b_grin", 2.8f));
+        event.registerEntityRenderer(RoomsMod.B_MASK.get(), c -> new BRenderer<>(c, "b_mask", 2.0f));
+        event.registerEntityRenderer(RoomsMod.B_EYE.get(), c -> new BRenderer<>(c, "b_eye", 2.4f));
+        event.registerEntityRenderer(RoomsMod.B_CHORUS.get(), c -> new BRenderer<>(c, "b_chorus", 2.2f));
+        event.registerEntityRenderer(RoomsMod.B_STATIC.get(), c -> new BRenderer<>(c, "b_static", 2.4f));
+        event.registerEntityRenderer(RoomsMod.B_ERROR.get(), c -> new BRenderer<>(c, "b_error", 1.8f));
+        event.registerEntityRenderer(RoomsMod.B_ARGUS.get(), c -> new BRenderer<>(c, "b_argus", 2.8f));
+        event.registerEntityRenderer(RoomsMod.B_MAW.get(), c -> new BRenderer<>(c, "b_maw", 2.4f));
+        event.registerEntityRenderer(RoomsMod.B_SCATTER.get(), c -> new BRenderer<>(c, "b_scatter", 2.2f));
+        event.registerEntityRenderer(RoomsMod.B_REACH.get(), c -> new BRenderer<>(c, "b_reach", 3.0f));
+        event.registerEntityRenderer(RoomsMod.B_SMILE.get(), c -> new BRenderer<>(c, "b_smile", 1.8f));
+        event.registerEntityRenderer(RoomsMod.B_VOID.get(), c -> new BRenderer<>(c, "b_void", 2.8f));
+        event.registerEntityRenderer(RoomsMod.B_17.get(), c -> new BRenderer<>(c, "b_17", 1.4f));
         event.registerEntityRenderer(RoomsMod.GK_BELL2.get(), c -> new VRenderer<>(c, "gk_bell2", 2.0f, 0.5f));
         event.registerEntityRenderer(RoomsMod.GK_REWIND.get(), c -> new VRenderer<>(c, "gk_rewind", 1.8f, 0.1f));
     }
@@ -139,6 +152,48 @@ public class ClientSetup {
     }
 
     /** V エンティティ共通：カメラを向く板（テクスチャで区別、仮）。V-100 はノック中は描画しない。 */
+    /**
+     * B のグリッチ系エンティティ：平面のビルボード（常にカメラを向く2Dスプライト）。テクスチャは縦に4コマ（64x256）。
+     * ときどきコマ飛び・横ずれ・点滅して、映像が乱れたように見せる。
+     */
+    private static class BRenderer<T extends com.example.roomsmod.entity.v.VEntity> extends EntityRenderer<T> {
+        private final ResourceLocation tex;
+        private final float size;
+        static final int FRAMES = 4;
+        BRenderer(EntityRendererProvider.Context context, String name, float size) {
+            super(context);
+            this.tex = ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/" + name + ".png");
+            this.size = size;
+            this.shadowRadius = 0.0f;
+        }
+        @Override
+        public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
+            int t = entity.tickCount;
+            long h = (t / 2) * 0x9E3779B97F4A7C15L + entity.getId() * 31L;
+            int glitch = (int) ((h >>> 40) & 31); // 0..31：ときどき乱れる
+            if (glitch == 0) return; // 一瞬消える
+            int frame = glitch < 4 ? glitch % FRAMES : (t / 6) % 2 == 0 ? 0 : (glitch < 8 ? 1 + glitch % 3 : 0);
+            float jx = glitch < 3 ? ((glitch & 1) == 0 ? 0.12f : -0.12f) : 0f;
+            ps.pushPose();
+            ps.translate(0.0f, size * 0.5f, 0.0f);
+            ps.mulPose(this.entityRenderDispatcher.cameraOrientation());
+            ps.scale(size, size, size);
+            ps.translate(jx, 0f, 0f);
+            VertexConsumer vc = buf.getBuffer(RenderType.entityTranslucentEmissive(tex));
+            PoseStack.Pose pose = ps.last();
+            Matrix4f m = pose.pose();
+            float v0 = frame / (float) FRAMES, v1 = (frame + 1) / (float) FRAMES;
+            int l = 15728880;
+            vc.addVertex(m, -0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, 0.5f, -0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, 0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(1f, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            vc.addVertex(m, -0.5f, 0.5f, 0f).setColor(255, 255, 255, 255).setUv(0f, v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(l).setNormal(pose, 0f, 1f, 0f);
+            ps.popPose();
+            super.render(entity, yaw, pt, ps, buf, light);
+        }
+        @Override public ResourceLocation getTextureLocation(T entity) { return tex; }
+    }
+
     private static class VRenderer<T extends com.example.roomsmod.entity.v.VEntity> extends EntityRenderer<T> {
         private final ResourceLocation tex;
         private final float size, wobble;
