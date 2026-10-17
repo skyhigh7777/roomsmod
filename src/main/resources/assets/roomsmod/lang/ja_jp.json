@@ -87,5 +87,18 @@
   "message.roomsmod.gk_detention_open": "通行証で扉が開いた。",
   "message.roomsmod.gk07_close": "後ろで誰かがノックしている… 扉を閉めて！ 残り %s 秒",
   "message.roomsmod.gk_mirror": "影があなたの足跡をなぞっている。止まらないで。残り %s 秒",
-  "message.roomsmod.gk_rewind": "時計が巻き戻っていく… 残り %s 秒"
+  "message.roomsmod.gk_rewind": "時計が巻き戻っていく… 残り %s 秒",
+  "entity.roomsmod.b_grin": "B-Grin",
+  "entity.roomsmod.b_mask": "B-Mask",
+  "entity.roomsmod.b_eye": "B-Eye",
+  "entity.roomsmod.b_chorus": "B-Chorus",
+  "entity.roomsmod.b_static": "B-Static",
+  "entity.roomsmod.b_error": "B-Error",
+  "entity.roomsmod.b_argus": "B-Argus",
+  "entity.roomsmod.b_maw": "B-Maw",
+  "entity.roomsmod.b_scatter": "B-Scatter",
+  "entity.roomsmod.b_reach": "B-Reach",
+  "entity.roomsmod.b_smile": "B-Smile",
+  "entity.roomsmod.b_void": "B-Void",
+  "entity.roomsmod.b_17": "B-17"
 }

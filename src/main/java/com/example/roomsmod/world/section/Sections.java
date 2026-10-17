@@ -41,7 +41,21 @@ public final class Sections {
             List.of(
                     new SectionTheme.RusherSpawn("B-20", 20, 0.6f, DoorEventHandler::isA20Alive,
                             (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }),
-                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40)),
+                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40),
+                    // B: B-015〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_GRIN, 15, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MASK, 30, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_EYE, 50, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_CHORUS, 70, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_STATIC, 90, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ERROR, 110, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ARGUS, 130, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MAW, 155, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SCATTER, 180, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_REACH, 205, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SMILE, 230, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_VOID, 260, 0.04f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_17, 290, 0.04f)),
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 

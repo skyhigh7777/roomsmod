@@ -109,5 +109,18 @@
   "message.roomsmod.gk_detention_open": "The hall pass unlocks the door.",
   "message.roomsmod.gk07_close": "Something knocks behind you... close the door! %s s",
   "message.roomsmod.gk_mirror": "Your shadow follows your steps. Keep moving. %s s",
-  "message.roomsmod.gk_rewind": "The clock is turning back... %s s"
+  "message.roomsmod.gk_rewind": "The clock is turning back... %s s",
+  "entity.roomsmod.b_grin": "B-Grin",
+  "entity.roomsmod.b_mask": "B-Mask",
+  "entity.roomsmod.b_eye": "B-Eye",
+  "entity.roomsmod.b_chorus": "B-Chorus",
+  "entity.roomsmod.b_static": "B-Static",
+  "entity.roomsmod.b_error": "B-Error",
+  "entity.roomsmod.b_argus": "B-Argus",
+  "entity.roomsmod.b_maw": "B-Maw",
+  "entity.roomsmod.b_scatter": "B-Scatter",
+  "entity.roomsmod.b_reach": "B-Reach",
+  "entity.roomsmod.b_smile": "B-Smile",
+  "entity.roomsmod.b_void": "B-Void",
+  "entity.roomsmod.b_17": "B-17"
 }

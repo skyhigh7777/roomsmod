@@ -31,6 +31,7 @@ public final class GKDoorTricks {
             if (!e.isAlive()) continue;
             if (e instanceof GKDetentionEntity d && d.guards(door)) { d.punish(level, player); return true; }
             if (e instanceof GKSubstituteEntity s && s.isFake(door)) { s.trigger(level, player); return true; }
+            if (e instanceof com.example.roomsmod.entity.b.BMawEntity m && m.guards(door) && !m.mouthOpen()) { m.bite(level, player); return true; }
         }
         return false;
     }

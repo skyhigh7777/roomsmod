@@ -220,7 +220,7 @@ public class DoorEventHandler {
             }
         }
         // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (theme == com.example.roomsmod.world.section.Sections.GK) {
+        if (theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
             java.util.Collections.shuffle(c, new java.util.Random(level.random.nextLong()));
