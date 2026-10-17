@@ -76,7 +76,7 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 | セクション | エンティティ |
 |---|---|
-| B | B-20, B-40 |
+| B | B-20, B-40, B-Static, B-Mask, B-Reach, B-Eye, B-Smile, B-Error, B-Grin, B-Maw, B-Argus, B-Scatter, B-Chorus, B-Void, B-17 |
 | V | V-10, V-25-T, V-25-L, V25-BUFFED, V-50, V-100 |
 | GK | GK-Moth, GK-Chime, GK-Whisper, GK-Detention, GK-Quiz, GK-Substitute, GK-07, GK-Rewind, GK-Mimic, GK-PA, GK-12, GK-Janitor, GK-Eraser, GK-Mirror, GK-Bell2 |
 
@@ -110,7 +110,8 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms debug section` | OP | 現在のセクション・番号・セクション表を表示 |
 | `/rooms deepest` | 全員 | （未実装の予約コマンド。最奥への移動はロビーのパネルを使ってください） |
 
-`/rooms spawn` の id：`b20` `b40`（旧 `a20` `a40` も可） `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100`（別名 `v35`）`v50`
+`/rooms spawn` の id：`b20` `b40`（旧 `a20` `a40` も可）`bstatic` `bmask` `breach` `beye` `bsmile` `berror` `bgrin` `bmaw` `bargus` `bscatter` `bchorus` `bvoid` `b17`
+ `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100`（別名 `v35`）`v50`
 `gkmoth` `gkchime` `gkwhisper` `gkdetention` `gkquiz` `gksubstitute` `gk07` `gkrewind` `gkmimic` `gkpa` `gk12` `gkjanitor` `gkeraser` `gkmirror` `gkbell2`
 
 ### 例

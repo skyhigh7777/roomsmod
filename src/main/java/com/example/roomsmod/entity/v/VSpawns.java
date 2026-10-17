@@ -53,7 +53,7 @@ public final class VSpawns {
         B_SCATTER("B-Scatter", "bscatter", null, RoomsMod.B_SCATTER),
         B_REACH("B-Reach", "breach", "b_rush", RoomsMod.B_REACH),
         B_SMILE("B-Smile", "bsmile", "b_rush", RoomsMod.B_SMILE),
-        B_VOID("B-Void", "bvoid", null, RoomsMod.B_VOID),
+        B_VOID("B-Void", "bvoid", "b_rush", RoomsMod.B_VOID),
         B_17("B-17", "b17", null, RoomsMod.B_17);
         public final String display, id;
         /**

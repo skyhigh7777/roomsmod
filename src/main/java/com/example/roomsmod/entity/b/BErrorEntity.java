@@ -27,7 +27,7 @@ public class BErrorEntity extends BRoomEntity {
         phase++;
         if (phase == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.HOSTILE, 2f, 0.5f);
-            for (Player p : playersNear(48)) RoomsDebug.log(p, "B-Error のウィンドウ（" + (closed + 1) + "/" + WINDOWS + "、" + WINDOW_TICKS / 20 + "秒）", "B-Error window {}/{} room={} at {}", closed + 1, WINDOWS, startRoom, blockPosition());
+            RoomsDebug.announce(playersNear(48), "B-Error のウィンドウ（" + (closed + 1) + "/" + WINDOWS + "、" + WINDOW_TICKS / 20 + "秒）", "B-Error window {}/{} room={} at {}", closed + 1, WINDOWS, startRoom, blockPosition());
         }
         if (phase % 20 == 0) level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.HOSTILE, 1.5f, 1.8f);
         if (phase >= WINDOW_TICKS) {

@@ -40,7 +40,7 @@ public class BMawEntity extends BRoomEntity {
         phase++;
         RoomsState rs = RoomsState.get(level);
         if (door == null || rs.generatedDoors.contains(door)) { leave("door opened"); return; }
-        if (phase == 1) for (Player p : playersNear(48)) RoomsDebug.log(p, "B-Maw が扉に噛みついたわ", "B-Maw guards door {} cycle={} open={}", door, CYCLE, OPEN);
+        if (phase == 1) RoomsDebug.announce(playersNear(48), "B-Maw が扉に噛みついたわ", "B-Maw guards door {} cycle={} open={}", door, CYCLE, OPEN);
         int c = phase % CYCLE;
         if (c == CYCLE - OPEN) level.playSound(null, door, SoundEvents.CHEST_OPEN, SoundSource.HOSTILE, 2f, 0.5f);
         else if (c == 0) level.playSound(null, door, SoundEvents.EVOKER_FANGS_ATTACK, SoundSource.HOSTILE, 2f, 0.7f);

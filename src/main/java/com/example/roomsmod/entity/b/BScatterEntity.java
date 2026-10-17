@@ -53,7 +53,7 @@ public class BScatterEntity extends BRoomEntity {
         phase++;
         if (phase == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.GHAST_SCREAM, SoundSource.HOSTILE, 1.5f, 0.6f);
-            for (Player p : playersNear(48)) RoomsDebug.log(p, "B-Scatter が砕け散ったわ（欠片 " + pieces.size() + " 個、" + TIME / 20 + "秒）", "B-Scatter telegraph room={} pieces={}", startRoom, pieces.size());
+            RoomsDebug.announce(playersNear(48), "B-Scatter が砕け散ったわ（欠片 " + pieces.size() + " 個、" + TIME / 20 + "秒）", "B-Scatter telegraph room={} pieces={}", startRoom, pieces.size());
         }
         if (phase % 5 == 0) {
             DustParticleOptions d = new DustParticleOptions(new Vector3f(0.05f, 0.05f, 0.05f), 2.0f);
