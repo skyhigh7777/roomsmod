@@ -114,7 +114,12 @@ public class GKSubstituteEntity extends VEntity {
     }
 
     @Override protected void clientTick() {
-        if (tickCount % 5 == 0) level().addParticle(ParticleTypes.SMOKE, getX(), getY() + 1, getZ(), 0, 0.02, 0);
+        // かすかな煙：体の形の柱にならないよう、扉の足元〜腰あたりにまばらに散らす
+        if (tickCount % 12 == 0) {
+            var r = level().random;
+            level().addParticle(ParticleTypes.SMOKE, getX() + (r.nextDouble() - 0.5) * 1.4, getY() + 0.1 + r.nextDouble() * 1.0,
+                    getZ() + (r.nextDouble() - 0.5) * 1.4, (r.nextDouble() - 0.5) * 0.01, 0.005, (r.nextDouble() - 0.5) * 0.01);
+        }
     }
     @Override protected String debugState() { return "room=" + startRoom + " door=" + door; }
     @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); if (door != null) t.put("Door", NbtUtils.writeBlockPos(door)); t.putBoolean("Restored", restored);

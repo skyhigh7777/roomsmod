@@ -211,6 +211,7 @@ public class ClientSetup {
         public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
             if (entity instanceof com.example.roomsmod.entity.v.V100Entity v && !v.isPeeking()) return;
             if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
+            if (entity instanceof com.example.roomsmod.entity.gk.GKSubstituteEntity && !entity.isCurrentlyGlowing()) return; // 姿は見せない（デバッグ時のみ表示）
             float age = entity.tickCount + pt;
             ps.pushPose();
             ps.translate(0.0f, size * 0.5f, 0.0f);
