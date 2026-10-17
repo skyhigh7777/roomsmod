@@ -7,10 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-Argus。 */
+/** B-180。 */
 public class BArgusEntity extends BRusher {
     public BArgusEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-Argus"; }
+    @Override public String vName() { return "B-180"; }
     @Override protected double speed() { return 1.8; }
     @Override protected int roomsBehind() { return 5; }
     @Override protected double hitRange() { return 15.0; }

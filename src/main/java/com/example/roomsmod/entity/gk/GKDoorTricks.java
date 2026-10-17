@@ -9,7 +9,7 @@ import net.minecraft.world.entity.player.Player;
 /** 扉を右クリックしたときの GK の扉フック（DoorEventHandler から、まだ閉じている扉で呼ぶ）。true なら扉を開けさせない。 */
 public final class GKDoorTricks {
     private GKDoorTricks() {}
-    /** クライアントとサーバーの両方：この開いた扉を GK-07 が見張っているか（閉められる例外）。 */
+    /** クライアントとサーバーの両方：この開いた扉を GK-125 が見張っているか（閉められる例外）。 */
     public static boolean closableOpenDoor(net.minecraft.world.level.Level level, BlockPos door) {
         return !level.getEntitiesOfClass(GK07Entity.class, new net.minecraft.world.phys.AABB(door).inflate(3), g -> g.isAlive() && g.guards(door)).isEmpty();
     }
@@ -19,7 +19,7 @@ public final class GKDoorTricks {
         for (Entity e : level.getAllEntities()) if (e instanceof GKChimeEntity c && c.isAlive() && c.owns(pos)) { c.rung(level, player); return; }
     }
 
-    /** ロッカーに入ろうとした。true なら入れない（GK-Mimic に捕まった）。 */
+    /** ロッカーに入ろうとした。true なら入れない（GK-165 に捕まった）。 */
     public static boolean onLockerEnter(ServerLevel level, Player player, BlockPos base) {
         for (Entity e : level.getAllEntities()) if (e instanceof GKMimicEntity m && m.isAlive() && m.owns(base)) { m.caught(level, player); return true; }
         return false;

@@ -87,9 +87,9 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 | セクション | エンティティ |
 |---|---|
-| B | B-20, B-40, B-Static, B-Mask, B-Reach, B-Eye, B-Smile, B-Error, B-Grin, B-Maw, B-Argus, B-Scatter, B-Chorus, B-Void, B-17 |
+| B | B-20, B-40, B-015, B-030, B-050, B-070, B-090, B-110, B-130, B-155, B-180, B-205, B-230, B-260, B-290 |
 | V | V-10, V-25-T, V-25-L, V25-BUFFED, V-50, V-100 |
-| GK | GK-Moth, GK-Chime, GK-Whisper, GK-Detention, GK-Quiz, GK-Substitute, GK-07, GK-Rewind, GK-Mimic, GK-PA, GK-12, GK-Janitor, GK-Eraser, GK-Mirror, GK-Bell2 |
+| GK | GK-010, GK-025, GK-045, GK-065, GK-085, GK-105, GK-125, GK-145, GK-165, GK-185, GK-205, GK-225, GK-245, GK-270, GK-300 |
 
 - どのエンティティにも前触れ（音・見た目・表示）と対処法があります。
 - 同時に出ると理不尽になる組み合わせは、同時には出ないようになっています。
@@ -123,9 +123,11 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms debug section` | OP | 現在のセクション・番号・セクション表を表示 |
 | `/rooms deepest` | 全員 | （未実装の予約コマンド。最奥への移動はロビーのパネルを使ってください） |
 
-`/rooms spawn` の id：`b20` `b40`（旧 `a20` `a40` も可）`bstatic` `bmask` `breach` `beye` `bsmile` `berror` `bgrin` `bmaw` `bargus` `bscatter` `bchorus` `bvoid` `b17`
+`/rooms spawn` の id：`b20` `b40`（旧 `a20` `a40` も可）`b015` `b030` `b050` `b070` `b090` `b110` `b130` `b155` `b180` `b205` `b230` `b260` `b290`
  `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100`（別名 `v35`）`v50`
-`gkmoth` `gkchime` `gkwhisper` `gkdetention` `gkquiz` `gksubstitute` `gk07` `gkrewind` `gkmimic` `gkpa` `gk12` `gkjanitor` `gkeraser` `gkmirror` `gkbell2`
+`gk010` `gk025` `gk045` `gk065` `gk085` `gk105` `gk125` `gk145` `gk165` `gk185` `gk205` `gk225` `gk245` `gk270` `gk300`
+
+B / GK の番号はそのエンティティが出始めるセクション内の部屋番号です。旧名の id（`bstatic` `gkmoth` など）も引き続き使えます。
 
 ### 例
 

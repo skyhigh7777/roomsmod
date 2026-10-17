@@ -7,10 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-Grin。 */
+/** B-130。 */
 public class BGrinEntity extends BRusher {
     public BGrinEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-Grin"; }
+    @Override public String vName() { return "B-130"; }
     @Override protected double speed() { return pathSize() == 0 ? 0.6 : 0.6 + 1.6 * Math.min(1.0, waypointIndex / (double) pathSize()); }
     @Override protected int roomsBehind() { return 6; }
     @Override protected double hitRange() { return 15.0; }

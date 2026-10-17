@@ -24,14 +24,14 @@ import net.minecraft.world.level.Level;
 import java.util.List;
 import java.util.UUID;
 
-/** GK-Detention：次の出口扉を施錠し、部屋のどこかに「通行証」を落とす。拾えば解錠（時間切れでも解錠）。 */
+/** GK-065：次の出口扉を施錠し、部屋のどこかに「通行証」を落とす。拾えば解錠（時間切れでも解錠）。 */
 public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
     public static final int LOCK_TICKS = 20 * 80;
     public static final String TAG = "roomsmod_gk_pass";
     private BlockPos door = null;
     private UUID passItem = null;
     public GKDetentionEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-Detention"; }
+    @Override public String vName() { return "GK-065"; }
     @Override protected int maxLifeTicks() { return LOCK_TICKS; }
 
     static boolean isPass(ItemStack s) {
@@ -43,7 +43,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = rs.roomPaths.size() - 1;
         door = rs.expectedExitDoor;
-        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("GK-Detention spawn skipped: no unopened exit door ({})", door); return null; }
+        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("GK-065 spawn skipped: no unopened exit door ({})", door); return null; }
         List<BlockPos> s = GKUtil.freeSpots(level, rs, startRoom, level.random, 1);
         if (s.isEmpty()) return null;
         ItemStack pass = new ItemStack(Items.PAPER);
@@ -58,7 +58,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
         BlockPos stand = door.north();
         setPos(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5);
         level.playSound(null, door, RoomsMod.GK_DETENTION_CHAIN.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
-        RoomsDebug.log("GK-Detention locked {} pass at {}", door, at);
+        RoomsDebug.log("GK-065 locked {} pass at {}", door, at);
         return stand;
     }
 
@@ -67,7 +67,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
     public void punish(ServerLevel level, Player p) {
         level.playSound(null, door, RoomsMod.GK_DETENTION_CHAIN.get(), SoundSource.HOSTILE, 2.0f, 0.6f);
         GKUtil.actionbar(List.of(p), Component.translatable("message.roomsmod.gk_detention_locked"));
-        RoomsDebug.log(p, "GK-Detention: 施錠中（通行証を探して）", "GK-Detention blocked door {} player={}", door, p.getGameProfile().getName());
+        RoomsDebug.log(p, "GK-065: 施錠中（通行証を探して）", "GK-065 blocked door {} player={}", door, p.getGameProfile().getName());
     }
 
     @Override
@@ -80,7 +80,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
                     inv.setItem(i, ItemStack.EMPTY);
                     level.playSound(null, door, net.minecraft.sounds.SoundEvents.IRON_DOOR_OPEN, SoundSource.BLOCKS, 1.5f, 1.2f);
                     GKUtil.actionbar(List.of(p), Component.translatable("message.roomsmod.gk_detention_open"));
-                    RoomsDebug.log(p, "GK-Detention: 通行証で解錠したわ", "GK-Detention unlocked by pass player={}", p.getGameProfile().getName());
+                    RoomsDebug.log(p, "GK-065: 通行証で解錠したわ", "GK-065 unlocked by pass player={}", p.getGameProfile().getName());
                     leave("pass used");
                     return;
                 }

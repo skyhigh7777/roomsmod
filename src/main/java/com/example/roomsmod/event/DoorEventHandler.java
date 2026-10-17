@@ -49,7 +49,7 @@ public class DoorEventHandler {
             if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
                 BlockPos dp = s0.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? event.getPos().below() : event.getPos();
                 if (com.example.roomsmod.entity.gk.GKDoorTricks.closableOpenDoor(event.getLevel(), dp)) {
-                    // GK-07 が見張る扉だけは閉められる（サーバーで閉める）
+                    // GK-125 が見張る扉だけは閉められる（サーバーで閉める）
                     event.setCanceled(true);
                     if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl)
                         com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(sl, RoomsState.get(sl), event.getEntity(), dp);
@@ -147,7 +147,7 @@ public class DoorEventHandler {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
                 || b instanceof com.example.roomsmod.block.HidingTableBlock
-                || b instanceof net.minecraft.world.level.block.BellBlock // GK-Chime のベル
+                || b instanceof net.minecraft.world.level.block.BellBlock // GK-025 のベル
                 || b instanceof DoorBlock;
     }
 

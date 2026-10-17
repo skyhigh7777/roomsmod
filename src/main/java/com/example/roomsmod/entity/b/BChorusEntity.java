@@ -7,10 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-Chorus。 */
+/** B-230。 */
 public class BChorusEntity extends BRusher {
     public BChorusEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-Chorus"; }
+    @Override public String vName() { return "B-230"; }
     @Override protected double speed() { return 1.2; }
     @Override protected int roomsBehind() { return 4; }
     @Override protected double hitRange() { return 14.0; }

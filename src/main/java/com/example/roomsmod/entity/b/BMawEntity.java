@@ -15,17 +15,17 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-Maw。 */
+/** B-155。 */
 public class BMawEntity extends BRoomEntity {
     public static final int CYCLE = 80, OPEN = 24;
     private BlockPos door;
     public BMawEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-Maw"; }
+    @Override public String vName() { return "B-155"; }
 
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         door = rs.expectedExitDoor;
-        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("B-Maw spawn skipped: no unopened exit door ({})", door); return null; }
+        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("B-155 spawn skipped: no unopened exit door ({})", door); return null; }
         startRoom = rs.roomPaths.size() - 1;
         setPos(door.getX() + 0.5, door.getY(), door.getZ() - 0.6);
         return door;
@@ -40,7 +40,7 @@ public class BMawEntity extends BRoomEntity {
         phase++;
         RoomsState rs = RoomsState.get(level);
         if (door == null || rs.generatedDoors.contains(door)) { leave("door opened"); return; }
-        if (phase == 1) RoomsDebug.announce(playersNear(48), "B-Maw が扉に噛みついたわ", "B-Maw guards door {} cycle={} open={}", door, CYCLE, OPEN);
+        if (phase == 1) RoomsDebug.announce(playersNear(48), "B-155 が扉に噛みついたわ", "B-155 guards door {} cycle={} open={}", door, CYCLE, OPEN);
         int c = phase % CYCLE;
         if (c == CYCLE - OPEN) level.playSound(null, door, SoundEvents.CHEST_OPEN, SoundSource.HOSTILE, 2f, 0.5f);
         else if (c == 0) level.playSound(null, door, SoundEvents.EVOKER_FANGS_ATTACK, SoundSource.HOSTILE, 2f, 0.7f);
@@ -54,7 +54,7 @@ public class BMawEntity extends BRoomEntity {
     /** 閉じている間に扉を開けようとした：噛む（扉は開かない）。 */
     public void bite(ServerLevel level, Player p) {
         level.playSound(null, door, SoundEvents.EVOKER_FANGS_ATTACK, SoundSource.HOSTILE, 2f, 1.0f);
-        RoomsDebug.log(p, "B-Maw に噛まれたわ", "B-Maw bite player={} phase={}", p.getGameProfile().getName(), phase % CYCLE);
+        RoomsDebug.log(p, "B-155 に噛まれたわ", "B-155 bite player={} phase={}", p.getGameProfile().getName(), phase % CYCLE);
         hit(p, 20f);
     }
 

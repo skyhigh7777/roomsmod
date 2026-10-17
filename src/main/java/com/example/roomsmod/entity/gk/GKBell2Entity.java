@@ -14,13 +14,13 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 
-/** GK-Bell2。 */
+/** GK-300。 */
 public class GKBell2Entity extends VPathWalker {
     public static final int ROOMS_BEHIND = 5, ROOMS_AHEAD = 1, TURN_PAUSE = 50;
     private boolean turned = false;
     private int pause = 0;
     public GKBell2Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-Bell2"; }
+    @Override public String vName() { return "GK-300"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
     @Override protected double speed() { return 1.2; }
     @Override protected int graceTicks() { return 80; }
