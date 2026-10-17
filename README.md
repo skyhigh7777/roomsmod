@@ -1,6 +1,6 @@
 # Rooms Mod (NeoForge 1.21.1)
 
-Roblox Rooms の再現を目指した試作Modです。
+Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 ## 現在の状態（試しに作成）
 
