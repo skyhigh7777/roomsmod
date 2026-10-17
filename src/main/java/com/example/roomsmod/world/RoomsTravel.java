@@ -49,6 +49,16 @@ public final class RoomsTravel {
 
     private static void step() {
         RoomsState state = RoomsState.get(level);
+        // 保険：生成中に別の処理で進行表がリセットされたら（部屋数 < 生成済み番号）、番号がずれるので中止して最初から
+        if (state.generatedRooms.size() < next) {
+            RoomsDebug.warn("rooms to {}: state was reset during generation (rooms={} expected={}) -> restart", target, state.generatedRooms.size(), next);
+            ServerLevel lv = level; ServerPlayer pr = playerRef; int t = target;
+            ServerPlayer cur = lv.getServer().getPlayerList().getPlayer(player);
+            level = null; player = null; playerRef = null;
+            if (cur == null) cur = pr;
+            if (cur != null && !cur.isRemoved()) start(lv, cur, t);
+            return;
+        }
         for (int k = 0; k < ROOMS_PER_TICK && next <= target; k++, next++) {
             BlockPos nextOrigin = new BlockPos(currentExit.getX() - 10, currentExit.getY() - 1, currentExit.getZ() + 1);
             BlockPos exitDoor = RoomGenerator.generateNextRoom(level, nextOrigin, next);
