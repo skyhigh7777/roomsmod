@@ -37,10 +37,14 @@ public class GKPAEntity extends VEntity {
         return s;
     }
 
-    /** プレイヤーが既に開始部屋より先にいるか（扉の境目＝部屋外は安全扱い）。 */
+    /** プレイヤーが指示された部屋（開始部屋の次）にいるか。 */
     private boolean safe(RoomsState rs, Player p) {
+        int target = startRoom + 1; // 指示は「次の教室」＝開始部屋のちょうど1つ先だけ（さらに先や手前は不可）
         int i = RoomTracker.roomIndexAt(rs, p.blockPosition());
-        return i < 0 || i > startRoom;
+        if (i >= 0) return i == target;
+        // 部屋の外（扉の敷居の上など）：次の教室の入口のすぐそばなら入ったとみなす
+        if (target >= rs.roomPaths.size() || rs.roomPaths.get(target).isEmpty()) return false;
+        return rs.roomPaths.get(target).get(0).distSqr(p.blockPosition()) <= 9;
     }
 
     @Override
