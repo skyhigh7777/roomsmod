@@ -28,6 +28,11 @@ public class RoomGenerator {
     private static String lastPlanInfo = "";
 
     public static BlockPos generateLobby(ServerLevel level, BlockPos origin) {
+        DropGuard.begin();
+        try { return generateLobbyInner(level, origin); } finally { DropGuard.end("lobby rebuild"); }
+    }
+
+    private static BlockPos generateLobbyInner(ServerLevel level, BlockPos origin) {
         theme = com.example.roomsmod.world.section.Sections.forRoom(RoomsState.get(level), 0);
         int width = 20;
         int depth = 32;
@@ -167,7 +172,9 @@ public class RoomGenerator {
     public static final double BATTERY_ROOM_CHANCE = 0.22;
 
     public static BlockPos generateNextRoom(ServerLevel level, BlockPos origin, int roomNumber) {
-        BlockPos exit = generateNextRoomInner(level, origin, roomNumber);
+        BlockPos exit;
+        DropGuard.begin();
+        try { exit = generateNextRoomInner(level, origin, roomNumber); } finally { DropGuard.end("room " + roomNumber + " generation"); }
         try { placeBattery(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("battery placement failed room=" + roomNumber, e); }
         LobbyPanels.refreshDeepest(level);
