@@ -147,6 +147,17 @@ public final class Sections {
         return "a".equals(s) ? "b" : s;
     }
 
+    /**
+     * ハードモードの抽選表：登録済みの全セクションの表をつなげたもの（同名は最初の1つ）。
+     * 各エンティティの出現開始部屋（minRoom）はそのまま、今いるセクション内の部屋番号と比べる。
+     */
+    public static List<SectionTheme.RusherSpawn> hardTable() {
+        List<SectionTheme.RusherSpawn> out = new java.util.ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (SectionTheme t : THEMES.values()) for (var r : t.rushers()) if (seen.add(r.name())) out.add(r);
+        return out;
+    }
+
     public static java.util.Set<String> ids() { return THEMES.keySet(); }
 
     /** 部屋番号 room が属するセクション（RoomsState のセクション開始表から）。 */

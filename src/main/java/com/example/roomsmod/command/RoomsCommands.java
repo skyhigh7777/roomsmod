@@ -140,6 +140,16 @@ public class RoomsCommands {
                     .executes(ctx -> {
                         return goToRoom(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
                     })))
+            .then(Commands.literal("hard")
+                .then(Commands.literal("on").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), true)))
+                .then(Commands.literal("off").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), false)))
+                .then(Commands.literal("status").executes(ctx -> {
+                    ServerLevel lv = ctx.getSource().getServer().getLevel(ROOMS_DIMENSION);
+                    if (lv == null) return 0;
+                    boolean on = com.example.roomsmod.world.HardMode.isOn(lv);
+                    ctx.getSource().sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), false);
+                    return on ? 1 : 0;
+                })))
             .then(Commands.literal("debug")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("on").executes(ctx -> setDebug(ctx.getSource(), true)))
@@ -227,5 +237,13 @@ public class RoomsCommands {
                     return 1;
                 }))
         );
+    }
+
+    private static int setHard(CommandSourceStack src, boolean on) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) return 0;
+        com.example.roomsmod.world.HardMode.set(lv, on, src.getTextName());
+        src.sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), true);
+        return 1;
     }
 }

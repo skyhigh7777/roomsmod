@@ -29,6 +29,8 @@ public class RoomsState extends SavedData {
     /** 部屋ごとの経路（入口→折れ点→出口扉、床+1）。generatedRoomsと同じindex。 */
     public final List<List<BlockPos>> roomPaths = new ArrayList<>();
     /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。既定は A のみ。 */
+    /** ハードモード：全セクションのエンティティがどの部屋でも出る（サーバー共有・セーブに保存）。 */
+    public boolean hardMode = false;
     public final List<SectionStart> sections = new ArrayList<>(List.of(new SectionStart("b", 0)));
 
     public record SectionStart(String themeId, int startRoom) {}
@@ -86,6 +88,7 @@ public class RoomsState extends SavedData {
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putBoolean("debug", RoomsDebug.isEnabled());
+        tag.putBoolean("hardMode", hardMode);
         tag.putInt("currentRoom", currentRoom);
         if (expectedExitDoor != null) tag.putLong("expectedExitDoor", expectedExitDoor.asLong());
         ListTag doors = new ListTag();
@@ -139,6 +142,7 @@ public class RoomsState extends SavedData {
             for (Tag pt : (ListTag) t) path.add(BlockPos.of(((LongTag) pt).getAsLong()));
             s.roomPaths.add(path);
         }
+        s.hardMode = tag.getBoolean("hardMode");
         if (tag.contains("sections")) {
             s.sections.clear();
             for (Tag t : tag.getList("sections", Tag.TAG_COMPOUND)) {

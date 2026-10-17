@@ -27,6 +27,8 @@ public class DoorEventHandler {
     public static final int A20_ROOMS_BEHIND = 10;
     /** GK 区画で1回の抽選で出る最大数。 */
     public static final int GK_MAX_PER_ROLL = 2;
+    /** ハードモードの1回の抽選（扉1枚）で出る最大数。 */
+    public static final int HARD_MAX_PER_ROLL = 2;
 
     // ラッシャー出現率（調整用）
     // 出現する部屋・確率は SectionTheme.rushers()（Sections.B）
@@ -168,6 +170,7 @@ public class DoorEventHandler {
             "{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
         else RoomsDebug.log("{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
 
+        if (rs.hardMode) com.example.roomsmod.world.HardMode.announceRoom(level, rs, room);
         try {
             rollRushers(level, rs, player, room);
         } catch (RuntimeException e) {
@@ -187,7 +190,8 @@ public class DoorEventHandler {
     /** forceAll=true は全種類を当たり扱い（minRoom は無視しない）。テスト用。 */
     public static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room, boolean forceAll) {
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
-        var table = theme.rushers();
+        boolean hard = rs.hardMode;
+        var table = hard ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
@@ -202,7 +206,7 @@ public class DoorEventHandler {
             sb.append(k == 0 ? "" : " | ").append(r.name()).append('=').append(hit[k])
               .append(" (room>=").append(r.minRoom()).append(", ").append(r.chance()).append(") alive=").append(alive[k]);
         }
-        RoomsDebug.log("rusher roll room={} local={} section={} {}", room, com.example.roomsmod.world.section.Sections.formatRoom(rs, room), theme.prefix(), sb);
+        RoomsDebug.log("rusher roll room={} local={} section={} hard={} {}", room, com.example.roomsmod.world.section.Sections.formatRoom(rs, room), theme.prefix(), hard, sb);
         // 排他グループ：同じ抽選で複数当たったら1つだけランダムに選ぶ（生存中のメンバーがいれば alive で全員スキップ）
         java.util.Map<String, java.util.List<Integer>> groups = new java.util.LinkedHashMap<>();
         for (int k = 0; k < table.size(); k++)
@@ -220,13 +224,14 @@ public class DoorEventHandler {
             }
         }
         // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
+        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
+            int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
             java.util.Collections.shuffle(c, new java.util.Random(level.random.nextLong()));
-            for (int n = GK_MAX_PER_ROLL; n < c.size(); n++) {
+            for (int n = cap; n < c.size(); n++) {
                 hit[c.get(n)] = false;
-                RoomsDebug.log("rusher roll room={} {} skipped: per-roll cap {}", room, table.get(c.get(n)).name(), GK_MAX_PER_ROLL);
+                RoomsDebug.log("rusher roll room={} {} skipped: per-roll cap {}", room, table.get(c.get(n)).name(), cap);
             }
         }
         for (int k = 0; k < table.size(); k++) {
