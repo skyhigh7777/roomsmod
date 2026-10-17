@@ -74,7 +74,7 @@ public abstract class VEntity extends Mob {
         RusherChunks.move(sl, this, lastForcedChunk, c);
         lastForcedChunk = c;
         boolean dbg = RoomsDebug.isEnabled();
-        if (isCurrentlyGlowing() != dbg) setGlowingTag(dbg); // 輪郭はデバッグ時のみ
+        if (hasGlowingTag() != dbg) setGlowingTag(dbg); // 輪郭はデバッグ時のみ
         if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
         serverTick(sl);
         setDeltaMovement(Vec3.ZERO);
