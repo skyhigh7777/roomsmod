@@ -1,8 +1,8 @@
 {
-  "entity.roomsmod.a20": "A-20",
-  "entity.roomsmod.a40": "A-40",
-  "subtitles.roomsmod.a20_approach": "A-20 approaches",
-  "subtitles.roomsmod.a40_approach": "A-40 approaches",
+  "entity.roomsmod.a20": "B-20",
+  "entity.roomsmod.a40": "B-40",
+  "subtitles.roomsmod.a20_approach": "B-20 approaches",
+  "subtitles.roomsmod.a40_approach": "B-40 approaches",
   "block.roomsmod.locker": "Locker",
   "block.roomsmod.hiding_table": "Hiding Table",
   "entity.roomsmod.v10": "V-10",

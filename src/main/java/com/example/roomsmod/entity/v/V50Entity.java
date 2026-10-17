@@ -28,7 +28,7 @@ public class V50Entity extends VPathWalker {
     public static final int TICK_SOUND_INTERVAL = 20;
     /** ブザーの長さ（tick、音声は0.5秒）。 */
     public static final int BUZZER_TICKS = 10;
-    /** 突進速度（ブロック/tick、A-20=1.8, A-40=2.25）。 */
+    /** 突進速度（ブロック/tick、B-20=1.8, B-40=2.25）。 */
     public static final double RUSH_SPEED = 2.4;
     public static final double HIT_RANGE = 16.0;
     public static final float DAMAGE = 8.0f;

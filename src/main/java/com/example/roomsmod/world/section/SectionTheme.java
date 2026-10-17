@@ -18,7 +18,7 @@ import java.util.function.Supplier;
  */
 public record SectionTheme(
         String id,
-        /** 部屋番号の接頭辞（"A" → A-020）。 */
+        /** 部屋番号の接頭辞（"B" → B-020）。 */
         String prefix,
         Palette palette,
         /** 部屋の形の重み（RoomShape の順: BOX, CORRIDOR, HALL, TALL, L_SHAPE）。 */
@@ -65,7 +65,7 @@ public record SectionTheme(
         @FunctionalInterface public interface Spawner { boolean spawn(ServerLevel level, com.example.roomsmod.world.RoomsState rs, Player player); }
     }
 
-    /** "A-020" 形式。 */
+    /** "B-020" 形式。 */
     public String formatRoom(int room) { return prefix + "-" + String.format("%03d", room); }
 
     /** 重み付き選択（重みが全て1なら rand.nextInt(n) と同じ結果・同じ乱数消費）。 */

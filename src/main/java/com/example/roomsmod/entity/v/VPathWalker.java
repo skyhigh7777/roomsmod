@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 部屋の経路（階段の経由点を含む）を startRoom→endRoom の順に進み、終点で消える。
  * endRoom < startRoom なら逆向き（V-50：前方の部屋からプレイヤーへ向かって来る）。
- * 当たりは RusherHits（隠れ場所・遮蔽物のルールはA-20と同じ）。
+ * 当たりは RusherHits（隠れ場所・遮蔽物のルールはB-20と同じ）。
  */
 public abstract class VPathWalker extends VEntity {
     protected int endRoom = 0;

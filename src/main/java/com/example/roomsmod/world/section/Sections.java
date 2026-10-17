@@ -18,8 +18,8 @@ public final class Sections {
     private static final Map<String, SectionTheme> THEMES = new LinkedHashMap<>();
 
     /** 現在のA区画（旧ハードコード値そのまま）。将来 B（Basement）に改名予定。 */
-    public static final SectionTheme A = register(new SectionTheme(
-            "a", "A",
+    public static final SectionTheme B = register(new SectionTheme(
+            "b", "B",
             new SectionTheme.Palette(
                     Blocks.STONE::defaultBlockState, Blocks.STONE_BRICKS::defaultBlockState, Blocks.STONE::defaultBlockState,
                     () -> Blocks.OAK_DOOR,
@@ -39,9 +39,9 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.7f)),
             3, 2,
             List.of(
-                    new SectionTheme.RusherSpawn("A-20", 20, 0.6f, DoorEventHandler::isA20Alive,
+                    new SectionTheme.RusherSpawn("B-20", 20, 0.6f, DoorEventHandler::isA20Alive,
                             (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }),
-                    new SectionTheme.RusherSpawn("A-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40)),
+                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40)),
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 
@@ -86,7 +86,7 @@ public final class Sections {
                     () -> Blocks.BIRCH_DOOR,
                     () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
             new int[]{1, 1, 1, 1, 1},
-            A.furniture(), A.cover(),
+            B.furniture(), B.cover(),
             List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.5f),
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.5f)),
             3, 2,
@@ -121,16 +121,23 @@ public final class Sections {
         return t;
     }
 
-    public static SectionTheme byId(String id) { return THEMES.getOrDefault(id, A); }
+    public static SectionTheme byId(String id) { return THEMES.getOrDefault(canonical(id), B); }
 
     /** 登録済みなら定義、なければ null。 */
-    public static SectionTheme find(String id) { return THEMES.get(id); }
+    public static SectionTheme find(String id) { return THEMES.get(canonical(id)); }
+
+    /** 旧 ID の別名：セクション A は B に改名した（"a" は古いコマンド・保存データ用の非推奨の別名）。 */
+    public static String canonical(String id) {
+        if (id == null) return null;
+        String s = id.toLowerCase(java.util.Locale.ROOT);
+        return "a".equals(s) ? "b" : s;
+    }
 
     public static java.util.Set<String> ids() { return THEMES.keySet(); }
 
     /** 部屋番号 room が属するセクション（RoomsState のセクション開始表から）。 */
     public static SectionTheme forRoom(RoomsState rs, int room) {
-        SectionTheme cur = A;
+        SectionTheme cur = B;
         for (RoomsState.SectionStart s : rs.sections) if (room >= s.startRoom()) cur = byId(s.themeId());
         return cur;
     }

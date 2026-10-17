@@ -50,7 +50,7 @@ public final class LobbyPanels {
     static final int FZ = 31, FX = 14;
 
     /** 共有の選択。 */
-    static String section = "a";
+    static String section = "b";
     static int stepIndex = 0;
 
     public static String selectedSection() { return section; }
@@ -126,7 +126,7 @@ public final class LobbyPanels {
 
     static String label() {
         SectionTheme t = Sections.find(section);
-        return (t == null ? "A" : t.prefix()) + "-" + String.format("%03d", selectedRoom());
+        return (t == null ? "B" : t.prefix()) + "-" + String.format("%03d", selectedRoom());
     }
 
     static String deepestLabel(RoomsState rs) {
@@ -185,8 +185,8 @@ public final class LobbyPanels {
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
         rs.sections.clear();
-        rs.sections.add(new RoomsState.SectionStart("a", 0));
-        if (!"a".equals(s)) rs.addSection(s, 1);
+        rs.sections.add(new RoomsState.SectionStart("b", 0));
+        if (!"b".equals(s)) rs.addSection(s, 1);
         rs.setDirty();
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }

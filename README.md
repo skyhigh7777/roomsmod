@@ -35,12 +35,12 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 | セクション | 部屋の雰囲気 | 番号 |
 |---|---|---|
-| **A** | 大きめの部屋。箱型・廊下・ホール・高天井・L字など | `A-001`〜 |
+| **B** | 大きめの部屋。箱型・廊下・ホール・高天井・L字など | `B-001`〜 |
 | **V**（Village） | 村の小さな家。2部屋つながり・2階建てなど | `V-001`〜 |
-| **GK**（学校） | 教室・廊下・準備室。A と V の中間（A 寄り）の大きさ | `GK-001`〜 |
+| **GK**（学校） | 教室・廊下・準備室。B と V の中間（B 寄り）の大きさ | `GK-001`〜 |
 
-- 既定では A のみです。V／GK へは、ロビーの **スタート選択パネル**、または `/rooms section` で切り替えます。
-- 想定している順番は **A → V → GK** です。
+- 既定では B のみです（旧称 A。`a` も別名として使えます）。V／GK へは、ロビーの **スタート選択パネル**、または `/rooms section` で切り替えます。
+- 想定している順番は **B → V → GK** です。
 - 奥へ進むほど部屋は少しずつ暗くなります。
 
 ## ロビーのパネル
@@ -49,7 +49,7 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 | ブロック | 操作 |
 |---|---|
-| 水色（SECTION） | セクションを切り替え（A → V → GK → …、追加セクションも自動で並びます）。スニーク＋右クリックで逆順 |
+| 水色（SECTION） | セクションを切り替え（B → V → GK → …、追加セクションも自動で並びます）。スニーク＋右クリックで逆順 |
 | 赤（−）／緑（＋） | スタート部屋の番号：1, 50, 100, 150, 200, 250, 300, 400, 500 |
 | 中央の看板 | 現在の選択（例：`GK-150`） |
 | 金（GO） | そのセクションのその部屋から開始（ロビーを作り直して部屋を生成し、ワープ） |
@@ -76,7 +76,7 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 | セクション | エンティティ |
 |---|---|
-| A | A-20, A-40 |
+| B | B-20, B-40 |
 | V | V-10, V-25-T, V-25-L, V25-BUFFED, V-50, V-100 |
 | GK | GK-Moth, GK-Chime, GK-Whisper, GK-Detention, GK-Quiz, GK-Substitute, GK-07, GK-Rewind, GK-Mimic, GK-PA, GK-12, GK-Janitor, GK-Eraser, GK-Mirror, GK-Bell2 |
 
@@ -100,9 +100,9 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 |---|---|---|
 | `/rooms enter` | 全員 | ロビーへ移動（ロビーを作り直し、進行をリセット） |
 | `/rooms to <1-500>` | 全員 | ロビーから部屋 N まで生成してワープ（進行をリセット） |
-| `/rooms section <id>` / `/rooms section <id> now` | OP | 次に生成する部屋からセクション `<id>`（`a` / `v` / `gk`）を開始 |
+| `/rooms section <id>` / `/rooms section <id> now` | OP | 次に生成する部屋からセクション `<id>`（`b` / `v` / `gk`。旧 `a` は `b` の別名）を開始 |
 | `/rooms section <id> <部屋番号>` | OP | セクション `<id>` を指定した通し番号の部屋から開始 |
-| `/rooms section reset` | OP | セクション表を A のみに戻す |
+| `/rooms section reset` | OP | セクション表を B のみに戻す |
 | `/rooms spawn <id>` | OP | エンティティを強制出現（同じ排他グループが生存中なら出現しません） |
 | `/rooms give flashlight` | OP | 満充電の懐中電灯をもらう |
 | `/rooms give battery [個数]` | OP | 電池をもらう（1〜64） |
@@ -110,7 +110,7 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms debug section` | OP | 現在のセクション・番号・セクション表を表示 |
 | `/rooms deepest` | 全員 | （未実装の予約コマンド。最奥への移動はロビーのパネルを使ってください） |
 
-`/rooms spawn` の id：`a20` `a40` `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100`（別名 `v35`）`v50`
+`/rooms spawn` の id：`b20` `b40`（旧 `a20` `a40` も可） `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100`（別名 `v35`）`v50`
 `gkmoth` `gkchime` `gkwhisper` `gkdetention` `gkquiz` `gksubstitute` `gk07` `gkrewind` `gkmimic` `gkpa` `gk12` `gkjanitor` `gkeraser` `gkmirror` `gkbell2`
 
 ### 例

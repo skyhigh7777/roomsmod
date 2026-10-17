@@ -11,15 +11,15 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** V-10：民家の経路（階段込み）を後ろから駆け抜けるラッシャー。家が小さいので A-20 より遅く、近くから来る。 */
+/** V-10：民家の経路（階段込み）を後ろから駆け抜けるラッシャー。家が小さいので B-20 より遅く、近くから来る。 */
 public class V10Entity extends VPathWalker {
     /** プレイヤーの何部屋後ろから来るか（V の部屋は小さいので 8 部屋でも接近音の範囲 160 ブロック内）。 */
     public static final int ROOMS_BEHIND = 8;
     /** 何部屋先まで走って消えるか。 */
     public static final int ROOMS_AHEAD = 2;
-    public static final double SPEED = 1.1;      // ブロック/tick（A-20=1.8）
+    public static final double SPEED = 1.1;      // ブロック/tick（B-20=1.8）
     public static final int GRACE_TICKS = 70;    // 出現〜走り出し（音で気付く時間）
-    public static final double HIT_RANGE = 14.0; // 小部屋なので A-20 の 22.5 より短い
+    public static final double HIT_RANGE = 14.0; // 小部屋なので B-20 の 22.5 より短い
     public static final float DAMAGE = 8.0f;
 
     public V10Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }

@@ -35,15 +35,15 @@ public class RoomsCommands {
         boolean sameAlive = a40 ? com.example.roomsmod.event.DoorEventHandler.isA40Alive(roomsLevel)
                                 : com.example.roomsmod.event.DoorEventHandler.isA20Alive(roomsLevel);
         if (sameAlive) {
-            src.sendFailure(Component.literal((a40 ? "A-40" : "A-20") + "はすでに生存中よ")); return 0;
+            src.sendFailure(Component.literal((a40 ? "B-40" : "B-20") + "はすでに生存中よ")); return 0;
         }
         var player = src.getPlayer();
         if (a40) {
-            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("A-40の出現に失敗したわ")); return 0; }
+            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
         } else {
             com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player);
         }
-        src.sendSuccess(() -> Component.literal((a40 ? "A-40" : "A-20") + "を出現させたわ"), true);
+        src.sendSuccess(() -> Component.literal((a40 ? "B-40" : "B-20") + "を出現させたわ"), true);
         return 1;
     }
 
@@ -69,7 +69,7 @@ public class RoomsCommands {
     private static int addSection(CommandSourceStack src, String id, Integer startRoom) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
-        id = id.toLowerCase(java.util.Locale.ROOT);
+        id = com.example.roomsmod.world.section.Sections.canonical(id);
         var theme = com.example.roomsmod.world.section.Sections.find(id);
         if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
@@ -90,10 +90,10 @@ public class RoomsCommands {
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         rs.sections.clear();
-        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("a", 0));
+        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("b", 0));
         rs.setDirty();
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を A のみに戻したわ"), true);
+        src.sendSuccess(() -> Component.literal("セクション表を B のみに戻したわ"), true);
         return 1;
     }
 
@@ -169,8 +169,10 @@ public class RoomsCommands {
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
-                .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
-                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
+                .then(Commands.literal("b20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
+                .then(Commands.literal("b40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
+                .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false))) // 旧名の別名（非推奨）
+                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true)))  // 旧名の別名（非推奨）
                 .then(Commands.literal("v10").executes(ctx -> spawnV(ctx.getSource(), "v10")))
                 .then(Commands.literal("v25t").executes(ctx -> spawnV(ctx.getSource(), "v25t")))
                 .then(Commands.literal("v25l").executes(ctx -> spawnV(ctx.getSource(), "v25l")))

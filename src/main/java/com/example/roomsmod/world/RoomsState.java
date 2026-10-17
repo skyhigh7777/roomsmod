@@ -29,14 +29,14 @@ public class RoomsState extends SavedData {
     /** 部屋ごとの経路（入口→折れ点→出口扉、床+1）。generatedRoomsと同じindex。 */
     public final List<List<BlockPos>> roomPaths = new ArrayList<>();
     /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。既定は A のみ。 */
-    public final List<SectionStart> sections = new ArrayList<>(List.of(new SectionStart("a", 0)));
+    public final List<SectionStart> sections = new ArrayList<>(List.of(new SectionStart("b", 0)));
 
     public record SectionStart(String themeId, int startRoom) {}
 
     /** セクションを追加（startRoom 昇順に並べる）。 */
     public void addSection(String themeId, int startRoom) {
         sections.removeIf(s -> s.startRoom() == startRoom);
-        sections.add(new SectionStart(themeId, startRoom));
+        sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(themeId), startRoom));
         sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
         setDirty();
     }
@@ -143,9 +143,9 @@ public class RoomsState extends SavedData {
             s.sections.clear();
             for (Tag t : tag.getList("sections", Tag.TAG_COMPOUND)) {
                 CompoundTag c = (CompoundTag) t;
-                s.sections.add(new SectionStart(c.getString("theme"), c.getInt("start")));
+                s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(c.getString("theme")), c.getInt("start")));
             }
-            if (s.sections.isEmpty()) s.sections.add(new SectionStart("a", 0));
+            if (s.sections.isEmpty()) s.sections.add(new SectionStart("b", 0));
         }
         } catch (RuntimeException e) {
             RoomsDebug.error("failed to load RoomsState", e);
