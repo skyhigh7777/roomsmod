@@ -65,6 +65,16 @@ public class DoorEventHandler {
                         advanceThroughExitDoor(sl, rs0, event.getEntity(), dp, "stuck open exit door retry");
                         return;
                     }
+                    // 出口扉（生成済み）以外の部屋の中の扉は閉められる（古いワールドで向きが逆の内扉が開いて塞がった場合の救済も兼ねる）
+                    if (!rs0.generatedDoors.contains(dp)) {
+                        BlockState ds = sl.getBlockState(dp);
+                        if (ds.getBlock() instanceof DoorBlock db && ds.getValue(DoorBlock.OPEN)) {
+                            sl.setBlock(dp, ds.setValue(DoorBlock.OPEN, false), 10);
+                            sl.playSound(null, dp, db.type().doorClose(), net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, sl.getRandom().nextFloat() * 0.1f + 0.9f);
+                            RoomsDebug.log(event.getEntity(), "扉を閉めたわ", "door click pos={} -> closed (inner door, not a generated exit)", dp);
+                            return;
+                        }
+                    }
                     RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
                 }
                 return;
