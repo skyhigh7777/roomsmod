@@ -11,11 +11,12 @@ import org.joml.Vector3f;
 public class BArgusEntity extends BRusher {
     public BArgusEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "B-Argus"; }
-    @Override protected double speed() { return 1.5; }
+    @Override protected double speed() { return 1.8; }
     @Override protected int roomsBehind() { return 5; }
     @Override protected double hitRange() { return 15.0; }
     @Override protected SoundEvent approachSound() { return SoundEvents.ELDER_GUARDIAN_AMBIENT; }
     @Override protected Vector3f color() { return new Vector3f(0.85f, 0.85f, 0.95f); }
     @Override protected int extraPasses() { return 1; }
     @Override protected int turnPause() { return 60; }
+    @Override protected int graceTicks() { return 85; }
 }

@@ -11,7 +11,7 @@ import org.joml.Vector3f;
 public class BSmileEntity extends BRusher {
     public BSmileEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "B-Smile"; }
-    @Override protected double speed() { return 1.15; }
+    @Override protected double speed() { return 0.9; }
     @Override protected int roomsBehind() { return 5; }
     @Override protected double hitRange() { return 15.0; }
     @Override protected SoundEvent approachSound() { return SoundEvents.SOUL_ESCAPE.value(); }
