@@ -187,7 +187,7 @@ public abstract class VSearcherEntity extends VEntity {
             found = true;
             RoomsDebug.log(p, vName() + ": 隠れ場所で見つかったわ（" + spotType() + "）",
                     "{} caught player={} spot={} at {} creative={}", vName(), p.getGameProfile().getName(), spotType(), spot, p.isCreative());
-            if (!p.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, p, CATCH_DAMAGE);
+            com.example.roomsmod.util.RoomsDamage.hurt(this, p, CATCH_DAMAGE);
         }
         if (!found) RoomsDebug.log("{} checked {} at {}: empty", vName(), spotType(), spot);
     }

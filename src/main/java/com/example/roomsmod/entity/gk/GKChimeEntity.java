@@ -65,7 +65,7 @@ public class GKChimeEntity extends GKTimedEntity {
         for (Player p : ps) {
             boolean hid = HidingRules.isHiding(p);
             RoomsDebug.log(p, "GK-025: 鐘の衝撃" + (hid ? "（隠れて無事）" : ""), "GK-025 blast player={} hiding={} creative={}", p.getGameProfile().getName(), hid, p.isCreative());
-            if (!hid && !p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+            if (!hid) RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("blast");
     }

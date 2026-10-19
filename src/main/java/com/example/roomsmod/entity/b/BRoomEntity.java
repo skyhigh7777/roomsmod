@@ -41,7 +41,7 @@ public abstract class BRoomEntity extends VEntity {
         return out;
     }
 
-    protected void hit(Player p, float dmg) { if (!p.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, p, dmg); }
+    protected void hit(Player p, float dmg) { com.example.roomsmod.util.RoomsDamage.hurt(this, p, dmg); }
 
     @Override protected String debugState() { return "room=" + startRoom + " phase=" + phase; }
     @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putInt("Phase", phase); }

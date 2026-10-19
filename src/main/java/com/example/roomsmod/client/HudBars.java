@@ -54,6 +54,22 @@ public final class HudBars {
         }
     }
 
+    /** クリエイティブではバニラの体力グループごと描かれないので、経験値バーの直後に自前で両方描く（部屋ディメンションのみ）。 */
+    @SubscribeEvent
+    public static void onLayerPost(RenderGuiLayerEvent.Post e) {
+        if (!active() || !e.getName().equals(VanillaGuiLayers.EXPERIENCE_BAR)) return;
+        Minecraft mc = Minecraft.getInstance();
+        Player p = mc.player;
+        if (mc.gameMode == null || mc.gameMode.canHurtPlayer() || p.isSpectator() || mc.options.hideGui) return;
+        GuiGraphics g = e.getGuiGraphics();
+        drawHealth(g, mc.font, p, g.guiWidth() / 2 - 91, g.guiHeight() - mc.gui.leftHeight);
+        mc.gui.leftHeight += 10;
+        if (!(p.getVehicle() instanceof LivingEntity)) {
+            drawFood(g, mc.font, p, g.guiWidth() / 2 + 91 - W, g.guiHeight() - mc.gui.rightHeight);
+            mc.gui.rightHeight += 10;
+        }
+    }
+
     private static void drawHealth(GuiGraphics g, Font font, Player p, int x, int y) {
         float hp = p.getHealth(), max = Math.max(1f, p.getMaxHealth()), abs = p.getAbsorptionAmount();
         int tick = p.tickCount;

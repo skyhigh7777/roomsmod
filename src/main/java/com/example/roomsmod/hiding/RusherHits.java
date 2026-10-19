@@ -34,7 +34,6 @@ public final class RusherHits {
         if (!spared && !lineOfSight) return false; // 隠れているが例外で露出、ただし見えていない
         report(rusher, name, player, spared, spot, player.isCreative());
         if (spared) return false;
-        if (player.isCreative()) return false;
         return com.example.roomsmod.util.RoomsDamage.hurt(rusher, player, damage);
     }
 

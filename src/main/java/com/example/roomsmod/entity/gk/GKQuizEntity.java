@@ -74,7 +74,7 @@ public class GKQuizEntity extends GKTimedEntity {
             BlockPos f = p.blockPosition();
             boolean right = f.getX() == ok.getX() && f.getZ() == ok.getZ() && Math.abs(f.getY() - ok.getY()) <= 1;
             RoomsDebug.log(p, "GK-085: " + (right ? "正解" : "不正解"), "GK-085 result player={} correct={} at={} carpet={}", p.getGameProfile().getName(), right, f, ok);
-            if (!right && !p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+            if (!right) RoomsDamage.hurt(this, p, DAMAGE);
         }
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_DESK_CHECK.get(), SoundSource.HOSTILE, 2.0f, 0.6f);
         leave("quiz over");

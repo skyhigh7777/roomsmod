@@ -88,7 +88,7 @@ public class GKSubstituteEntity extends VEntity {
     public void trigger(ServerLevel level, Player p) {
         level.playSound(null, door, RoomsMod.GK_SUBSTITUTE_CREAK.get(), SoundSource.HOSTILE, 2.5f, 0.5f);
         RoomsDebug.log(p, "GK-105: 偽の扉だったわ", "GK-105 fake door opened {} player={} creative={}", door, p == null ? "?" : p.getGameProfile().getName(), p != null && p.isCreative());
-        if (p != null && !p.isCreative()) {
+        if (p != null) {
             com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
             p.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 60));
         }

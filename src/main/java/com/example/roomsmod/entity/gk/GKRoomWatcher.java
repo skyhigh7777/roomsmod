@@ -71,7 +71,7 @@ public abstract class GKRoomWatcher extends VEntity {
             if (n == 1 || n % 5 == 0) RoomsDebug.log(p, vName() + ": 違反 " + n + "/" + limit(), "{} violation player={} count={}/{}", vName(), p.getGameProfile().getName(), n, limit());
             if (n >= limit()) {
                 RoomsDebug.log(p, vName() + ": 攻撃したわ", "{} strike player={} creative={}", vName(), p.getGameProfile().getName(), p.isCreative());
-                if (!p.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, p, damage());
+                com.example.roomsmod.util.RoomsDamage.hurt(this, p, damage());
                 leave("struck " + p.getGameProfile().getName());
                 return;
             }

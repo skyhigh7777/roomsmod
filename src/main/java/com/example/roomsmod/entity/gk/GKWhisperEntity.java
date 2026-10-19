@@ -58,7 +58,7 @@ public class GKWhisperEntity extends GKTimedEntity {
             int n = away.merge(p.getUUID(), 1, Integer::sum);
             if (n == 1 || n % 10 == 0) RoomsDebug.log(p, "GK-045: スピーカーから離れている " + n + "/" + LIMIT, "GK-045 away player={} count={}/{}", p.getGameProfile().getName(), n, LIMIT);
             if (n >= LIMIT) {
-                if (!p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+                RoomsDamage.hurt(this, p, DAMAGE);
                 leave("struck " + p.getGameProfile().getName());
                 return;
             }

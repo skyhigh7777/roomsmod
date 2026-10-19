@@ -67,7 +67,7 @@ public class GKMothEntity extends com.example.roomsmod.entity.v.VEntity {
         int spare = p.getInventory().clearOrCountMatchingItems(s -> s.is(RoomsMod.BATTERY.get()), 1, p.inventoryMenu.getCraftSlots());
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_MOTH_FLUTTER.get(), SoundSource.HOSTILE, 2.5f, 0.5f);
         RoomsDebug.log(p, "GK-010: 電池を吸われたわ（予備 -" + spare + "）", "GK-010 stole charge={} spareBatteries={} player={}", before, spare, p.getGameProfile().getName());
-        if (!p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+        RoomsDamage.hurt(this, p, DAMAGE);
         leave("stole battery");
     }
 

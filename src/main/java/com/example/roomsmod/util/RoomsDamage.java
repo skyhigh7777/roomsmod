@@ -23,8 +23,30 @@ public final class RoomsDamage {
     /** 実際に体力が減ったか（無敵時間中などは false）。 */
     public static boolean hurt(Entity attacker, Player p, float amount) {
         float before = p.getHealth();
-        boolean ok = p.hurt(source(attacker), amount);
+        boolean ok = p.isCreative() && !p.isSpectator() && p.level().dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)
+                ? hurtCreative(attacker, p, amount) : p.hurt(source(attacker), amount);
         RoomsDebug.log("damage attacker={} player={} amount={} applied={} health {} -> {}", attacker instanceof com.example.roomsmod.entity.v.VEntity v ? v.vName() : attacker.getName().getString(), p.getGameProfile().getName(), amount, ok, before, p.getHealth());
         return ok;
+    }
+
+    /**
+     * 部屋ディメンションのクリエイティブ：無敵を無視して体力を直接減らす（衝撃吸収→体力の順、ノックバックなし）。
+     * 0 になったら通常の死亡処理（デバッグ時は DebugNoDeath が取り消して回復）。
+     */
+    private static boolean hurtCreative(Entity attacker, Player p, float amount) {
+        if (p.invulnerableTime > 10 || amount <= 0 || !p.isAlive()) return false;
+        DamageSource src = source(attacker);
+        float abs = p.getAbsorptionAmount(), fromAbs = Math.min(abs, amount);
+        p.setAbsorptionAmount(abs - fromAbs);
+        float rest = amount - fromAbs;
+        p.invulnerableTime = 20;
+        p.hurtDuration = 10;
+        p.hurtTime = 10;
+        if (p.level() instanceof net.minecraft.server.level.ServerLevel sl) sl.broadcastDamageEvent(p, src); // 赤く光る・被ダメ音（クライアント側）
+        if (p instanceof net.minecraft.server.level.ServerPlayer sp) com.example.roomsmod.event.DebugNoDeath.noteDamage(sp, amount);
+        float nh = p.getHealth() - rest;
+        if (nh <= 0f) { p.setHealth(0f); p.die(src); }
+        else p.setHealth(nh);
+        return true;
     }
 }

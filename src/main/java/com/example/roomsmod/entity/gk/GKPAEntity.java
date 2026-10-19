@@ -68,7 +68,7 @@ public class GKPAEntity extends VEntity {
             if (p.isSpectator()) continue;
             boolean ok = safe(rs, p);
             RoomsDebug.log(p, "GK-185: " + (ok ? "移動済み、セーフ" : "移動していない、攻撃"), "GK-185 end player={} room={} safe={} creative={}", p.getGameProfile().getName(), RoomTracker.roomIndexAt(rs, p.blockPosition()), ok, p.isCreative());
-            if (!ok && !p.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
+            if (!ok) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("countdown over");
     }

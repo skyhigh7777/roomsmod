@@ -27,7 +27,7 @@ public class B17Entity extends BRoomEntity {
         Player t = target == null ? null : level.getPlayerByUUID(target);
         if (t == null) {
             Player best = null;
-            for (Player p : playersNear(40)) if (!p.isCreative() && (best == null || distanceTo(p) < distanceTo(best))) best = p;
+            for (Player p : playersNear(40)) if ((best == null || distanceTo(p) < distanceTo(best))) best = p;
             if (best == null) { if (phase > TELEGRAPH * 2) leave("no target"); return; }
             target = best.getUUID(); t = best;
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.CREEPER_PRIMED, SoundSource.HOSTILE, 1.5f, 0.5f);
