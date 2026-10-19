@@ -42,7 +42,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_WHISPER.get(), c -> new VRenderer<>(c, "gk_whisper", 2.0f, 0.3f));
         event.registerEntityRenderer(RoomsMod.GK_DETENTION.get(), c -> new VRenderer<>(c, "gk_detention", 2.4f, 0.02f));
-        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // GK-105 は姿を一切描かない（デバッグ時も）。手がかりは偽の扉だけ
         event.registerEntityRenderer(RoomsMod.GK_ERASER.get(), c -> new VRenderer<>(c, "gk_eraser", 2.2f, 0.4f));
         event.registerEntityRenderer(RoomsMod.GK_QUIZ.get(), c -> new VRenderer<>(c, "gk_quiz", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_PA.get(), c -> new VRenderer<>(c, "gk_pa", 1.0f, 0.05f));
@@ -211,7 +211,6 @@ public class ClientSetup {
         public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
             if (entity instanceof com.example.roomsmod.entity.v.V100Entity v && !v.isPeeking()) return;
             if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
-            if (entity instanceof com.example.roomsmod.entity.gk.GKSubstituteEntity && !entity.isCurrentlyGlowing()) return; // 姿は見せない（デバッグ時のみ表示）
             float age = entity.tickCount + pt;
             ps.pushPose();
             ps.translate(0.0f, size * 0.5f, 0.0f);
