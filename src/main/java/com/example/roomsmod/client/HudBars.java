@@ -49,7 +49,7 @@ public final class HudBars {
             if (p.getVehicle() instanceof LivingEntity) return; // 乗り物の体力表示はバニラに任せる
             e.setCanceled(true);
             int x = g.guiWidth() / 2 + 91 - W, y = g.guiHeight() - mc.gui.rightHeight;
-            drawFood(g, mc.font, p, x, y);
+            drawStamina(g, mc.font, x, y);
             mc.gui.rightHeight += 10;
         }
     }
@@ -81,19 +81,19 @@ public final class HudBars {
         label(g, font, t, x, y);
     }
 
-    private static void drawFood(GuiGraphics g, Font font, Player p, int x, int y) {
-        var fd = p.getFoodData();
-        int food = fd.getFoodLevel();
-        float sat = fd.getSaturationLevel();
-        int fill = p.hasEffect(MobEffects.HUNGER) ? 0xFF7A8B3A : 0xFFC87A2A;
+    /** 満腹度の代わりのスタミナ（右から左へ減る）。息切れ中は暗く赤みがかり、ダッシュ再開ラインに印。 */
+    private static void drawStamina(GuiGraphics g, Font font, int x, int y) {
+        float v = com.example.roomsmod.stamina.ClientStamina.value;
+        boolean ex = com.example.roomsmod.stamina.ClientStamina.exhausted;
         frame(g, x, y);
-        int w = Mth.clamp(Math.round((W - 2) * food / 20f), 0, W - 2);
-        // 右から左へ減る（バニラの満腹度アイコンと同じ向き）
-        g.fill(x + W - 1 - w, y + 1, x + W - 1, y + H - 1, fill);
+        int w = Mth.clamp(Math.round((W - 2) * v / com.example.roomsmod.stamina.Stamina.MAX), 0, W - 2);
+        g.fill(x + W - 1 - w, y + 1, x + W - 1, y + H - 1, ex ? 0xFF7A4656 : 0xFF3EC8E6);
         g.fill(x + W - 1 - w, y + 1, x + W - 1, y + 2, 0x40FFFFFF);
-        int sw = Mth.clamp(Math.round((W - 2) * Math.min(sat, food) / 20f), 0, W - 2);
-        if (sw > 0) g.fill(x + W - 1 - sw, y + H - 3, x + W - 1, y + H - 1, 0xFFF2D7A0); // 隠し満腹度：下側の淡い帯
-        label(g, font, food + "/20", x, y);
+        if (ex) {
+            int mx = x + W - 1 - Math.round((W - 2) * com.example.roomsmod.stamina.Stamina.RESUME / com.example.roomsmod.stamina.Stamina.MAX);
+            g.fill(mx, y + 1, mx + 1, y + H - 1, 0xFFE05050);
+        }
+        label(g, font, (ex ? "EXHAUSTED " : "STAMINA ") + Mth.floor(v), x, y);
     }
 
     private static void frame(GuiGraphics g, int x, int y) {

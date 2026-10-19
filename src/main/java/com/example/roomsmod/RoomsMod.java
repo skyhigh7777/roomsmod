@@ -178,6 +178,8 @@ public class RoomsMod {
         DATA_COMPONENTS.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.item.FlashlightHandler.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DebugNoDeath.class);
+        com.example.roomsmod.stamina.Stamina.init(modEventBus);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.stamina.Stamina.class);
         ENTITIES.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomTracker.class);
