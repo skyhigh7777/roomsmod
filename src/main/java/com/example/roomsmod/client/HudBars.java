@@ -27,7 +27,7 @@ public final class HudBars {
 
     static final int W = 81, H = 9;
     private static float lastHealth = -1;
-    private static int flashUntil = 0, flashLen = 10;
+    private static int flashUntil = 0, flashLen = 10, flashColor = 0xFFFFFF;
 
     static boolean active() {
         Minecraft mc = Minecraft.getInstance();
@@ -57,7 +57,8 @@ public final class HudBars {
     private static void drawHealth(GuiGraphics g, Font font, Player p, int x, int y) {
         float hp = p.getHealth(), max = Math.max(1f, p.getMaxHealth()), abs = p.getAbsorptionAmount();
         int tick = p.tickCount;
-        if (lastHealth >= 0 && hp < lastHealth - 0.01f) flashUntil = tick + flashLen;
+        if (lastHealth >= 0 && hp < lastHealth - 0.01f) { flashUntil = tick + flashLen; flashColor = 0xFFFFFF; }
+        else if (lastHealth >= 0 && hp >= lastHealth + 4f) { flashUntil = tick + flashLen; flashColor = 0x60FF60; } // 包帯などの大きな回復
         lastHealth = hp;
         int fill;
         if (p.hasEffect(MobEffects.WITHER)) fill = 0xFF3A3A3A;
@@ -74,7 +75,7 @@ public final class HudBars {
         }
         if (flashUntil > tick) {
             int a = (int) (0x90 * (flashUntil - tick) / (float) flashLen);
-            g.fill(x + 1, y + 1, x + W - 1, y + H - 1, (a << 24) | 0xFFFFFF);
+            g.fill(x + 1, y + 1, x + W - 1, y + H - 1, (a << 24) | flashColor);
         }
         String t = Mth.ceil(hp) + (abs > 0 ? "+" + Mth.ceil(abs) : "") + "/" + Mth.ceil(max);
         label(g, font, t, x, y);

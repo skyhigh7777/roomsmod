@@ -52,6 +52,7 @@ public class RoomsMod {
                     .lightLevel(st -> com.example.roomsmod.item.FlashlightHandler.BRIGHTNESS));
     public static final net.neoforged.neoforge.registries.DeferredItem<com.example.roomsmod.item.FlashlightItem> FLASHLIGHT = ITEMS.registerItem("flashlight",
             com.example.roomsmod.item.FlashlightItem::new, new net.minecraft.world.item.Item.Properties().stacksTo(1));
+    public static final net.neoforged.neoforge.registries.DeferredItem<com.example.roomsmod.item.BandageItem> BANDAGE = ITEMS.registerItem("bandage", com.example.roomsmod.item.BandageItem::new, new net.minecraft.world.item.Item.Properties().stacksTo(8));
     public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.Item> BATTERY = ITEMS.registerSimpleItem("battery", new net.minecraft.world.item.Item.Properties().stacksTo(16));
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
     public static final DeferredHolder<SoundEvent, SoundEvent> A20_APPROACH = SOUND_EVENTS.register("a20_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a20_approach")));
@@ -183,7 +184,7 @@ public class RoomsMod {
         com.example.roomsmod.hiding.HidingRules.addHidingCheck(com.example.roomsmod.hiding.LockerManager::isUnderTable);
         modEventBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(LOCKER_ITEM.get()); e.accept(HIDING_TABLE_ITEM.get()); }
-            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS)); e.accept(BATTERY.get()); }
+            if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS)); e.accept(BATTERY.get()); e.accept(BANDAGE.get()); }
         });
         SOUND_EVENTS.register(modEventBus);
         modEventBus.addListener(RoomsMod::onEntityAttributeCreation);

@@ -177,6 +177,8 @@ public class RoomGenerator {
         try { exit = generateNextRoomInner(level, origin, roomNumber); } finally { DropGuard.end("room " + roomNumber + " generation"); }
         try { placeBattery(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("battery placement failed room=" + roomNumber, e); }
+        try { placeBandage(level, roomNumber); }
+        catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("bandage placement failed room=" + roomNumber, e); }
         LobbyPanels.refreshDeepest(level);
         return exit;
     }
@@ -191,6 +193,20 @@ public class RoomGenerator {
         it.setUnlimitedLifetime();
         level.addFreshEntity(it);
         com.example.roomsmod.util.RoomsDebug.log("battery placed room={} at {}", room, BlockPos.containing(at));
+    }
+
+    public static final double BANDAGE_ROOM_CHANCE = 0.12;
+
+    /** BANDAGE_ROOM_CHANCE で、部屋の安全な床の上に包帯を1個（電池とは別の抽選）。ロビーには置かない。 */
+    static void placeBandage(ServerLevel level, int room) {
+        if (room <= 0 || level.random.nextDouble() >= BANDAGE_ROOM_CHANCE) return;
+        RoomsState rs = RoomsState.get(level);
+        net.minecraft.world.phys.Vec3 at = SafeSpot.findRandom(level, rs, room, level.random);
+        if (at == null) return;
+        var it = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y + 0.05, at.z, new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BANDAGE.get()), 0, 0, 0);
+        it.setUnlimitedLifetime();
+        level.addFreshEntity(it);
+        com.example.roomsmod.util.RoomsDebug.log("bandage placed room={} at {}", room, BlockPos.containing(at));
     }
 
     static BlockPos generateNextRoomInner(ServerLevel level, BlockPos origin, int roomNumber) {

@@ -122,5 +122,7 @@
   "entity.roomsmod.b_reach": "B-50",
   "entity.roomsmod.b_smile": "B-90",
   "entity.roomsmod.b_void": "B-260",
-  "entity.roomsmod.b_17": "B-290"
+  "entity.roomsmod.b_17": "B-290",
+  "item.roomsmod.bandage": "Bandage",
+  "message.roomsmod.bandage_full": "Your health is already full"
 }

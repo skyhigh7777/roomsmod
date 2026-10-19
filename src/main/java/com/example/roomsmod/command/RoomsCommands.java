@@ -107,6 +107,12 @@ public class RoomsCommands {
     }
 
     /** ロビー（/rooms enter と同じ地点）へ送る。ロビーは毎回生成し直す（従来どおり）。 */
+    private static int giveBandage(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BANDAGE.get(), n));
+        src.sendSuccess(() -> Component.translatable("item.roomsmod.bandage").append(" x" + n), false);
+        return n;
+    }
+
     private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BATTERY.get(), n));
         src.sendSuccess(() -> Component.translatable("item.roomsmod.battery").append(" x" + n), false);
@@ -190,6 +196,8 @@ public class RoomsCommands {
                     ctx.getSource().sendSuccess(() -> Component.translatable("item.roomsmod.flashlight"), false);
                     return 1;
                 }))
+                .then(Commands.literal("bandage").executes(ctx -> giveBandage(ctx.getSource(), 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBandage(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
                 .then(Commands.literal("battery").executes(ctx -> giveBattery(ctx.getSource(), 1))
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
