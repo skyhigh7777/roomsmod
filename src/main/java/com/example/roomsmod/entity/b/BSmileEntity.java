@@ -7,10 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-090。 */
+/** B-90。 */
 public class BSmileEntity extends BRusher {
     public BSmileEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-090"; }
+    @Override public String vName() { return "B-90"; }
     @Override protected double speed() { return 0.9; }
     @Override protected int roomsBehind() { return 5; }
     @Override protected double hitRange() { return 15.0; }

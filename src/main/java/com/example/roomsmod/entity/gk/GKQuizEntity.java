@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** GK-085：足し算の小テスト。赤・緑・青のカーペットのうち、正解の色の上に立つ（隠れても無駄）。 */
+/** GK-85：足し算の小テスト。赤・緑・青のカーペットのうち、正解の色の上に立つ（隠れても無駄）。 */
 public class GKQuizEntity extends GKTimedEntity {
     public static final int TELEGRAPH = 40, TIME = 20 * 15;
     public static final float DAMAGE = 20f;
@@ -30,7 +30,7 @@ public class GKQuizEntity extends GKTimedEntity {
     private int a, b, correct;
     private final int[] answers = new int[3];
     public GKQuizEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-085"; }
+    @Override public String vName() { return "GK-85"; }
 
     @Override public boolean targetsOpenedRoom() { return true; }
 
@@ -38,7 +38,7 @@ public class GKQuizEntity extends GKTimedEntity {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
         List<BlockPos> s = new ArrayList<>(GKUtil.freeSpots(level, rs, playerRoom, level.random, 4));
-        if (s.size() < 3) { RoomsDebug.log("GK-085 spawn skipped: only {} carpet spots", s.size()); return null; }
+        if (s.size() < 3) { RoomsDebug.log("GK-85 spawn skipped: only {} carpet spots", s.size()); return null; }
         a = 2 + level.random.nextInt(8); b = 2 + level.random.nextInt(8);
         List<Integer> opts = new ArrayList<>(List.of(a + b, a + b + 1 + level.random.nextInt(2), a + b - 1 - level.random.nextInt(2)));
         java.util.Random shuf = new java.util.Random(level.random.nextLong());
@@ -48,7 +48,7 @@ public class GKQuizEntity extends GKTimedEntity {
         // 立ち位置は選択肢と無関係に：4つ目の空き床があればそこ、なければランダムな選択肢の上
         BlockPos c = s.size() > 3 ? s.get(3) : s.get(level.random.nextInt(3));
         setPos(c.getX() + 0.5, c.getY(), c.getZ() + 0.5);
-        RoomsDebug.log("GK-085 {}+{} answers red={} green={} blue={} correct={} carpets={} standsAt={}", a, b, answers[0], answers[1], answers[2], COLORS[correct], placed, c);
+        RoomsDebug.log("GK-85 {}+{} answers red={} green={} blue={} correct={} carpets={} standsAt={}", a, b, answers[0], answers[1], answers[2], COLORS[correct], placed, c);
         return c;
     }
 
@@ -65,7 +65,7 @@ public class GKQuizEntity extends GKTimedEntity {
         List<Player> ps = GKUtil.players(level, this, startRoom, 24);
         if (phase == 1) {
             level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_DESK_CHECK.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
-            for (Player p : ps) { p.sendSystemMessage(question(TIME / 20)); RoomsDebug.log(p, "GK-085 正解は " + COLORS[correct], "GK-085 telegraph room={}", startRoom); }
+            for (Player p : ps) { p.sendSystemMessage(question(TIME / 20)); RoomsDebug.log(p, "GK-85 正解は " + COLORS[correct], "GK-85 telegraph room={}", startRoom); }
         }
         if (phase % 20 == 0) GKUtil.actionbar(ps, question(Math.max(0, TELEGRAPH + TIME - phase) / 20));
         if (phase < TELEGRAPH + TIME) return;
@@ -73,7 +73,7 @@ public class GKQuizEntity extends GKTimedEntity {
         for (Player p : ps) {
             BlockPos f = p.blockPosition();
             boolean right = f.getX() == ok.getX() && f.getZ() == ok.getZ() && Math.abs(f.getY() - ok.getY()) <= 1;
-            RoomsDebug.log(p, "GK-085: " + (right ? "正解" : "不正解"), "GK-085 result player={} correct={} at={} carpet={}", p.getGameProfile().getName(), right, f, ok);
+            RoomsDebug.log(p, "GK-85: " + (right ? "正解" : "不正解"), "GK-85 result player={} correct={} at={} carpet={}", p.getGameProfile().getName(), right, f, ok);
             if (!right) RoomsDamage.hurt(this, p, DAMAGE);
         }
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_DESK_CHECK.get(), SoundSource.HOSTILE, 2.0f, 0.6f);

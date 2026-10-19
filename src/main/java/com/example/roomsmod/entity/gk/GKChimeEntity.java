@@ -21,13 +21,13 @@ import net.minecraft.world.level.block.state.properties.BellAttachType;
 
 import java.util.List;
 
-/** GK-025：部屋にベルを出す。時間内に誰かが鳴らせば去る。鳴らさなければ部屋中に鐘の衝撃（隠れていれば無事）。 */
+/** GK-25：部屋にベルを出す。時間内に誰かが鳴らせば去る。鳴らさなければ部屋中に鐘の衝撃（隠れていれば無事）。 */
 public class GKChimeEntity extends GKTimedEntity {
     public static final int TELEGRAPH = 40, TIME = 20 * 15;
     public static final float DAMAGE = 40f;
     private BlockPos bell = null;
     public GKChimeEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-025"; }
+    @Override public String vName() { return "GK-25"; }
 
     @Override public boolean targetsOpenedRoom() { return true; }
 
@@ -39,14 +39,14 @@ public class GKChimeEntity extends GKTimedEntity {
         bell = s.get(0);
         place(level, bell, Blocks.BELL.defaultBlockState().setValue(BellBlock.ATTACHMENT, BellAttachType.FLOOR));
         setPos(bell.getX() + 0.5, bell.getY() + 1, bell.getZ() + 0.5);
-        RoomsDebug.log("GK-025 bell at {}", bell);
+        RoomsDebug.log("GK-25 bell at {}", bell);
         return bell;
     }
 
     public boolean owns(BlockPos p) { return bell != null && bell.equals(p); }
 
     public void rung(ServerLevel level, Player p) {
-        RoomsDebug.log(p, "GK-025: ベルを鳴らしたわ、去っていく", "GK-025 rung by {} at phase={}", p.getGameProfile().getName(), phase);
+        RoomsDebug.log(p, "GK-25: ベルを鳴らしたわ、去っていく", "GK-25 rung by {} at phase={}", p.getGameProfile().getName(), phase);
         GKUtil.actionbar(GKUtil.players(level, this, startRoom, 24), Component.translatable("message.roomsmod.gk_chime_ok"));
         leave("bell rung");
     }
@@ -56,7 +56,7 @@ public class GKChimeEntity extends GKTimedEntity {
         phase++;
         List<Player> ps = GKUtil.players(level, this, startRoom, 24);
         if (phase % 40 == 1) level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_CHIME_APPROACH.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
-        if (phase == 1) for (Player p : ps) RoomsDebug.log(p, "GK-025: ベルが現れたわ（" + TIME / 20 + "秒）", "GK-025 telegraph room={} bell={}", startRoom, bell);
+        if (phase == 1) for (Player p : ps) RoomsDebug.log(p, "GK-25: ベルが現れたわ（" + TIME / 20 + "秒）", "GK-25 telegraph room={} bell={}", startRoom, bell);
         if (phase <= TELEGRAPH) return;
         int left = TELEGRAPH + TIME - phase;
         if (left % 20 == 0) GKUtil.actionbar(ps, Component.translatable("message.roomsmod.gk_chime_ring", left / 20));
@@ -64,7 +64,7 @@ public class GKChimeEntity extends GKTimedEntity {
         level.playSound(null, getX(), getY(), getZ(), SoundEvents.BELL_BLOCK, SoundSource.HOSTILE, 4.0f, 0.5f);
         for (Player p : ps) {
             boolean hid = HidingRules.isHiding(p);
-            RoomsDebug.log(p, "GK-025: 鐘の衝撃" + (hid ? "（隠れて無事）" : ""), "GK-025 blast player={} hiding={} creative={}", p.getGameProfile().getName(), hid, p.isCreative());
+            RoomsDebug.log(p, "GK-25: 鐘の衝撃" + (hid ? "（隠れて無事）" : ""), "GK-25 blast player={} hiding={} creative={}", p.getGameProfile().getName(), hid, p.isCreative());
             if (!hid) RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("blast");

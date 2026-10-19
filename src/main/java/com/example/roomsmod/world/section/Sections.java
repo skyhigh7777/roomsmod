@@ -42,7 +42,7 @@ public final class Sections {
                     new SectionTheme.RusherSpawn("B-20", 20, 0.6f, l -> DoorEventHandler.isA20Alive(l) || errorAlive(l),
                             (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }, "err_b20"),
                     new SectionTheme.RusherSpawn("B-40", 40, 0.25f, l -> DoorEventHandler.isA40Alive(l) || errorAlive(l), DoorEventHandler::spawnA40, "err_b40"),
-                    // B: B-015〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）
+                    // B: B-15〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_STATIC, 15, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MASK, 30, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_REACH, 50, 0.07f),
@@ -105,7 +105,7 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.5f)),
             3, 2,
             List.of(
-                    // GK: セクション内番号 GK-010〜GK-300 にかけて易しい順に解禁。1回の抽選で出るのは最大 GK_MAX_PER_ROLL 体（DoorEventHandler）
+                    // GK: セクション内番号 GK-10〜GK-300 にかけて易しい順に解禁。1回の抽選で出るのは最大 GK_MAX_PER_ROLL 体（DoorEventHandler）
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_MOTH, 10, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_CHIME, 25, 0.12f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.GK_WHISPER, 45, 0.07f),

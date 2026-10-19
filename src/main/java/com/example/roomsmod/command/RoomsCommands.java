@@ -205,7 +205,17 @@ public class RoomsCommands {
                     .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
-                // 番号名（B-XXX / GK-XXX）。旧名の literal も別名として残す
+                // 番号名（B-15 / GK-10 / B-110 など。先頭ゼロ付き b015 / gk010 も可）。旧名の literal も別名として残す
+                .then(Commands.literal("b15").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
+                .then(Commands.literal("b30").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
+                .then(Commands.literal("b50").executes(ctx -> spawnV(ctx.getSource(), "breach")))
+                .then(Commands.literal("b70").executes(ctx -> spawnV(ctx.getSource(), "beye")))
+                .then(Commands.literal("b90").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
+                .then(Commands.literal("gk10").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
+                .then(Commands.literal("gk25").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
+                .then(Commands.literal("gk45").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
+                .then(Commands.literal("gk65").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
+                .then(Commands.literal("gk85").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
                 .then(Commands.literal("gk010").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
                 .then(Commands.literal("gk025").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
                 .then(Commands.literal("gk045").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
