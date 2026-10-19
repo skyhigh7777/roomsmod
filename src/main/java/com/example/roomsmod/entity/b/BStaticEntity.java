@@ -7,10 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-015。 */
+/** B-15。 */
 public class BStaticEntity extends BRusher {
     public BStaticEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-015"; }
+    @Override public String vName() { return "B-15"; }
     @Override protected double speed() { return 1.7; } // 最初の B なので控えめ（旧 2.6）
     @Override protected int roomsBehind() { return 7; }
     @Override protected double hitRange() { return 18.0; }

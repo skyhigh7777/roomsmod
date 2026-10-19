@@ -61,7 +61,7 @@ public class GKMirrorEntity extends com.example.roomsmod.entity.v.VEntity {
         if (trail.size() >= DELAY) { Vec3 v = trail.peekFirst(); faceTowards(v); setPos(v.x, v.y, v.z); }
         if (distanceTo(p) < TOUCH) {
             RoomsDebug.log(p, "GK-270: 影に追いつかれたわ", "GK-270 touched player={} creative={}", p.getGameProfile().getName(), p.isCreative());
-            if (!p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+            RoomsDamage.hurt(this, p, DAMAGE);
             leave("touched");
         }
     }

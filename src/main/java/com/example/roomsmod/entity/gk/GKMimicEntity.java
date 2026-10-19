@@ -61,7 +61,7 @@ public class GKMimicEntity extends com.example.roomsmod.entity.v.VEntity {
     public void caught(ServerLevel level, Player p) {
         level.playSound(null, locker, RoomsMod.GK_ROLLCALL_CHECK.get(), SoundSource.HOSTILE, 3.0f, 0.5f);
         RoomsDebug.log(p, "GK-165: ロッカーの中にいたわ", "GK-165 caught player={} locker={} creative={}", p.getGameProfile().getName(), locker, p.isCreative());
-        if (!p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+        RoomsDamage.hurt(this, p, DAMAGE);
         leave("caught");
     }
 

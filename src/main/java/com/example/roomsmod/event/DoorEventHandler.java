@@ -147,7 +147,7 @@ public class DoorEventHandler {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
                 || b instanceof com.example.roomsmod.block.HidingTableBlock
-                || b instanceof net.minecraft.world.level.block.BellBlock // GK-025 のベル
+                || b instanceof net.minecraft.world.level.block.BellBlock // GK-25 のベル
                 || b instanceof DoorBlock;
     }
 

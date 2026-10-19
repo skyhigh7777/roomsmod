@@ -27,6 +27,9 @@ public final class DebugNoDeath {
     private DebugNoDeath() {}
     private static final Map<UUID, Float> LAST_DAMAGE = new HashMap<>();
 
+    /** クリエイティブへの直接ダメージ（RoomsDamage）からも記録できるように。 */
+    public static void noteDamage(ServerPlayer sp, float amount) { LAST_DAMAGE.put(sp.getUUID(), amount); }
+
     @SubscribeEvent
     public static void onDamage(LivingDamageEvent.Post e) {
         if (e.getEntity() instanceof ServerPlayer sp) LAST_DAMAGE.put(sp.getUUID(), e.getNewDamage());

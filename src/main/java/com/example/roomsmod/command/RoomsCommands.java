@@ -43,6 +43,9 @@ public class RoomsCommands {
         if (sameAlive) {
             src.sendFailure(Component.literal((a40 ? "B-40" : "B-20") + "はすでに生存中よ")); return 0;
         }
+        if (com.example.roomsmod.entity.v.VSpawns.isAlive(roomsLevel, com.example.roomsmod.RoomsMod.B_ERROR.get())) {
+            src.sendFailure(Component.literal("B-110 が生存中なので " + (a40 ? "B-40" : "B-20") + " は出せないわ")); return 0;
+        }
         var player = src.getPlayer();
         if (a40) {
             if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
@@ -104,6 +107,12 @@ public class RoomsCommands {
     }
 
     /** ロビー（/rooms enter と同じ地点）へ送る。ロビーは毎回生成し直す（従来どおり）。 */
+    private static int giveBandage(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BANDAGE.get(), n));
+        src.sendSuccess(() -> Component.translatable("item.roomsmod.bandage").append(" x" + n), false);
+        return n;
+    }
+
     private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BATTERY.get(), n));
         src.sendSuccess(() -> Component.translatable("item.roomsmod.battery").append(" x" + n), false);
@@ -187,14 +196,14 @@ public class RoomsCommands {
                     ctx.getSource().sendSuccess(() -> Component.translatable("item.roomsmod.flashlight"), false);
                     return 1;
                 }))
+                .then(Commands.literal("bandage").executes(ctx -> giveBandage(ctx.getSource(), 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBandage(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
                 .then(Commands.literal("battery").executes(ctx -> giveBattery(ctx.getSource(), 1))
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("b20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
                 .then(Commands.literal("b40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
-                .then(Commands.literal("a20").executes(ctx -> spawnRusher(ctx.getSource(), false))) // 旧名の別名（非推奨）
-                .then(Commands.literal("a40").executes(ctx -> spawnRusher(ctx.getSource(), true)))  // 旧名の別名（非推奨）
                 .then(Commands.literal("v10").executes(ctx -> spawnV(ctx.getSource(), "v10")))
                 .then(Commands.literal("v25t").executes(ctx -> spawnV(ctx.getSource(), "v25t")))
                 .then(Commands.literal("v25l").executes(ctx -> spawnV(ctx.getSource(), "v25l")))
@@ -202,12 +211,17 @@ public class RoomsCommands {
                     .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
-                // 番号名（B-XXX / GK-XXX）。旧名の literal も別名として残す
-                .then(Commands.literal("gk010").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
-                .then(Commands.literal("gk025").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
-                .then(Commands.literal("gk045").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
-                .then(Commands.literal("gk065").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
-                .then(Commands.literal("gk085").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
+                // 番号名（B-15 / GK-10 / B-110 など）
+                .then(Commands.literal("b15").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
+                .then(Commands.literal("b30").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
+                .then(Commands.literal("b50").executes(ctx -> spawnV(ctx.getSource(), "breach")))
+                .then(Commands.literal("b70").executes(ctx -> spawnV(ctx.getSource(), "beye")))
+                .then(Commands.literal("b90").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
+                .then(Commands.literal("gk10").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
+                .then(Commands.literal("gk25").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
+                .then(Commands.literal("gk45").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
+                .then(Commands.literal("gk65").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
+                .then(Commands.literal("gk85").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
                 .then(Commands.literal("gk105").executes(ctx -> spawnV(ctx.getSource(), "gksubstitute")))
                 .then(Commands.literal("gk125").executes(ctx -> spawnV(ctx.getSource(), "gk07")))
                 .then(Commands.literal("gk145").executes(ctx -> spawnV(ctx.getSource(), "gkrewind")))
@@ -218,11 +232,6 @@ public class RoomsCommands {
                 .then(Commands.literal("gk245").executes(ctx -> spawnV(ctx.getSource(), "gkeraser")))
                 .then(Commands.literal("gk270").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
                 .then(Commands.literal("gk300").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
-                .then(Commands.literal("b015").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
-                .then(Commands.literal("b030").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
-                .then(Commands.literal("b050").executes(ctx -> spawnV(ctx.getSource(), "breach")))
-                .then(Commands.literal("b070").executes(ctx -> spawnV(ctx.getSource(), "beye")))
-                .then(Commands.literal("b090").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
                 .then(Commands.literal("b110").executes(ctx -> spawnV(ctx.getSource(), "berror")))
                 .then(Commands.literal("b130").executes(ctx -> spawnV(ctx.getSource(), "bgrin")))
                 .then(Commands.literal("b155").executes(ctx -> spawnV(ctx.getSource(), "bmaw")))
@@ -231,36 +240,7 @@ public class RoomsCommands {
                 .then(Commands.literal("b230").executes(ctx -> spawnV(ctx.getSource(), "bchorus")))
                 .then(Commands.literal("b260").executes(ctx -> spawnV(ctx.getSource(), "bvoid")))
                 .then(Commands.literal("b290").executes(ctx -> spawnV(ctx.getSource(), "b17")))
-                .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v100"))) // 旧名の別名
-                .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50")))
-                .then(Commands.literal("gkchime").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
-                .then(Commands.literal("gkmimic").executes(ctx -> spawnV(ctx.getSource(), "gkmimic")))
-                .then(Commands.literal("gkmoth").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
-                .then(Commands.literal("gk12").executes(ctx -> spawnV(ctx.getSource(), "gk12")))
-                .then(Commands.literal("gkwhisper").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
-                .then(Commands.literal("gkdetention").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
-                .then(Commands.literal("gksubstitute").executes(ctx -> spawnV(ctx.getSource(), "gksubstitute")))
-                .then(Commands.literal("gkeraser").executes(ctx -> spawnV(ctx.getSource(), "gkeraser")))
-                .then(Commands.literal("gkquiz").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
-                .then(Commands.literal("gkpa").executes(ctx -> spawnV(ctx.getSource(), "gkpa")))
-                .then(Commands.literal("gkjanitor").executes(ctx -> spawnV(ctx.getSource(), "gkjanitor")))
-                .then(Commands.literal("gkmirror").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
-                .then(Commands.literal("gk07").executes(ctx -> spawnV(ctx.getSource(), "gk07")))
-                .then(Commands.literal("gkbell2").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
-                .then(Commands.literal("gkrewind").executes(ctx -> spawnV(ctx.getSource(), "gkrewind")))
-                .then(Commands.literal("bgrin").executes(ctx -> spawnV(ctx.getSource(), "bgrin")))
-                .then(Commands.literal("bmask").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
-                .then(Commands.literal("beye").executes(ctx -> spawnV(ctx.getSource(), "beye")))
-                .then(Commands.literal("bchorus").executes(ctx -> spawnV(ctx.getSource(), "bchorus")))
-                .then(Commands.literal("bstatic").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
-                .then(Commands.literal("berror").executes(ctx -> spawnV(ctx.getSource(), "berror")))
-                .then(Commands.literal("bargus").executes(ctx -> spawnV(ctx.getSource(), "bargus")))
-                .then(Commands.literal("bmaw").executes(ctx -> spawnV(ctx.getSource(), "bmaw")))
-                .then(Commands.literal("bscatter").executes(ctx -> spawnV(ctx.getSource(), "bscatter")))
-                .then(Commands.literal("breach").executes(ctx -> spawnV(ctx.getSource(), "breach")))
-                .then(Commands.literal("bsmile").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
-                .then(Commands.literal("bvoid").executes(ctx -> spawnV(ctx.getSource(), "bvoid")))
-                .then(Commands.literal("b17").executes(ctx -> spawnV(ctx.getSource(), "b17"))))
+                .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50"))))
             .then(Commands.literal("section")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("reset").executes(ctx -> resetSections(ctx.getSource())))

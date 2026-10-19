@@ -71,7 +71,7 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
         for (Player p : ps) {
             boolean hid = HidingRules.isHiding(p);
             RoomsDebug.log(p, "GK-125: 入って来た" + (hid ? "（隠れて無事）" : ""), "GK-125 entered player={} hiding={}", p.getGameProfile().getName(), hid);
-            if (!hid && !p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
+            if (!hid) RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("entered");
     }

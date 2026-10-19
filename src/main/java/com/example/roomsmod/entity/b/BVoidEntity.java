@@ -45,7 +45,7 @@ public class BVoidEntity extends VPathWalker {
     private Player exposedTarget(ServerLevel level) {
         Player best = null;
         for (Player p : playersNear(SENSE))
-            if (!p.isCreative() && !HidingRules.isHiding(p) && (best == null || distanceTo(p) < distanceTo(best))) best = p;
+            if (!p.isSpectator() && !HidingRules.isHiding(p) && (best == null || distanceTo(p) < distanceTo(best))) best = p;
         return best;
     }
 
@@ -65,7 +65,7 @@ public class BVoidEntity extends VPathWalker {
             double d = to.length();
             if (d <= KILL_RADIUS) {
                 RoomsDebug.log(t, "B-260 に捕まったわ", "B-260 caught player={}", t.getGameProfile().getName());
-                if (!t.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, t, 1000f);
+                com.example.roomsmod.util.RoomsDamage.hurt(this, t, 1000f);
                 leave("caught " + t.getGameProfile().getName());
                 return;
             }
