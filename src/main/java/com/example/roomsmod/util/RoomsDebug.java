@@ -33,6 +33,13 @@ public final class RoomsDebug {
         if (player != null && chat != null) player.sendSystemMessage(Component.literal("§7[Debug] " + chat));
     }
 
+    /** ログは1回だけ出し、チャットは全員に送る（近くにプレイヤーがいなくてもログは残る）。 */
+    public static void announce(java.util.Collection<? extends Player> players, String chat, String fmt, Object... args) {
+        if (!enabled) return;
+        LOGGER.info(PREFIX + fmt, args);
+        if (chat != null) for (Player p : players) p.sendSystemMessage(Component.literal("§7[Debug] " + chat));
+    }
+
     /** フラグに関係なく常に出す。 */
     public static void error(String msg, Throwable t) {
         LOGGER.error(PREFIX + msg, t);

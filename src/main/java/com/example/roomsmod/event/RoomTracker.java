@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** デバッグON時、プレイヤーがいる部屋（A-000=ロビー）が変わったらログとチャットに出す。 */
+/** デバッグON時、プレイヤーがいる部屋（B-000=ロビー）が変わったらログとチャットに出す。 */
 public final class RoomTracker {
     private static final Map<UUID, Integer> LAST = new HashMap<>();
 

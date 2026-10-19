@@ -40,7 +40,21 @@ public final class VSpawns {
         GK_MIRROR("GK-Mirror", "gkmirror", "gk_place,gk_rush", RoomsMod.GK_MIRROR),
         GK_07("GK-07", "gk07", "gk_back", RoomsMod.GK_07),
         GK_BELL2("GK-Bell2", "gkbell2", "gk_rush", RoomsMod.GK_BELL2),
-        GK_REWIND("GK-Rewind", "gkrewind", "gk_place,gk_back", RoomsMod.GK_REWIND);
+        GK_REWIND("GK-Rewind", "gkrewind", "gk_place,gk_back", RoomsMod.GK_REWIND),
+        // B 区画
+        B_GRIN("B-Grin", "bgrin", "b_rush", RoomsMod.B_GRIN),
+        B_MASK("B-Mask", "bmask", null, RoomsMod.B_MASK),
+        B_EYE("B-Eye", "beye", null, RoomsMod.B_EYE),
+        B_CHORUS("B-Chorus", "bchorus", "b_rush", RoomsMod.B_CHORUS),
+        B_STATIC("B-Static", "bstatic", "b_rush", RoomsMod.B_STATIC),
+        B_ERROR("B-Error", "berror", null, RoomsMod.B_ERROR),
+        B_ARGUS("B-Argus", "bargus", "b_rush", RoomsMod.B_ARGUS),
+        B_MAW("B-Maw", "bmaw", "gk_door", RoomsMod.B_MAW),
+        B_SCATTER("B-Scatter", "bscatter", null, RoomsMod.B_SCATTER),
+        B_REACH("B-Reach", "breach", "b_rush", RoomsMod.B_REACH),
+        B_SMILE("B-Smile", "bsmile", "b_rush", RoomsMod.B_SMILE),
+        B_VOID("B-Void", "bvoid", "b_rush", RoomsMod.B_VOID),
+        B_17("B-17", "b17", null, RoomsMod.B_17);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。

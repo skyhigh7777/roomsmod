@@ -23,13 +23,13 @@ import java.util.List;
  */
 public class DoorEventHandler {
     public static final int baseFloorY = 1;
-    /** A-20 が出現する、プレイヤーから何部屋後ろか。 */
+    /** B-20 が出現する、プレイヤーから何部屋後ろか。 */
     public static final int A20_ROOMS_BEHIND = 10;
     /** GK 区画で1回の抽選で出る最大数。 */
     public static final int GK_MAX_PER_ROLL = 2;
 
     // ラッシャー出現率（調整用）
-    // 出現する部屋・確率は SectionTheme.rushers()（Sections.A）
+    // 出現する部屋・確率は SectionTheme.rushers()（Sections.B）
 
     @SubscribeEvent
     public static void onPlayerInteract(PlayerInteractEvent.RightClickBlock event) {
@@ -134,7 +134,7 @@ public class DoorEventHandler {
      * 出口扉を通って次へ：扉を生成済みにし（以後は普通の扉）、次の部屋を生成し、出現抽選をする。
      * プレイヤーのクリックと V-50 の飛び出し（扉を開ける）で共用。player は null 可。
      */
-    /** エンティティ（A-20・V-50 など）が扉を開ける：プレイヤーと同じ開く音を鳴らして開け、出口扉なら次の部屋を生成して抽選。 */
+    /** エンティティ（B-20・V-50 など）が扉を開ける：プレイヤーと同じ開く音を鳴らして開け、出口扉なら次の部屋を生成して抽選。 */
     public static boolean openDoorByEntity(ServerLevel level, RoomsState rs, net.minecraft.world.entity.Entity by, BlockPos door, String what) {
         BlockState s = level.getBlockState(door);
         if (!(s.getBlock() instanceof DoorBlock db)) return false;
@@ -177,7 +177,7 @@ public class DoorEventHandler {
     }
 
     /**
-     * ラッシャー抽選。A-20 と A-40 はそれぞれ独立に抽選し、同じ部屋で両方出ることもある。
+     * ラッシャー抽選。B-20 と B-40 はそれぞれ独立に抽選し、同じ部屋で両方出ることもある。
      * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
     private static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
@@ -220,7 +220,7 @@ public class DoorEventHandler {
             }
         }
         // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (theme == com.example.roomsmod.world.section.Sections.GK) {
+        if (theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
             java.util.Collections.shuffle(c, new java.util.Random(level.random.nextLong()));
@@ -256,19 +256,19 @@ public class DoorEventHandler {
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
-        if (startPath.isEmpty()) { RoomsDebug.warn("A-40 spawn skipped: empty path at room index {}", startIndex); return false; }
+        if (startPath.isEmpty()) { RoomsDebug.warn("B-40 spawn skipped: empty path at room index {}", startIndex); return false; }
         com.example.roomsmod.entity.A40Entity a40 = RoomsMod.A40.get().create(level);
-        if (a40 == null) { RoomsDebug.warn("A-40 spawn failed: entity create returned null"); return false; }
+        if (a40 == null) { RoomsDebug.warn("B-40 spawn failed: entity create returned null"); return false; }
         BlockPos start = startPath.get(0);
         double x = start.getX() + 0.5, y = start.getY(), z = start.getZ() + 0.5;
         a40.setPos(x, y, z);
         a40.setStartRoom(startIndex);
         a40.setRoomsBack(com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
-        if (!level.addFreshEntity(a40)) { RoomsDebug.warn("A-40 spawn failed: addFreshEntity returned false"); return false; }
+        if (!level.addFreshEntity(a40)) { RoomsDebug.warn("B-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
-            "A-40が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
-            "A-40 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
+            "B-40が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
+            "B-40 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
         return true;
     }
 
@@ -278,21 +278,21 @@ public class DoorEventHandler {
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
-        if (startPath.isEmpty()) { RoomsDebug.warn("A-20 spawn skipped: empty path at room index {}", startIndex); return; }
+        if (startPath.isEmpty()) { RoomsDebug.warn("B-20 spawn skipped: empty path at room index {}", startIndex); return; }
         A20Entity a20 = RoomsMod.A20.get().create(level);
-        if (a20 == null) { RoomsDebug.warn("A-20 spawn failed: entity create returned null"); return; }
+        if (a20 == null) { RoomsDebug.warn("B-20 spawn failed: entity create returned null"); return; }
         BlockPos start = startPath.get(0);
         double spawnX = start.getX() + 0.5, spawnY = start.getY(), spawnZ = start.getZ() + 0.5;
         a20.setPos(spawnX, spawnY, spawnZ);
         a20.setStartRoom(startIndex);
 
-        // 出現位置のチャンクを（このA-20のチケットで）読み込んでから追加する
+        // 出現位置のチャンクを（このB-20のチケットで）読み込んでから追加する
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));
-        if (!level.addFreshEntity(a20)) { RoomsDebug.warn("A-20 spawn failed: addFreshEntity returned false"); return; }
+        if (!level.addFreshEntity(a20)) { RoomsDebug.warn("B-20 spawn failed: addFreshEntity returned false"); return; }
         int pathLen = 0;
         for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.roomPaths.get(i).size();
         RoomsDebug.log(player,
-            "A-20が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
-            "A-20 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
+            "B-20が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
+            "B-20 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
     }
 }

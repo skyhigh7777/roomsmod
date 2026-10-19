@@ -203,10 +203,52 @@ public class RoomsMod {
             com.example.roomsmod.util.RoomsDebug.setEnabled(false));
     }
 
+    // B 区画
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BGrinEntity>> B_GRIN = ENTITIES.register("b_grin",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BGrinEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.6f).clientTrackingRange(12).updateInterval(1).build("b_grin"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BMaskEntity>> B_MASK = ENTITIES.register("b_mask",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BMaskEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 1.8f).clientTrackingRange(12).updateInterval(1).build("b_mask"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BEyeEntity>> B_EYE = ENTITIES.register("b_eye",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BEyeEntity::new, MobCategory.MONSTER)
+                    .sized(1.2f, 2.0f).clientTrackingRange(12).updateInterval(1).build("b_eye"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BChorusEntity>> B_CHORUS = ENTITIES.register("b_chorus",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BChorusEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("b_chorus"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BStaticEntity>> B_STATIC = ENTITIES.register("b_static",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BStaticEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("b_static"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BErrorEntity>> B_ERROR = ENTITIES.register("b_error",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BErrorEntity::new, MobCategory.MONSTER)
+                    .sized(1.2f, 1.4f).clientTrackingRange(12).updateInterval(1).build("b_error"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BArgusEntity>> B_ARGUS = ENTITIES.register("b_argus",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BArgusEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.6f).clientTrackingRange(12).updateInterval(1).build("b_argus"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BMawEntity>> B_MAW = ENTITIES.register("b_maw",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BMawEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("b_maw"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BScatterEntity>> B_SCATTER = ENTITIES.register("b_scatter",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BScatterEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("b_scatter"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BReachEntity>> B_REACH = ENTITIES.register("b_reach",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BReachEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.4f).clientTrackingRange(12).updateInterval(1).build("b_reach"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BSmileEntity>> B_SMILE = ENTITIES.register("b_smile",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BSmileEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 1.4f).clientTrackingRange(12).updateInterval(1).build("b_smile"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BVoidEntity>> B_VOID = ENTITIES.register("b_void",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.BVoidEntity::new, MobCategory.MONSTER)
+                    .sized(1.2f, 2.4f).clientTrackingRange(12).updateInterval(1).build("b_void"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.B17Entity>> B_17 = ENTITIES.register("b_17",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.b.B17Entity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.2f).clientTrackingRange(12).updateInterval(1).build("b_17"));
+
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
-        for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND))
+        for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
+                B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 
