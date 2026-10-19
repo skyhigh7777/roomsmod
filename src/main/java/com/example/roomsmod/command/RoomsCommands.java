@@ -43,6 +43,9 @@ public class RoomsCommands {
         if (sameAlive) {
             src.sendFailure(Component.literal((a40 ? "B-40" : "B-20") + "はすでに生存中よ")); return 0;
         }
+        if (com.example.roomsmod.entity.v.VSpawns.isAlive(roomsLevel, com.example.roomsmod.RoomsMod.B_ERROR.get())) {
+            src.sendFailure(Component.literal("B-110 が生存中なので " + (a40 ? "B-40" : "B-20") + " は出せないわ")); return 0;
+        }
         var player = src.getPlayer();
         if (a40) {
             if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }

@@ -39,9 +39,9 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.7f)),
             3, 2,
             List.of(
-                    new SectionTheme.RusherSpawn("B-20", 20, 0.6f, DoorEventHandler::isA20Alive,
-                            (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }),
-                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, DoorEventHandler::isA40Alive, DoorEventHandler::spawnA40),
+                    new SectionTheme.RusherSpawn("B-20", 20, 0.6f, l -> DoorEventHandler.isA20Alive(l) || errorAlive(l),
+                            (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }, "err_b20"),
+                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, l -> DoorEventHandler.isA40Alive(l) || errorAlive(l), DoorEventHandler::spawnA40, "err_b40"),
                     // B: B-015〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_STATIC, 15, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MASK, 30, 0.08f),
@@ -125,6 +125,11 @@ public final class Sections {
             1, 8));
 
     private Sections() {}
+
+    /** B-110 が生存中（B-20 / B-40 と同時に出さない）。 */
+    private static boolean errorAlive(net.minecraft.server.level.ServerLevel l) {
+        return com.example.roomsmod.entity.v.VSpawns.isAlive(l, com.example.roomsmod.RoomsMod.B_ERROR.get());
+    }
 
     private static SectionTheme.RusherSpawn vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind k, int minRoom, float chance) {
         return new SectionTheme.RusherSpawn(k.display, minRoom, chance, k::alive, k::spawn, k.exclusionGroup);

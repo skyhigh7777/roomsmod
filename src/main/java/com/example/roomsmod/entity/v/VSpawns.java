@@ -21,10 +21,10 @@ public final class VSpawns {
 
     /** 名前 → (エンティティ型, 生存確認, 出現)。コマンドとセクション表で共用。名前を変えるならここと Sections.V。 */
     public enum Kind {
-        V10("V-10", "v10", null, RoomsMod.V10),
+        V10("V-10", "v10", "err_v10", RoomsMod.V10),
         V25T("V-25-T", "v25t", "searcher", RoomsMod.V25T), V25L("V-25-L", "v25l", "searcher", RoomsMod.V25L),
         V25_BUFFED("V25-BUFFED", "v25buffed", "searcher,buffed_v100", RoomsMod.V25_BUFFED),
-        V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", null, RoomsMod.V50),
+        V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", "err_v50", RoomsMod.V50),
         // GK（学校）区画
         GK_CHIME("GK-025", "gkchime", null, RoomsMod.GK_CHIME),
         GK_MIMIC("GK-165", "gkmimic", "searcher", RoomsMod.GK_MIMIC),
@@ -44,10 +44,10 @@ public final class VSpawns {
         // B 区画
         B_GRIN("B-130", "bgrin", "b_rush", RoomsMod.B_GRIN),
         B_MASK("B-030", "bmask", null, RoomsMod.B_MASK),
-        B_EYE("B-070", "beye", null, RoomsMod.B_EYE),
+        B_EYE("B-070", "beye", "b_still", RoomsMod.B_EYE),
         B_CHORUS("B-230", "bchorus", "b_rush", RoomsMod.B_CHORUS),
         B_STATIC("B-015", "bstatic", "b_rush", RoomsMod.B_STATIC),
-        B_ERROR("B-110", "berror", null, RoomsMod.B_ERROR),
+        B_ERROR("B-110", "berror", "b_rush,b_still,gk_rush,err_v10,err_v50,err_b20,err_b40", RoomsMod.B_ERROR),
         B_ARGUS("B-180", "bargus", "b_rush", RoomsMod.B_ARGUS),
         B_MAW("B-155", "bmaw", "gk_door", RoomsMod.B_MAW),
         B_SCATTER("B-205", "bscatter", null, RoomsMod.B_SCATTER),
@@ -66,6 +66,8 @@ public final class VSpawns {
         Kind(String display, String id, String group, Supplier<? extends EntityType<? extends VEntity>> type) { this.display = display; this.id = id; this.exclusionGroup = group; this.type = type; }
         /** 同種、または同じ排他グループの種類が生存中か。 */
         public boolean alive(ServerLevel level) {
+            // B-110 は B-20 / B-40（Kind ではない）とも同時に出さない
+            if (this == B_ERROR && (com.example.roomsmod.event.DoorEventHandler.isA20Alive(level) || com.example.roomsmod.event.DoorEventHandler.isA40Alive(level))) return true;
             for (Kind k : values())
                 if ((k == this || sharesGroup(exclusionGroup, k.exclusionGroup)) && isAlive(level, k.type.get())) return true;
             return false;
