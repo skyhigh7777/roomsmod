@@ -142,7 +142,6 @@ public class A20Entity extends Mob {
         super(type, level);
         this.noPhysics = true; // 壁やロッカーを完全に突き抜ける
         this.setNoGravity(true);
-        this.setGlowingTag(true); // 光って目立つように
         this.setPersistenceRequired(); // 自然消滅しない
     }
 
@@ -188,6 +187,8 @@ public class A20Entity extends Mob {
     @Override
     public void tick() {
         super.tick();
+        // 輪郭（壁越しに見える）はデバッグ時のみ。OFF にしたら既存の個体も消える
+        if (!level().isClientSide() && hasGlowingTag() != com.example.roomsmod.util.RoomsDebug.isEnabled()) setGlowingTag(com.example.roomsmod.util.RoomsDebug.isEnabled());
         this.noPhysics = true; // 毎tick強制
 
         if (this.level().isClientSide()) {

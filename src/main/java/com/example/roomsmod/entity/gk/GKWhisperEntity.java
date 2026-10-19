@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** GK-Whisper：部屋にスピーカーを置く。ささやきの間はスピーカーのそばにいないと危ない（隠れても無駄）。 */
+/** GK-045：部屋にスピーカーを置く。ささやきの間はスピーカーのそばにいないと危ない（隠れても無駄）。 */
 public class GKWhisperEntity extends GKTimedEntity {
     public static final int TELEGRAPH = 80, WATCH = 120, LIMIT = 40;
     public static final double NEAR = 3.5;
@@ -28,7 +28,7 @@ public class GKWhisperEntity extends GKTimedEntity {
     private BlockPos speaker = null;
     private final Map<UUID, Integer> away = new HashMap<>();
     public GKWhisperEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-Whisper"; }
+    @Override public String vName() { return "GK-045"; }
 
     @Override public boolean targetsOpenedRoom() { return true; }
 
@@ -40,7 +40,7 @@ public class GKWhisperEntity extends GKTimedEntity {
         speaker = s.get(0);
         place(level, speaker, Blocks.NOTE_BLOCK.defaultBlockState());
         setPos(speaker.getX() + 0.5, speaker.getY() + 1, speaker.getZ() + 0.5);
-        RoomsDebug.log("GK-Whisper speaker at {}", speaker);
+        RoomsDebug.log("GK-045 speaker at {}", speaker);
         return speaker;
     }
 
@@ -49,14 +49,14 @@ public class GKWhisperEntity extends GKTimedEntity {
         phase++;
         List<Player> ps = GKUtil.players(level, this, startRoom, 24);
         if (phase % 30 == 1) level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_WHISPER_SOUND.get(), SoundSource.HOSTILE, 1.4f, 1.0f);
-        if (phase == 1) for (Player p : ps) RoomsDebug.log(p, "GK-Whisper: スピーカーへ（" + TELEGRAPH / 20 + "秒）", "GK-Whisper telegraph room={} speaker={}", startRoom, speaker);
+        if (phase == 1) for (Player p : ps) RoomsDebug.log(p, "GK-045: スピーカーへ（" + TELEGRAPH / 20 + "秒）", "GK-045 telegraph room={} speaker={}", startRoom, speaker);
         if (phase % 20 == 0) GKUtil.actionbar(ps, Component.translatable(phase <= TELEGRAPH ? "message.roomsmod.gk_whisper_go" : "message.roomsmod.gk_whisper_stay", (TELEGRAPH + WATCH - phase) / 20));
         if (phase <= TELEGRAPH) return;
         if (phase > TELEGRAPH + WATCH) { leave("whisper over"); return; }
         for (Player p : ps) {
             if (p.position().distanceTo(net.minecraft.world.phys.Vec3.atBottomCenterOf(speaker)) <= NEAR) continue;
             int n = away.merge(p.getUUID(), 1, Integer::sum);
-            if (n == 1 || n % 10 == 0) RoomsDebug.log(p, "GK-Whisper: スピーカーから離れている " + n + "/" + LIMIT, "GK-Whisper away player={} count={}/{}", p.getGameProfile().getName(), n, LIMIT);
+            if (n == 1 || n % 10 == 0) RoomsDebug.log(p, "GK-045: スピーカーから離れている " + n + "/" + LIMIT, "GK-045 away player={} count={}/{}", p.getGameProfile().getName(), n, LIMIT);
             if (n >= LIMIT) {
                 if (!p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
                 leave("struck " + p.getGameProfile().getName());

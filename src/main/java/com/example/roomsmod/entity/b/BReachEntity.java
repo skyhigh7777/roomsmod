@@ -7,10 +7,10 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 import org.joml.Vector3f;
 
-/** B-Reach。 */
+/** B-050。 */
 public class BReachEntity extends BRusher {
     public BReachEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "B-Reach"; }
+    @Override public String vName() { return "B-050"; }
     @Override protected double speed() { return 0.7; }
     @Override protected int roomsBehind() { return 5; }
     @Override protected double hitRange() { return 13.0; }

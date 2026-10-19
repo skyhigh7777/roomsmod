@@ -12,11 +12,11 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 
-/** GK-Janitor。 */
+/** GK-225。 */
 public class GKJanitorEntity extends VPathWalker {
     public static final int ROOMS_BEHIND = 2;
     public GKJanitorEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-Janitor"; }
+    @Override public String vName() { return "GK-225"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
     @Override protected double speed() { return 0.19; }
     @Override protected int graceTicks() { return 60; }

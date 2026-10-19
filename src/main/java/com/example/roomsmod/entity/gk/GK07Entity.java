@@ -22,13 +22,13 @@ import net.minecraft.world.level.block.state.BlockState;
 
 import java.util.List;
 
-/** GK-07：通って来た扉（開いたまま）の向こうでノックする。時間内に扉を閉めれば去る。閉めないと入って来る（隠れていれば無事）。 */
+/** GK-125：通って来た扉（開いたまま）の向こうでノックする。時間内に扉を閉めれば去る。閉めないと入って来る（隠れていれば無事）。 */
 public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
     public static final int TIME = 20 * 10;
     public static final float DAMAGE = 40f;
     private BlockPos door = null;
     public GK07Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-07"; }
+    @Override public String vName() { return "GK-125"; }
     @Override protected int maxLifeTicks() { return TIME + 20; }
 
     @Override public boolean targetsOpenedRoom() { return true; }
@@ -40,7 +40,7 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
         if (prev.isEmpty()) return null;
         BlockPos d = prev.get(prev.size() - 1);
         BlockState s = level.getBlockState(d);
-        if (!(s.getBlock() instanceof DoorBlock) || !s.getValue(DoorBlock.OPEN)) { RoomsDebug.log("GK-07 spawn skipped: door {} not open", d); return null; }
+        if (!(s.getBlock() instanceof DoorBlock) || !s.getValue(DoorBlock.OPEN)) { RoomsDebug.log("GK-125 spawn skipped: door {} not open", d); return null; }
         startRoom = playerRoom; door = d;
         BlockPos stand = d.north();
         setPos(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5);
@@ -56,7 +56,7 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
             level.setBlock(door, s.setValue(DoorBlock.OPEN, false), 10);
             level.playSound(null, door, db.type().doorClose(), SoundSource.BLOCKS, 1.0f, 1.0f);
         }
-        RoomsDebug.log(p, "GK-07: 扉を閉めたわ", "GK-07 door closed by {} at life={}", p.getGameProfile().getName(), life);
+        RoomsDebug.log(p, "GK-125: 扉を閉めたわ", "GK-125 door closed by {} at life={}", p.getGameProfile().getName(), life);
         leave("door closed");
     }
 
@@ -64,13 +64,13 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
     protected void serverTick(ServerLevel level) {
         List<Player> ps = GKUtil.players(level, this, startRoom, 4);
         if (life % 20 == 1) level.playSound(null, door, RoomsMod.GK_07_KNOCK.get(), SoundSource.HOSTILE, 2.5f, 1.0f);
-        if (life == 1) for (Player p : ps) RoomsDebug.log(p, "GK-07: 後ろの扉でノック（" + TIME / 20 + "秒）", "GK-07 telegraph door={} room={}", door, startRoom);
+        if (life == 1) for (Player p : ps) RoomsDebug.log(p, "GK-125: 後ろの扉でノック（" + TIME / 20 + "秒）", "GK-125 telegraph door={} room={}", door, startRoom);
         if (life % 20 == 0) GKUtil.actionbar(ps, Component.translatable("message.roomsmod.gk07_close", (TIME - life) / 20));
         if (life < TIME) return;
         level.playSound(null, door, SoundEvents.ZOMBIE_BREAK_WOODEN_DOOR, SoundSource.HOSTILE, 2.0f, 0.8f);
         for (Player p : ps) {
             boolean hid = HidingRules.isHiding(p);
-            RoomsDebug.log(p, "GK-07: 入って来た" + (hid ? "（隠れて無事）" : ""), "GK-07 entered player={} hiding={}", p.getGameProfile().getName(), hid);
+            RoomsDebug.log(p, "GK-125: 入って来た" + (hid ? "（隠れて無事）" : ""), "GK-125 entered player={} hiding={}", p.getGameProfile().getName(), hid);
             if (!hid && !p.isCreative()) RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("entered");

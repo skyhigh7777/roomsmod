@@ -22,6 +22,12 @@ public class RoomsCommands {
             return 0;
         }
         com.example.roomsmod.world.RoomsState.get(roomsLevel).setDebug(on);
+        // 輪郭（壁越し表示）を即座に全個体へ反映（tick 待ちにしない。読み込み済みの全ディメンションの roomsmod エンティティ）
+        int n = 0;
+        for (ServerLevel lv : src.getServer().getAllLevels())
+            for (net.minecraft.world.entity.Entity e : lv.getAllEntities())
+                if ("roomsmod".equals(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace()) && e.hasGlowingTag() != on) { e.setGlowingTag(on); n++; }
+        com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] debug outline sync -> {} entities={}", on, n);
         com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] debug {} by {}", on ? "ON" : "OFF", src.getTextName());
         src.sendSuccess(() -> Component.literal("Roomsデバッグを" + (on ? "ON" : "OFF") + "にしたわ"), true);
         return 1;
@@ -119,6 +125,11 @@ public class RoomsCommands {
         ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) return false;
         player.teleportTo(roomsLevel, 10.5, 2, 16.5, 0, 0);
+        // /rooms to の生成中にロビーを作り直すと進行表が途中で消え、部屋番号がずれる（死亡→リスポーン等）。生成中は移動だけ
+        if (com.example.roomsmod.world.RoomsTravel.busy()) {
+            com.example.roomsmod.util.RoomsDebug.log("send to lobby {}: rooms-to in progress -> teleport only (no lobby reset)", player.getGameProfile().getName());
+            return true;
+        }
         com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, new BlockPos(0, 1, 0));
         return true;
     }
@@ -140,6 +151,17 @@ public class RoomsCommands {
                     .executes(ctx -> {
                         return goToRoom(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
                     })))
+            .then(Commands.literal("hard")
+                .then(Commands.literal("on").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), true)))
+                .then(Commands.literal("off").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), false)))
+                .then(Commands.literal("status").executes(ctx -> {
+                    ServerLevel lv = ctx.getSource().getServer().getLevel(ROOMS_DIMENSION);
+                    if (lv == null) return 0;
+                    boolean on = com.example.roomsmod.world.HardMode.isOn(lv);
+                    com.example.roomsmod.util.RoomsDebug.log("hard mode status {}", on ? "on" : "off");
+                    ctx.getSource().sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), false);
+                    return on ? 1 : 0;
+                })))
             .then(Commands.literal("debug")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("on").executes(ctx -> setDebug(ctx.getSource(), true)))
@@ -180,6 +202,35 @@ public class RoomsCommands {
                     .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
+                // 番号名（B-XXX / GK-XXX）。旧名の literal も別名として残す
+                .then(Commands.literal("gk010").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
+                .then(Commands.literal("gk025").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
+                .then(Commands.literal("gk045").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
+                .then(Commands.literal("gk065").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
+                .then(Commands.literal("gk085").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
+                .then(Commands.literal("gk105").executes(ctx -> spawnV(ctx.getSource(), "gksubstitute")))
+                .then(Commands.literal("gk125").executes(ctx -> spawnV(ctx.getSource(), "gk07")))
+                .then(Commands.literal("gk145").executes(ctx -> spawnV(ctx.getSource(), "gkrewind")))
+                .then(Commands.literal("gk165").executes(ctx -> spawnV(ctx.getSource(), "gkmimic")))
+                .then(Commands.literal("gk185").executes(ctx -> spawnV(ctx.getSource(), "gkpa")))
+                .then(Commands.literal("gk205").executes(ctx -> spawnV(ctx.getSource(), "gk12")))
+                .then(Commands.literal("gk225").executes(ctx -> spawnV(ctx.getSource(), "gkjanitor")))
+                .then(Commands.literal("gk245").executes(ctx -> spawnV(ctx.getSource(), "gkeraser")))
+                .then(Commands.literal("gk270").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
+                .then(Commands.literal("gk300").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
+                .then(Commands.literal("b015").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
+                .then(Commands.literal("b030").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
+                .then(Commands.literal("b050").executes(ctx -> spawnV(ctx.getSource(), "breach")))
+                .then(Commands.literal("b070").executes(ctx -> spawnV(ctx.getSource(), "beye")))
+                .then(Commands.literal("b090").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
+                .then(Commands.literal("b110").executes(ctx -> spawnV(ctx.getSource(), "berror")))
+                .then(Commands.literal("b130").executes(ctx -> spawnV(ctx.getSource(), "bgrin")))
+                .then(Commands.literal("b155").executes(ctx -> spawnV(ctx.getSource(), "bmaw")))
+                .then(Commands.literal("b180").executes(ctx -> spawnV(ctx.getSource(), "bargus")))
+                .then(Commands.literal("b205").executes(ctx -> spawnV(ctx.getSource(), "bscatter")))
+                .then(Commands.literal("b230").executes(ctx -> spawnV(ctx.getSource(), "bchorus")))
+                .then(Commands.literal("b260").executes(ctx -> spawnV(ctx.getSource(), "bvoid")))
+                .then(Commands.literal("b290").executes(ctx -> spawnV(ctx.getSource(), "b17")))
                 .then(Commands.literal("v35").executes(ctx -> spawnV(ctx.getSource(), "v100"))) // 旧名の別名
                 .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50")))
                 .then(Commands.literal("gkchime").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
@@ -227,5 +278,13 @@ public class RoomsCommands {
                     return 1;
                 }))
         );
+    }
+
+    private static int setHard(CommandSourceStack src, boolean on) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) return 0;
+        com.example.roomsmod.world.HardMode.set(lv, on, src.getTextName());
+        src.sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), true);
+        return 1;
     }
 }

@@ -26,7 +26,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 
-/** GK-Substitute：偽の扉。壁の元のブロックを保存して戻すので、どのセクションの部屋でも使える。 */
+/** GK-105：偽の扉。壁の元のブロックを保存して戻すので、どのセクションの部屋でも使える。 */
 public class GKSubstituteEntity extends VEntity {
     public static final int LIFE = 20 * 60;
     public static final float DAMAGE = 10f;
@@ -35,7 +35,7 @@ public class GKSubstituteEntity extends VEntity {
     /** 扉を置く前の壁ブロック（下・上）。どのセクションの部屋でも元に戻せるように保存する。 */
     private BlockState wallLower = null, wallUpper = null;
     public GKSubstituteEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-Substitute"; }
+    @Override public String vName() { return "GK-105"; }
     @Override protected int maxLifeTicks() { return Math.min(LIFE, GKEntity.MAX_LIFE_TICKS); }
 
     @Override public boolean targetsOpenedRoom() { return true; }
@@ -55,13 +55,14 @@ public class GKSubstituteEntity extends VEntity {
                 for (int z = b.minZ() + 2; z <= b.maxZ() - 2; z++) {
                     BlockPos w = new BlockPos(x, y, z), inside = w.relative(in);
                     if (w.distManhattan(entrance) < 4 || w.distManhattan(exit) < 4) continue;
+                    if (nearDoor(level, w)) continue; // 本物の扉（他の部屋の入口・出口を含む）の近くには作らない
                     if (!level.getBlockState(w).isSolid() || !level.getBlockState(w.above()).isSolid()) continue;
                     if (!level.getBlockState(inside).isAir() || !level.getBlockState(inside.above()).isAir()) continue;
                     if (!level.getBlockState(w.north()).isSolid() || !level.getBlockState(w.south()).isSolid()) continue;
                     cand.add(new Object[]{w, in});
                 }
             }
-        if (cand.isEmpty()) { RoomsDebug.log("GK-Substitute spawn skipped: no wall spot in room {}", playerRoom); return null; }
+        if (cand.isEmpty()) { RoomsDebug.log("GK-105 spawn skipped: no wall spot in room {}", playerRoom); return null; }
         Object[] c = cand.get(level.random.nextInt(cand.size()));
         door = (BlockPos) c[0];
         Direction in = (Direction) c[1];
@@ -72,15 +73,21 @@ public class GKSubstituteEntity extends VEntity {
         BlockPos at = door.relative(in);
         setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
         level.playSound(null, door, RoomsMod.GK_SUBSTITUTE_CREAK.get(), SoundSource.HOSTILE, 2.0f, 0.8f);
-        RoomsDebug.log("GK-Substitute fake door at {} facing {}", door, in.getOpposite());
+        RoomsDebug.log("GK-105 fake door at {} facing {}", door, in.getOpposite());
         return at;
+    }
+
+    private static boolean nearDoor(ServerLevel level, BlockPos w) {
+        for (BlockPos q : BlockPos.betweenClosed(w.offset(-2, -1, -2), w.offset(2, 2, 2)))
+            if (level.getBlockState(q).getBlock() instanceof DoorBlock) return true;
+        return false;
     }
 
     public boolean isFake(BlockPos p) { return door != null && !restored && door.equals(p); }
 
     public void trigger(ServerLevel level, Player p) {
         level.playSound(null, door, RoomsMod.GK_SUBSTITUTE_CREAK.get(), SoundSource.HOSTILE, 2.5f, 0.5f);
-        RoomsDebug.log(p, "GK-Substitute: 偽の扉だったわ", "GK-Substitute fake door opened {} player={} creative={}", door, p == null ? "?" : p.getGameProfile().getName(), p != null && p.isCreative());
+        RoomsDebug.log(p, "GK-105: 偽の扉だったわ", "GK-105 fake door opened {} player={} creative={}", door, p == null ? "?" : p.getGameProfile().getName(), p != null && p.isCreative());
         if (p != null && !p.isCreative()) {
             com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
             p.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 60));
@@ -91,11 +98,16 @@ public class GKSubstituteEntity extends VEntity {
     private void restore() {
         if (restored || door == null || !(level() instanceof ServerLevel sl)) return;
         restored = true;
-        if (sl.getBlockState(door).getBlock() instanceof DoorBlock) {
+        RoomsState rs = RoomsState.get(sl);
+        // 自分の偽の扉（閉じた暗いオークの扉）だけを壁に戻す。本物の扉（出口・生成済み）は絶対に上書きしない
+        var st = sl.getBlockState(door);
+        boolean real = rs.generatedDoors.contains(door) || door.equals(rs.expectedExitDoor) || (st.getBlock() instanceof DoorBlock && st.getValue(DoorBlock.OPEN));
+        if (real) RoomsDebug.warn("GK-105 restore skipped: {} is a real/open door", door);
+        else if (st.is(Blocks.DARK_OAK_DOOR)) {
             sl.setBlock(door.above(), wallUpper != null ? wallUpper : Blocks.WHITE_TERRACOTTA.defaultBlockState(), 2 | 16);
             sl.setBlock(door, wallLower != null ? wallLower : Blocks.STRIPPED_DARK_OAK_WOOD.defaultBlockState(), 2 | 16);
             sl.sendBlockUpdated(door, sl.getBlockState(door), sl.getBlockState(door), 3);
-            RoomsDebug.log("GK-Substitute fake door removed at {}", door);
+            RoomsDebug.log("GK-105 fake door removed at {}", door);
         }
     }
 
@@ -114,7 +126,12 @@ public class GKSubstituteEntity extends VEntity {
     }
 
     @Override protected void clientTick() {
-        if (tickCount % 5 == 0) level().addParticle(ParticleTypes.SMOKE, getX(), getY() + 1, getZ(), 0, 0.02, 0);
+        // かすかな煙：体の形の柱にならないよう、扉の足元〜腰あたりにまばらに散らす
+        if (tickCount % 12 == 0) {
+            var r = level().random;
+            level().addParticle(ParticleTypes.SMOKE, getX() + (r.nextDouble() - 0.5) * 1.4, getY() + 0.1 + r.nextDouble() * 1.0,
+                    getZ() + (r.nextDouble() - 0.5) * 1.4, (r.nextDouble() - 0.5) * 0.01, 0.005, (r.nextDouble() - 0.5) * 0.01);
+        }
     }
     @Override protected String debugState() { return "room=" + startRoom + " door=" + door; }
     @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); if (door != null) t.put("Door", NbtUtils.writeBlockPos(door)); t.putBoolean("Restored", restored);

@@ -74,7 +74,6 @@ public class A40Entity extends Mob {
         super(type, level);
         this.noPhysics = true;
         this.setNoGravity(true);
-        this.setGlowingTag(true);
         this.setPersistenceRequired();
     }
 
@@ -158,6 +157,8 @@ public class A40Entity extends Mob {
     @Override
     public void tick() {
         super.tick();
+        // 輪郭（壁越しに見える）はデバッグ時のみ。OFF にしたら既存の個体も消える
+        if (!level().isClientSide() && hasGlowingTag() != com.example.roomsmod.util.RoomsDebug.isEnabled()) setGlowingTag(com.example.roomsmod.util.RoomsDebug.isEnabled());
         this.noPhysics = true;
         if (this.level().isClientSide()) {
             spawnVisualParticles();

@@ -19,7 +19,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * B-Void。最奥の部屋の先（出口側）から現れる。予告のあと、隠れていないプレイヤーがいれば経路を外れてまっすぐ追い、
+ * B-260。最奥の部屋の先（出口側）から現れる。予告のあと、隠れていないプレイヤーがいれば経路を外れてまっすぐ追い、
  * KILL_RADIUS 以内で即死。全員隠れていれば経路を奥から手前へたどって去る。
  */
 public class BVoidEntity extends VPathWalker {
@@ -27,7 +27,7 @@ public class BVoidEntity extends VPathWalker {
     public static final double HOME_SPEED = 0.3, KILL_RADIUS = 2.5, SENSE = 64;
     private boolean homing = false;
     public BVoidEntity(EntityType<? extends Mob> type, Level level) { super(type, level); this.noPhysics = true; }
-    @Override public String vName() { return "B-Void"; }
+    @Override public String vName() { return "B-260"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
     @Override protected double speed() { return 1.1; }
     @Override protected int graceTicks() { return TELEGRAPH; }
@@ -53,18 +53,18 @@ public class BVoidEntity extends VPathWalker {
     protected void serverTick(ServerLevel level) {
         if (grace < graceTicks()) {
             if (grace == 0) {
-                RoomsDebug.announce(playersNear(200), "B-Void が前から来るわ（" + TELEGRAPH / 20.0 + "秒）", "B-Void telegraph from room {} toward {}", startRoom, endRoom);
+                RoomsDebug.announce(playersNear(200), "B-260 が前から来るわ（" + TELEGRAPH / 20.0 + "秒）", "B-260 telegraph from room {} toward {}", startRoom, endRoom);
             }
             if (grace % 20 == 0) level.playSound(null, getX(), getY(), getZ(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.HOSTILE, 4.0f, 0.4f);
         }
         if (grace < graceTicks()) { super.serverTick(level); return; }
         Player t = exposedTarget(level);
         if (t != null) {
-            if (!homing) { homing = true; RoomsDebug.log("B-Void homing player={} dist={}", t.getGameProfile().getName(), String.format("%.1f", distanceTo(t))); }
+            if (!homing) { homing = true; RoomsDebug.log("B-260 homing player={} dist={}", t.getGameProfile().getName(), String.format("%.1f", distanceTo(t))); }
             Vec3 to = t.position().add(0, 0.5, 0).subtract(position());
             double d = to.length();
             if (d <= KILL_RADIUS) {
-                RoomsDebug.log(t, "B-Void に捕まったわ", "B-Void caught player={}", t.getGameProfile().getName());
+                RoomsDebug.log(t, "B-260 に捕まったわ", "B-260 caught player={}", t.getGameProfile().getName());
                 if (!t.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, t, 1000f);
                 leave("caught " + t.getGameProfile().getName());
                 return;
@@ -75,7 +75,7 @@ public class BVoidEntity extends VPathWalker {
             if (tickCount % 40 == 0) level.playSound(null, getX(), getY(), getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 3.0f, 0.6f);
             return;
         }
-        if (homing) { homing = false; RoomsDebug.log("B-Void lost target (all hiding) -> back to path at waypoint {}", waypointIndex); }
+        if (homing) { homing = false; RoomsDebug.log("B-260 lost target (all hiding) -> back to path at waypoint {}", waypointIndex); }
         super.serverTick(level);
     }
 

@@ -229,7 +229,7 @@ final class VillageRooms {
         BlockPos exitDoor = base.offset(p.exitX, p.exitLevel + 1, p.exitZ);
         door(level, exitDoor, Direction.NORTH);
         RoomGenerator.sealExit(level, exitDoor);
-        for (int[] d : p.innerDoors) door(level, base.offset(d[0], 1, d[1]), d[2] == 1 ? Direction.EAST : Direction.WEST);
+        for (int[] d : p.innerDoors) door(level, base.offset(d[0], 1, d[1]), d[2] == 1 ? Direction.EAST : Direction.NORTH); // 扉の向きは壁に合わせる（閉じて塞ぎ、開けて通れる）
         if (p.hasStairs) buildStairs(c);
         furnish(c, theme, Sections.localRoom(state, roomNumber));
         RoomGenerator.placeExitSign(level, exitDoor.offset(0, 2, -1), Sections.formatRoom(state, roomNumber + 1));

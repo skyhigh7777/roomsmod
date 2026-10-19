@@ -18,13 +18,13 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-/** GK-PA：校内放送。 */
+/** GK-185：校内放送。 */
 public class GKPAEntity extends VEntity {
     public static final int TELEGRAPH = 40, COUNTDOWN = 20 * 25;
     public static final float DAMAGE = 20f;
     private int phase = 0;
     public GKPAEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-PA"; }
+    @Override public String vName() { return "GK-185"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
 
     @Override
@@ -37,10 +37,14 @@ public class GKPAEntity extends VEntity {
         return s;
     }
 
-    /** プレイヤーが既に開始部屋より先にいるか（扉の境目＝部屋外は安全扱い）。 */
+    /** プレイヤーが指示された部屋（開始部屋の次）にいるか。 */
     private boolean safe(RoomsState rs, Player p) {
+        int target = startRoom + 1; // 指示は「次の教室」＝開始部屋のちょうど1つ先だけ（さらに先や手前は不可）
         int i = RoomTracker.roomIndexAt(rs, p.blockPosition());
-        return i < 0 || i > startRoom;
+        if (i >= 0) return i == target;
+        // 部屋の外（扉の敷居の上など）：次の教室の入口のすぐそばなら入ったとみなす
+        if (target >= rs.roomPaths.size() || rs.roomPaths.get(target).isEmpty()) return false;
+        return rs.roomPaths.get(target).get(0).distSqr(p.blockPosition()) <= 9;
     }
 
     @Override
@@ -49,7 +53,7 @@ public class GKPAEntity extends VEntity {
         RoomsState rs = RoomsState.get(level);
         if (phase == 1) {
             level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_PA_CHIME.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
-            for (Player p : playersNear(64)) RoomsDebug.log(p, "GK-PA の放送チャイム（" + COUNTDOWN / 20 + "秒）", "GK-PA telegraph room={} countdown={}", startRoom, COUNTDOWN);
+            for (Player p : playersNear(64)) RoomsDebug.log(p, "GK-185 の放送チャイム（" + COUNTDOWN / 20 + "秒）", "GK-185 telegraph room={} countdown={}", startRoom, COUNTDOWN);
         }
         if (phase <= TELEGRAPH) return;
         int left = TELEGRAPH + COUNTDOWN - phase;
@@ -63,7 +67,7 @@ public class GKPAEntity extends VEntity {
         for (Player p : playersNear(96)) {
             if (p.isSpectator()) continue;
             boolean ok = safe(rs, p);
-            RoomsDebug.log(p, "GK-PA: " + (ok ? "移動済み、セーフ" : "移動していない、攻撃"), "GK-PA end player={} room={} safe={} creative={}", p.getGameProfile().getName(), RoomTracker.roomIndexAt(rs, p.blockPosition()), ok, p.isCreative());
+            RoomsDebug.log(p, "GK-185: " + (ok ? "移動済み、セーフ" : "移動していない、攻撃"), "GK-185 end player={} room={} safe={} creative={}", p.getGameProfile().getName(), RoomTracker.roomIndexAt(rs, p.blockPosition()), ok, p.isCreative());
             if (!ok && !p.isCreative()) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("countdown over");
