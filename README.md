@@ -123,11 +123,11 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms debug section` | OP | 現在のセクション・番号・セクション表を表示 |
 | `/rooms deepest` | 全員 | （未実装の予約コマンド。最奥への移動はロビーのパネルを使ってください） |
 
-`/rooms spawn` の id：`b20` `b40`（旧 `a20` `a40` も可）`b15` `b30` `b50` `b70` `b90` `b110` `b130` `b155` `b180` `b205` `b230` `b260` `b290`
- `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100`（別名 `v35`）`v50`
+`/rooms spawn` の id：`b20` `b40` `b15` `b30` `b50` `b70` `b90` `b110` `b130` `b155` `b180` `b205` `b230` `b260` `b290`
+ `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100` `v50`
 `gk10` `gk25` `gk45` `gk65` `gk85` `gk105` `gk125` `gk145` `gk165` `gk185` `gk205` `gk225` `gk245` `gk270` `gk300`
 
-B / GK の番号はそのエンティティが出始めるセクション内の部屋番号です。先頭ゼロ付きの id（`b015` `gk010` など）や旧名の id（`bstatic` `gkmoth` など）も引き続き使えます。
+B / GK の番号はそのエンティティが出始めるセクション内の部屋番号です。
 
 ### 例
 
