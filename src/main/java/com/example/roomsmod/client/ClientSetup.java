@@ -42,7 +42,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_WHISPER.get(), c -> new VRenderer<>(c, "gk_whisper", 2.0f, 0.3f));
         event.registerEntityRenderer(RoomsMod.GK_DETENTION.get(), c -> new VRenderer<>(c, "gk_detention", 2.4f, 0.02f));
-        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // GK-105 は姿を一切描かない（デバッグ時も）。手がかりは偽の扉だけ
+        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f).outlineOnly()); // GK-105 は姿を描かない。デバッグ時だけ光る輪郭のみ。手がかりは偽の扉だけ
         event.registerEntityRenderer(RoomsMod.GK_ERASER.get(), c -> new VRenderer<>(c, "gk_eraser", 2.2f, 0.4f));
         event.registerEntityRenderer(RoomsMod.GK_QUIZ.get(), c -> new VRenderer<>(c, "gk_quiz", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_PA.get(), c -> new VRenderer<>(c, "gk_pa", 1.0f, 0.05f));
@@ -198,6 +198,8 @@ public class ClientSetup {
         private final ResourceLocation tex;
         private final float size, wobble;
         private ResourceLocation eyes = null;
+        private boolean outlineOnly = false;
+        VRenderer<T> outlineOnly() { outlineOnly = true; return this; } // 本体は描かず、発光（デバッグ）時の輪郭だけ
         VRenderer<T> withEyes(String name) { eyes = ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "textures/entity/" + name + ".png"); return this; }
 
         VRenderer(EntityRendererProvider.Context context, String name, float size, float wobble) {
@@ -211,13 +213,14 @@ public class ClientSetup {
         public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
             if (entity instanceof com.example.roomsmod.entity.v.V100Entity v && !v.isPeeking()) return;
             if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
+            if (outlineOnly && !entity.isCurrentlyGlowing()) return; // 輪郭のみ型：デバッグ以外では何も描かない
             float age = entity.tickCount + pt;
             ps.pushPose();
             ps.translate(0.0f, size * 0.5f, 0.0f);
             ps.mulPose(this.entityRenderDispatcher.cameraOrientation());
             float s = size * (1.0f + Mth.sin(age * 0.5f) * wobble * 0.2f);
             ps.scale(s, s, s);
-            VertexConsumer vc = buf.getBuffer(RenderType.entityTranslucentEmissive(tex));
+            VertexConsumer vc = buf.getBuffer(outlineOnly ? RenderType.outline(tex) : RenderType.entityTranslucentEmissive(tex)); // outline 型は輪郭バッファにだけ書かれる
             PoseStack.Pose pose = ps.last();
             Matrix4f m = pose.pose();
             int l = 15728880;
