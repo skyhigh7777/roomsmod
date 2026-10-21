@@ -39,6 +39,10 @@ public class GKSubstituteEntity extends VEntity {
     @Override protected int maxLifeTicks() { return Math.min(LIFE, GKEntity.MAX_LIFE_TICKS); }
 
     @Override public boolean targetsOpenedRoom() { return true; }
+    // 姿なし：描画は NoopRenderer。不可視にしておくと F3+B の当たり判定枠も出ない。照準・名札にも出さない
+    @Override public boolean isInvisible() { return true; }
+    @Override public boolean isPickable() { return false; }
+    @Override public boolean shouldShowName() { return false; }
 
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {

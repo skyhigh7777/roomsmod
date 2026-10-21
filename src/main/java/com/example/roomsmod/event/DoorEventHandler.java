@@ -243,6 +243,24 @@ public class DoorEventHandler {
                 RoomsDebug.log("rusher roll room={} {} skipped: exclusion group {} ({} spawned this roll)", room, table.get(k).name(), e.getKey(), table.get(win).name());
             }
         }
+        // 分類の矛盾（SpawnCategories）：生存中＋この抽選で先に通ったものと矛盾する候補は外す。順番は公平にランダム
+        {
+            java.util.Map<String, String> present = new java.util.LinkedHashMap<>();
+            for (String n : com.example.roomsmod.world.section.SpawnCategories.aliveNames(level)) present.put(n, "alive");
+            java.util.List<Integer> c = new java.util.ArrayList<>();
+            for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
+            if (!c.isEmpty()) {
+                java.util.Collections.shuffle(c, new java.util.Random(level.random.nextLong()));
+                for (int k : c) {
+                    String name = table.get(k).name();
+                    String why = com.example.roomsmod.world.section.SpawnCategories.conflict(name, present, hard);
+                    if (why != null) {
+                        hit[k] = false;
+                        RoomsDebug.log("rusher roll room={} {} skipped: category conflict ({})", room, name, why);
+                    } else present.putIfAbsent(name, "roll");
+                }
+            }
+        }
         // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
         if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
