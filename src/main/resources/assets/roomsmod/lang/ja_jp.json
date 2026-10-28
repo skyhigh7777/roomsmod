@@ -102,5 +102,15 @@
   "entity.roomsmod.b_void": "B-260",
   "entity.roomsmod.b_17": "B-290",
   "item.roomsmod.bandage": "包帯",
-  "message.roomsmod.bandage_full": "体力はすでに満タンです"
+  "message.roomsmod.bandage_full": "体力はすでに満タンです",
+  "entity.roomsmod.u20": "U-20",
+  "entity.roomsmod.u60": "U-60",
+  "entity.roomsmod.u120": "U-120",
+  "entity.roomsmod.u200": "U-200",
+  "entity.roomsmod.u300": "U-300",
+  "subtitles.roomsmod.u20_approach": "何かが廊下を駆けてくる",
+  "subtitles.roomsmod.u60_approach": "重い足音",
+  "subtitles.roomsmod.u120_approach": "甲高い風切り音",
+  "subtitles.roomsmod.u200_step": "後ろから足音",
+  "subtitles.roomsmod.u300_approach": "鈴の音"
 }

@@ -54,7 +54,13 @@ public final class VSpawns {
         B_REACH("B-50", "breach", "b_rush", RoomsMod.B_REACH),
         B_SMILE("B-90", "bsmile", "b_rush", RoomsMod.B_SMILE),
         B_VOID("B-260", "bvoid", "b_rush", RoomsMod.B_VOID),
-        B_17("B-290", "b17", null, RoomsMod.B_17);
+        B_17("B-290", "b17", null, RoomsMod.B_17),
+        // U（廊下）区画
+        U20("U-20", "u20", null, RoomsMod.U20),
+        U60("U-60", "u60", null, RoomsMod.U60),
+        U120("U-120", "u120", null, RoomsMod.U120),
+        U200("U-200", "u200", null, RoomsMod.U200),
+        U300("U-300", "u300", null, RoomsMod.U300);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。
@@ -103,6 +109,9 @@ public final class VSpawns {
         VEntity e = k.type.get().create(level);
         if (e == null) { RoomsDebug.warn("{} spawn failed: create returned null", k.display); return false; }
         if (e.targetsOpenedRoom()) room = Math.min(room + 1, rs.roomPaths.size() - 1);
+        String home = e.homeSection();
+        boolean off = home != null && !home.equals(com.example.roomsmod.world.section.Sections.forRoom(rs, room).id());
+        e.setSpawnContext(rs.hardMode, off);
         BlockPos at = e.prepare(level, rs, room);
         if (at == null) { RoomsDebug.log("{} spawn skipped: no valid position near room {}", k.display, room); return false; }
         RusherChunks.prepareSpawn(level, e, new ChunkPos(at));

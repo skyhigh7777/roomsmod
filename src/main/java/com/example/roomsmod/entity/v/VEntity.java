@@ -33,6 +33,10 @@ public abstract class VEntity extends Mob {
 
     protected int life = 0;
     protected int startRoom = 0;
+    /** 出現時にハードモードだったか（猶予・速度・折り返しの強化。出現後に切り替えても変わらない）。 */
+    protected boolean hardSpawn = false;
+    /** 出現した部屋が、このエンティティ本来のセクションの外か（ハードの合同抽選で別セクションに出た）。 */
+    protected boolean offSection = false;
     private ChunkPos lastForcedChunk = null;
 
     protected VEntity(EntityType<? extends Mob> type, Level level) {
@@ -49,6 +53,12 @@ public abstract class VEntity extends Mob {
     public abstract String vName();
 
     public void setStartRoom(int index) { this.startRoom = index; }
+
+    /** 出現処理（VSpawns.spawn）から prepare の前に呼ぶ。 */
+    public void setSpawnContext(boolean hard, boolean offSection) { this.hardSpawn = hard; this.offSection = offSection; }
+
+    /** このエンティティ本来のセクション id（null = 区別しない）。offSection の判定に使う。 */
+    public String homeSection() { return null; }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 100.0).add(Attributes.MOVEMENT_SPEED, 0.3).add(Attributes.FOLLOW_RANGE, 64.0);
@@ -118,6 +128,8 @@ public abstract class VEntity extends Mob {
         super.addAdditionalSaveData(tag);
         tag.putInt("VLife", life);
         tag.putInt("StartRoom", startRoom);
+        tag.putBoolean("HardSpawn", hardSpawn);
+        tag.putBoolean("OffSection", offSection);
     }
 
     @Override
@@ -125,6 +137,8 @@ public abstract class VEntity extends Mob {
         super.readAdditionalSaveData(tag);
         life = tag.getInt("VLife");
         startRoom = tag.getInt("StartRoom");
+        hardSpawn = tag.getBoolean("HardSpawn");
+        offSection = tag.getBoolean("OffSection");
     }
 
     // ---- helpers ----

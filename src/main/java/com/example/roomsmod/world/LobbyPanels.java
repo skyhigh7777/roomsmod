@@ -208,10 +208,7 @@ public final class LobbyPanels {
         if (RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
-        rs.sections.clear();
-        rs.sections.add(new RoomsState.SectionStart("b", 0));
-        if (!"b".equals(s)) rs.addSection(s, 1);
-        rs.setDirty();
+        rs.setChain(s); // 選んだセクションから、500部屋ごとに次のセクションへ
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         RoomsCommands.goToRoom(player, n);

@@ -83,7 +83,7 @@ public class RoomsCommands {
         if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         int start = startRoom != null ? startRoom : rs.currentRoom + 1;
-        rs.addSection(id, start);
+        rs.chainFrom(id, start); // 以降は固定長（500部屋ごと）で次のセクションへ
         boolean relabeled = start == rs.currentRoom + 1 && com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
         String label = com.example.roomsmod.world.section.Sections.formatRoom(rs, start);
         com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] section {} added at global room {} ({}) by {} table={}", id, start, label, src.getTextName(), rs.sections);
@@ -98,11 +98,9 @@ public class RoomsCommands {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
-        rs.sections.clear();
-        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("b", 0));
-        rs.setDirty();
+        rs.setChain("b");
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を B のみに戻したわ"), true);
+        src.sendSuccess(() -> Component.literal("セクション表を既定（B → V → GK → U、各 " + com.example.roomsmod.world.section.Sections.SECTION_LENGTH + " 部屋）に戻したわ"), true);
         return 1;
     }
 
@@ -232,6 +230,11 @@ public class RoomsCommands {
                 .then(Commands.literal("gk245").executes(ctx -> spawnV(ctx.getSource(), "gkeraser")))
                 .then(Commands.literal("gk270").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
                 .then(Commands.literal("gk300").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
+                .then(Commands.literal("u20").executes(ctx -> spawnV(ctx.getSource(), "u20")))
+                .then(Commands.literal("u60").executes(ctx -> spawnV(ctx.getSource(), "u60")))
+                .then(Commands.literal("u120").executes(ctx -> spawnV(ctx.getSource(), "u120")))
+                .then(Commands.literal("u200").executes(ctx -> spawnV(ctx.getSource(), "u200")))
+                .then(Commands.literal("u300").executes(ctx -> spawnV(ctx.getSource(), "u300")))
                 .then(Commands.literal("b110").executes(ctx -> spawnV(ctx.getSource(), "berror")))
                 .then(Commands.literal("b130").executes(ctx -> spawnV(ctx.getSource(), "bgrin")))
                 .then(Commands.literal("b155").executes(ctx -> spawnV(ctx.getSource(), "bmaw")))

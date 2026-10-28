@@ -26,6 +26,8 @@ public abstract class VPathWalker extends VEntity {
     protected int endRoom = 0;
     protected int waypointIndex = 0;
     protected int grace = 0;
+    /** 加減速つきの今の速度（ブロック/tick）。accel() <= 0 の種類は使わない。 */
+    protected double curSpeed = 0;
     private List<BlockPos> wps = null;
     private final WaypointMover mover = new WaypointMover();
     private final boolean[] reached = new boolean[1];
@@ -40,10 +42,80 @@ public abstract class VPathWalker extends VEntity {
     /** 接近ループの再生間隔（tick、音声ファイルの長さに合わせる）。 */
     protected int loopTicks() { return 40; }
 
-    /** true を返す間は移動・当たり判定をしない。既定は graceTicks() 待ち。 */
+    // ===== 加減速（既定はどちらも 0 = 従来どおりの等速） =====
+    /** 加速度（ブロック/tick²）。0 以下なら常に最高速。 */
+    protected double accel() { return 0; }
+    /** 減速度（ブロック/tick²）。0 より大きく、brakeAtPathEnd() が true なら経路の終点（折り返し点）の手前で止まれるように減速する。 */
+    protected double decel() { return 0; }
+    /** 経路の終点で止まる（折り返す・止まる）予定か。true の間だけ終点手前で減速する。曲がり角では減速しない。 */
+    protected boolean brakeAtPathEnd() { return false; }
+    /** 加減速中の最低速度（曲がり角・経路の継ぎ目で止まりかけないように）。 */
+    protected double minMoveSpeed() { return 0.12; }
+
+    /** 速度の倍率（ハードモードなど）。既定は出現時のハード強化だけ。 */
+    protected double speedMul() { return hardSpawn ? com.example.roomsmod.world.HardMode.SPEED_MUL : 1.0; }
+    /** 猶予の倍率。 */
+    protected double graceMul() { return hardSpawn ? com.example.roomsmod.world.HardMode.GRACE_MUL : 1.0; }
+    /** 倍率をかけた実際の猶予（tick）。 */
+    protected int effectiveGraceTicks() { return Math.max(10, (int) Math.round(graceTicks() * graceMul())); }
+    /** 倍率をかけた最高速。 */
+    protected double maxSpeed() { return speed() * speedMul(); }
+    /** 走り終えて消えるときにハードの連鎖抽選をするか（突進型だけ true）。 */
+    protected boolean chainsOnFinish() { return true; }
+
+    /** true を返す間は移動・当たり判定をしない。既定は effectiveGraceTicks() 待ち。 */
     protected boolean holdTick(ServerLevel level) {
-        if (grace < graceTicks()) { grace++; return true; }
+        if (grace < effectiveGraceTicks()) { grace++; return true; }
         return false;
+    }
+
+    /** 止まった（折り返し・待ち）あと、加速をやり直す。 */
+    protected void resetSpeed() { curSpeed = 0; }
+
+    /** この tick の移動量。加減速なしなら maxSpeed()。 */
+    private double stepSpeed(List<BlockPos> w) {
+        double vmax = maxSpeed();
+        double a = accel();
+        if (a <= 0) return vmax;
+        double d = decel();
+        if (curSpeed > vmax) curSpeed = Math.max(vmax, curSpeed - (d > 0 ? d : a)); // 最高速が下がった：なめらかに落とす
+        else curSpeed = Math.min(vmax, Math.max(curSpeed, Math.min(minMoveSpeed(), vmax)) + a);
+        if (d > 0 && brakeAtPathEnd()) {
+            double rem = remainingDistance(w);
+            double allowed = Math.sqrt(2 * d * rem);
+            if (allowed < curSpeed) curSpeed = Math.max(Math.min(minMoveSpeed(), vmax), allowed);
+        }
+        return curSpeed;
+    }
+
+    /** 今の位置から経路の終点までの距離（経由点に沿って）。 */
+    private double remainingDistance(List<BlockPos> w) {
+        if (w.isEmpty() || waypointIndex >= w.size()) return 0;
+        net.minecraft.world.phys.Vec3 at = position();
+        double sum = 0;
+        for (int i = waypointIndex; i < w.size(); i++) {
+            net.minecraft.world.phys.Vec3 g = net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(i));
+            sum += at.distanceTo(g);
+            at = g;
+            if (sum > 64) break; // 遠ければ減速しないので打ち切り
+        }
+        return sum;
+    }
+
+    /**
+     * 経路を部屋 from → to に張り替える（from > to なら逆向き）。今の位置から走り出す（ワープしない）。
+     * 前向き（to >= from）なら、以後も新しい部屋ができると延長する。
+     */
+    protected void setPath(ServerLevel level, int from, int to) {
+        RoomsState rs = RoomsState.get(level);
+        int last = Math.max(0, rs.roomPaths.size() - 1);
+        from = Math.max(0, Math.min(from, last)); to = Math.max(0, Math.min(to, last));
+        startRoom = from; endRoom = to;
+        List<BlockPos> w = pathOf(rs, Math.min(from, to), Math.max(from, to));
+        if (to < from) java.util.Collections.reverse(w);
+        wps = w;
+        waypointIndex = 0;
+        mover.resetProgress(this);
     }
 
     private List<BlockPos> waypoints() {
@@ -117,8 +189,13 @@ public abstract class VPathWalker extends VEntity {
         List<BlockPos> w = waypoints();
         if (holdTick(level)) return;
         w = extendIfNewRooms(level, w);
-        if (w.isEmpty() || waypointIndex >= w.size()) { if (!w.isEmpty() && onPathEnd(level)) return; leave("path end (" + w.size() + " waypoints)"); return; }
-        int idx = mover.step(this, vName(), w, waypointIndex, w.size() - 1, speed(), reached);
+        if (w.isEmpty() || waypointIndex >= w.size()) {
+            if (!w.isEmpty() && onPathEnd(level)) return;
+            leave("path end (" + w.size() + " waypoints)");
+            if (chainsOnFinish()) com.example.roomsmod.world.HardMode.chainReroll(level, vName());
+            return;
+        }
+        int idx = mover.step(this, vName(), w, waypointIndex, w.size() - 1, stepSpeed(w), reached);
         if (idx < w.size()) faceTowards(net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(idx)));
         waypointIndex = reached[0] ? w.size() : idx;
         for (Player p : playersNear(hitRange())) RusherHits.tryHit(this, vName(), p, canSee(p), damage());
@@ -126,19 +203,22 @@ public abstract class VPathWalker extends VEntity {
 
     @Override
     protected String debugState() {
-        return "rooms " + startRoom + "->" + endRoom + " waypoint=" + waypointIndex + "/" + (wps == null ? "?" : wps.size()) + " grace=" + grace;
+        return "rooms " + startRoom + "->" + endRoom + " waypoint=" + waypointIndex + "/" + (wps == null ? "?" : wps.size()) + " grace=" + grace + "/" + effectiveGraceTicks()
+                + (accel() > 0 ? " speed=" + f(curSpeed) + "/" + f(maxSpeed()) : "") + (hardSpawn ? " hard" : "") + (offSection ? " offSection" : "");
     }
 
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putInt("EndRoom", endRoom); tag.putInt("WaypointIndex", waypointIndex); tag.putInt("Grace", grace);
+        tag.putDouble("CurSpeed", curSpeed);
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         endRoom = tag.getInt("EndRoom"); waypointIndex = tag.getInt("WaypointIndex"); grace = tag.getInt("Grace");
+        curSpeed = tag.getDouble("CurSpeed");
         wps = null;
         RoomsDebug.log("{} loaded {}", vName(), debugState());
     }

@@ -169,6 +169,28 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.gk.GKRewindEntity::new, MobCategory.MONSTER)
                     .sized(0.8f, 1.6f).clientTrackingRange(12).updateInterval(1).build("gk_rewind"));
 
+    // U（廊下）区画。音は既存の音声ファイルを sounds.json でピッチ違いにして使う（新しい音声ファイルなし）
+    public static final DeferredHolder<SoundEvent, SoundEvent> U20_APPROACH = SOUND_EVENTS.register("u20_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "u20_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> U60_APPROACH = SOUND_EVENTS.register("u60_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "u60_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> U120_APPROACH = SOUND_EVENTS.register("u120_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "u120_approach")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> U200_STEP = SOUND_EVENTS.register("u200_step", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "u200_step")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> U300_APPROACH = SOUND_EVENTS.register("u300_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "u300_approach")));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.u.U20Entity>> U20 = ENTITIES.register("u20",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.u.U20Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.2f).clientTrackingRange(12).updateInterval(1).build("u20"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.u.U60Entity>> U60 = ENTITIES.register("u60",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.u.U60Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.2f).clientTrackingRange(12).updateInterval(1).build("u60"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.u.U120Entity>> U120 = ENTITIES.register("u120",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.u.U120Entity::new, MobCategory.MONSTER)
+                    .sized(0.9f, 2.0f).clientTrackingRange(12).updateInterval(1).build("u120"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.u.U200Entity>> U200 = ENTITIES.register("u200",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.u.U200Entity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.0f).clientTrackingRange(12).updateInterval(1).build("u200"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.u.U300Entity>> U300 = ENTITIES.register("u300",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.u.U300Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("u300"));
+
     public RoomsMod(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, com.example.roomsmod.config.RoomsConfig.SPEC);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomsSpawnHandler.class);
@@ -251,7 +273,8 @@ public class RoomsMod {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
-                B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17))
+                B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
+                U20, U60, U120, U200, U300))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

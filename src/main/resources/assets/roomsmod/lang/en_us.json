@@ -124,5 +124,15 @@
   "entity.roomsmod.b_void": "B-260",
   "entity.roomsmod.b_17": "B-290",
   "item.roomsmod.bandage": "Bandage",
-  "message.roomsmod.bandage_full": "Your health is already full"
+  "message.roomsmod.bandage_full": "Your health is already full",
+  "entity.roomsmod.u20": "U-20",
+  "entity.roomsmod.u60": "U-60",
+  "entity.roomsmod.u120": "U-120",
+  "entity.roomsmod.u200": "U-200",
+  "entity.roomsmod.u300": "U-300",
+  "subtitles.roomsmod.u20_approach": "Something rushes down the hall",
+  "subtitles.roomsmod.u60_approach": "Heavy footsteps",
+  "subtitles.roomsmod.u120_approach": "A high-pitched whoosh",
+  "subtitles.roomsmod.u200_step": "Footsteps behind you",
+  "subtitles.roomsmod.u300_approach": "A distant chime"
 }

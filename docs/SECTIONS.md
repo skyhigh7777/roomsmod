@@ -25,7 +25,16 @@ Moving to data-driven JSON later just means adding a codec and loading themes in
 | `lightFadeStart/Step` | progressive darkness: tier = (localRoom - start) / step, see `RoomLighting` (lanterns → fewer lanterns → soul lanterns → candles) |
 
 ## Section switching
-`RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world, default `[(b, 0)]`).
+`RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world).
+
+### Fixed length (500 rooms)
+Every section is `Sections.SECTION_LENGTH` = 500 rooms, in the order `Sections.ORDER` = `b, v, gk, u`.
+The default table is `Sections.fixedChain("b")` = `[(b,0), (v,501), (gk,1001), (u,1501)]`, so `B-500` is followed by `V-001`, and so on.
+`fixedChain(id)` starts `id` at global room 1 (B at 0, the lobby) and chains the rest of `ORDER` every 500 rooms;
+`chainFrom(id, start)` does the same from an arbitrary global room (used by `/rooms section`).
+**TODO:** what happens after `U-500` is undecided. For now the last section simply continues (`U-501`, `U-502`, …).
+Saves without the `sectionsFixed` flag are migrated on load: the section that starts at global room ≤ 1 becomes the start of a fixed chain
+(manual mid-run switches from older saves are dropped; a debug log line shows old → new table).
 `Sections.forRoom(state, room)` picks the last entry with `startRoom <= room`; room numbers on signs and in
 debug use that section's prefix.
 
@@ -43,10 +52,11 @@ For B this is identical to before (local == global). Add a switch with `state.ad
 Debug: `/rooms debug section` prints the current section and table; generation logs `section change at room N`.
 
 ## Commands (op)
-- `/rooms section <id>` or `/rooms section <id> now`: the next room to be generated (`currentRoom + 1`) starts section `<id>`;
-  the already placed number sign over the next exit door is rewritten (e.g. `V-001`).
-- `/rooms section <id> <startRoom>`: section `<id>` starts at global room `startRoom`.
-- `/rooms section reset`: back to B only. The table is saved with the world and is **not** cleared by `/rooms enter`.
+- `/rooms section <id>` or `/rooms section <id> now`: the next room to be generated (`currentRoom + 1`) starts section `<id>`,
+  followed by the next sections of `ORDER` every 500 rooms (`RoomsState.chainFrom`); entries from that room on are replaced.
+  The already placed number sign over the next exit door is rewritten (e.g. `V-001`).
+- `/rooms section <id> <startRoom>`: same, starting at global room `startRoom`.
+- `/rooms section reset`: back to the default fixed chain (B → V → GK → U). The table is saved with the world and is **not** cleared by `/rooms enter`.
 - Try V from scratch: `/rooms enter`, `/rooms section v now`, open the lobby door.
 
 Light fade (`lightFadeStart/Step`) uses the section-local number (identical for B).
@@ -99,7 +109,7 @@ The lobby is rebuilt on every lobby entry (`/rooms enter`, first join, respawn, 
 ### Lobby panels (`world/LobbyPanels.java`)
 - Left wall (+X wall, x=19, facing the exit door): SECTION / − / ＋ / GO buttons set into the wall at y=2 with waxed glowing signs above;
   the selection sign shows e.g. `GK-150`. Sections cycle over `Sections.ids()` (new sections appear automatically);
-  room steps 1, 50 … 300, 400, 500. Selection is shared server-wide (in memory). GO = section table `[(b,0),(s,1)]` + `/rooms to n`.
+  room steps 1, 50 … 300, 400, 500. Selection is shared server-wide (in memory). GO = `RoomsState.setChain(s)` (s from room 1, then the following sections every 500 rooms) + `/rooms to n`.
 - Door wall (x=14, z=31): deepest generated room (`roomPaths.size()-1`), refreshed by `RoomGenerator.generateNextRoom`; right-click teleports (no reset).
 - Panels are exempt from the rooms-dimension block-use rule and cannot be broken (`DoorEventHandler`).
 - `/rooms to` and GO generate rooms over several ticks (`world/RoomsTravel.java`, 4 rooms/tick, max 500), one job at a time.
@@ -113,3 +123,27 @@ that ever fails). Paths are kept 3 wide; the exit is always on the max-Z wall; o
 Progression: after V. Start it with `/rooms section gk now` (or `/rooms section gk <globalRoom>`), rooms read `GK-001`...
 GK has 15 entities in `entity/gk`; at most 2 GK entities spawn per door roll (`DoorEventHandler.GK_MAX_PER_ROLL`).
 GK entities live in `entity/gk` and despawn after at most 100 s (`GKEntity.MAX_LIFE_TICKS`, below the 120 s hard cap).
+
+## U (corridor) rooms
+U uses its own generator (`world/CorridorRooms.java`): straight corridors only, inner width 5 (7 with walls), height 5,
+entrance and exit always on the centre line x=10 (exit on the max-Z wall), so rooms never overlap.
+- Lengths (inner depth): SHORT 24 (25%), STD 36 (45%), LONG 52 (25%), VLONG 72 (5%, only from `U-250`; earlier it becomes LONG).
+- Variants: PLAIN, PILLARED (pillars on both sides every 8 blocks, cover pockets), ALCOVE (hiding every 8 blocks), DIM (half the lights).
+- Hiding: lockers set into the wall (niche) or tables against the wall; the centre 3 lanes (x=9..11) stay clear.
+  Spacing ≤ 16 blocks (`MAX_HIDE_GAP`, also to the exit), at least 2 per room (`MIN_HIDES`), at least one locker.
+- Light fade: from U-001, one tier every 10 rooms.
+U has 5 entities in `entity/u` (U-20, U-60, U-120, U-200, U-300). They are movement types (no gimmicks) built on `URusher`
+(`VPathWalker` with acceleration/deceleration). When one spawns outside U (hard mode's combined table) it is softened
+(speed x0.85, grace x1.25, higher minimum speed so it never crawls through corners).
+
+## Movement: acceleration / deceleration
+`VPathWalker` supports optional `accel()` / `decel()` (blocks/tick²; default 0 = constant speed as before).
+With `accel() > 0` the walker ramps up from `minMoveSpeed()` to `maxSpeed()`; with `decel() > 0` and `brakeAtPathEnd()`
+it brakes before the path end (a turnaround point) so it can stop there. Corners are never braked for.
+`setPath(level, from, to)` re-targets the path without teleporting (used for turnarounds of N rooms).
+
+## Hard mode (all sections)
+Constants in `world/HardMode.java`: max 3 per door roll, spawn chance x1.5 (capped at 1), path walkers' grace x0.8 and speed x1.1
+(B-20/B-40 too), entities that turn around get one more turnaround (B-40, BRusher rebounds, GK-300, U-60, U-300), and when a rusher
+finishes its run there is a 25% chance of another roll on the next tick (`HardMode.chainReroll`). The buffs are fixed at spawn time
+(`hardSpawn`, saved). Category/exclusion rules (`SpawnCategories`, e.g. GK-270 KEEP_MOVING) are unchanged.

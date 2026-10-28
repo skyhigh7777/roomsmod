@@ -31,7 +31,8 @@ public class RoomsState extends SavedData {
     /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。既定は A のみ。 */
     /** ハードモード：全セクションのエンティティがどの部屋でも出る（サーバー共有・セーブに保存）。 */
     public boolean hardMode = false;
-    public final List<SectionStart> sections = new ArrayList<>(List.of(new SectionStart("b", 0)));
+    /** 既定は B → V → GK → U（各 Sections.SECTION_LENGTH 部屋）。 */
+    public final List<SectionStart> sections = new ArrayList<>(com.example.roomsmod.world.section.Sections.fixedChain("b"));
 
     public record SectionStart(String themeId, int startRoom) {}
 
@@ -41,6 +42,23 @@ public class RoomsState extends SavedData {
         sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(themeId), startRoom));
         sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
         setDirty();
+    }
+
+    /** セクション表を first から始まる固定長の進行（Sections.fixedChain）にする。 */
+    public void setChain(String firstId) {
+        sections.clear();
+        sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(firstId));
+        setDirty();
+        RoomsDebug.log("section table set to fixed chain from {}: {}", firstId, sections);
+    }
+
+    /** 部屋 start 以降を id から始まる固定長の進行に置き換える（それより前はそのまま）。/rooms section 用。 */
+    public void chainFrom(String id, int start) {
+        sections.removeIf(s -> s.startRoom() >= start);
+        sections.addAll(com.example.roomsmod.world.section.Sections.chainFrom(id, start));
+        sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
+        setDirty();
+        RoomsDebug.log("section table chained from {} at {}: {}", id, start, sections);
     }
 
     public static RoomsState get(ServerLevel level) {
@@ -118,6 +136,7 @@ public class RoomsState extends SavedData {
             secs.add(c);
         }
         tag.put("sections", secs);
+        tag.putBoolean("sectionsFixed", true);
         RoomsDebug.log("state saved: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", currentRoom, generatedRooms.size(), generatedDoors.size(), expectedExitDoor);
         return tag;
     }
@@ -150,6 +169,15 @@ public class RoomsState extends SavedData {
                 s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(c.getString("theme")), c.getInt("start")));
             }
             if (s.sections.isEmpty()) s.sections.add(new SectionStart("b", 0));
+            if (!tag.getBoolean("sectionsFixed")) {
+                // 旧形式（長さ固定なし）：開始セクション（通し番号 1 までに始まる最後のもの）から固定長の進行に作り直す
+                String first = "b";
+                for (SectionStart sec : s.sections) if (sec.startRoom() <= 1) first = sec.themeId();
+                List<SectionStart> old = new ArrayList<>(s.sections);
+                s.sections.clear();
+                s.sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(first));
+                RoomsDebug.log("state migrated section table {} -> {}", old, s.sections);
+            }
         }
         } catch (RuntimeException e) {
             RoomsDebug.error("failed to load RoomsState", e);

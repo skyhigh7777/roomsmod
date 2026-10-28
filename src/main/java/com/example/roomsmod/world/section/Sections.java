@@ -124,6 +124,59 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.BIRCH_WALL_SIGN, DyeColor.BLACK, false),
             1, 8));
 
+    /**
+     * U 区画。まっすぐな廊下だけでできた部屋（world/CorridorRooms.java）。進行上は GK の後。
+     * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
+     */
+    public static final SectionTheme U = register(new SectionTheme(
+            "u", "U",
+            new SectionTheme.Palette(
+                    Blocks.SMOOTH_STONE::defaultBlockState, Blocks.LIGHT_GRAY_CONCRETE::defaultBlockState, Blocks.SMOOTH_STONE::defaultBlockState,
+                    () -> Blocks.DARK_OAK_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{1, 1, 1, 1, 1},
+            B.furniture(), B.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.8f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.2f)),
+            2, 2,
+            List.of(
+                    // U: セクション内番号 U-20〜U-300 にかけて易しい順に解禁。1回の抽選で最大 GK_MAX_PER_ROLL 体
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U20, 20, 0.30f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U60, 60, 0.15f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U120, 120, 0.10f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U200, 200, 0.08f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U300, 300, 0.07f)),
+            new SectionTheme.SignStyle(() -> Blocks.DARK_OAK_WALL_SIGN, DyeColor.WHITE, true),
+            1, 10));
+
+    // ===================== 固定長のセクション進行 =====================
+
+    /** どのセクションも 500 部屋。 */
+    public static final int SECTION_LENGTH = 500;
+    /** 進行順。最後のセクションの後は、そのセクションがそのまま続く。 */
+    public static final List<String> ORDER = List.of("b", "v", "gk", "u");
+
+    /**
+     * first から始まるセクション表：first は通し番号 1（B はロビーが 0 なので 0）から、以降 ORDER の順に
+     * SECTION_LENGTH 部屋ごとに次のセクションへ切り替わる（B → V → GK → U）。
+     * TODO: 最後のセクション（U）の 500 部屋目より先をどうするか未定。今は最後のセクションがそのまま続く（U-501, U-502 …）。
+     */
+    public static List<RoomsState.SectionStart> fixedChain(String firstId) {
+        return chainFrom(firstId, "b".equals(canonical(firstId)) ? 0 : 1);
+    }
+
+    /** start から id、以降 SECTION_LENGTH ごとに ORDER の次のセクション。ORDER にない id はそれ1つだけ。 */
+    public static List<RoomsState.SectionStart> chainFrom(String id, int start) {
+        String c = canonical(id);
+        List<RoomsState.SectionStart> out = new java.util.ArrayList<>();
+        out.add(new RoomsState.SectionStart(c, start));
+        int i = ORDER.indexOf(c);
+        if (i < 0) return out;
+        int first = Math.max(start, 1); // 番号付きの最初の部屋（B はロビー 0 の次の 1）
+        for (int k = i + 1; k < ORDER.size(); k++) out.add(new RoomsState.SectionStart(ORDER.get(k), first + SECTION_LENGTH * (k - i)));
+        return out;
+    }
+
     private Sections() {}
 
     /** B-110 が生存中（B-20 / B-40 と同時に出さない）。 */

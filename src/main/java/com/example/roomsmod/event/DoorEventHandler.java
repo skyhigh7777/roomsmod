@@ -28,7 +28,7 @@ public class DoorEventHandler {
     /** GK 区画で1回の抽選で出る最大数。 */
     public static final int GK_MAX_PER_ROLL = 2;
     /** ハードモードの1回の抽選（扉1枚）で出る最大数。 */
-    public static final int HARD_MAX_PER_ROLL = 2;
+    public static final int HARD_MAX_PER_ROLL = com.example.roomsmod.world.HardMode.MAX_PER_ROLL;
 
     // ラッシャー出現率（調整用）
     // 出現する部屋・確率は SectionTheme.rushers()（Sections.B）
@@ -217,7 +217,8 @@ public class DoorEventHandler {
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
-            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < r.chance() || forceAll);
+            float chance = hard ? Math.min(1f, r.chance() * com.example.roomsmod.world.HardMode.CHANCE_MUL) : r.chance(); // ハード：確率 x1.5
+            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < chance || forceAll);
         }
         StringBuilder sb = new StringBuilder();
         for (int k = 0; k < table.size(); k++) {
@@ -262,7 +263,7 @@ public class DoorEventHandler {
             }
         }
         // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
+        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
@@ -307,6 +308,7 @@ public class DoorEventHandler {
         a40.setPos(x, y, z);
         a40.setStartRoom(startIndex);
         a40.setRoomsBack(com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
+        a40.setHard(rs.hardMode);
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
         if (!level.addFreshEntity(a40)) { RoomsDebug.warn("B-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
@@ -328,6 +330,7 @@ public class DoorEventHandler {
         double spawnX = start.getX() + 0.5, spawnY = start.getY(), spawnZ = start.getZ() + 0.5;
         a20.setPos(spawnX, spawnY, spawnZ);
         a20.setStartRoom(startIndex);
+        a20.setHard(rs.hardMode);
 
         // 出現位置のチャンクを（このB-20のチケットで）読み込んでから追加する
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));
