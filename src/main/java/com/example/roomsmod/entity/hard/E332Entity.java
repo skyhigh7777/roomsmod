@@ -7,7 +7,6 @@ import com.example.roomsmod.util.RoomsDebug;
 import com.example.roomsmod.world.RoomsState;
 import com.example.roomsmod.world.section.SectionTheme;
 import com.example.roomsmod.world.section.Sections;
-import com.example.roomsmod.world.section.SpawnCategories;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -166,32 +165,26 @@ public class E332Entity extends VEntity {
         RoomsDebug.log("{} cue sound of {} pitch={}", NAME, who, String.format("%.2f", pitch));
     }
 
-    /** 名前を決めてバーを書き換え、通常の抽選と同じ出現処理で出す（次の tick、エンティティの tick の外で）。 */
+    /**
+     * 名前を決めてバーを書き換え、通常の抽選と同じ出現処理で出す（次の tick、エンティティの tick の外で）。
+     * 例外：3!3!2 が呼んだ敵は重なりの規則をすべて無視する（生存中の同種・排他グループ、分類の矛盾、GK-270 の単独ルール）。
+     * 候補は 3!3!2 以外のハード表の全エントリ。通常の抽選（DoorEventHandler.rollRushers）は変えない。
+     */
     private void reveal(ServerLevel level) {
         List<SectionTheme.RusherSpawn> all = new ArrayList<>();
         for (SectionTheme.RusherSpawn r : Sections.hardTable()) if (!NAME.equals(r.name())) all.add(r);
         if (all.isEmpty()) { chosen = "?"; return; }
-        // 通常の抽選と同じく、生存中（同種・排他グループ）と分類の矛盾は避ける。全部ダメなら名前だけ出して出現はしない
-        Map<String, String> present = new LinkedHashMap<>();
-        for (String n : SpawnCategories.aliveNames(level)) if (!NAME.equals(n)) present.put(n, "alive");
-        List<SectionTheme.RusherSpawn> ok = new ArrayList<>();
-        for (SectionTheme.RusherSpawn r : all)
-            if (!r.alive().test(level) && SpawnCategories.conflict(r.name(), present, true) == null) ok.add(r);
-        boolean canSpawn = !ok.isEmpty();
-        List<SectionTheme.RusherSpawn> pool = canSpawn ? ok : all;
-        SectionTheme.RusherSpawn pick = pool.get(random.nextInt(pool.size()));
+        SectionTheme.RusherSpawn pick = all.get(random.nextInt(all.size()));
         chosen = pick.name();
         ensureBar().setName(Component.literal(TITLE_PREFIX + chosen));
-        RoomsDebug.log("{} full -> {} (candidates {}/{})", NAME, chosen, ok.size(), all.size());
-        if (!canSpawn) { RoomsDebug.log("{} -> {} spawn skipped: every candidate alive or conflicting", NAME, chosen); return; }
+        RoomsDebug.log("{} full -> {} (of {} candidates, overlap rules ignored, alive={})", NAME, chosen, all.size(), pick.alive().test(level));
         var server = level.getServer();
         server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 1, () -> {
             RoomsState rs = RoomsState.get(level);
-            if (rs.roomPaths.isEmpty()) return;
+            if (rs.roomPaths.isEmpty()) { RoomsDebug.log("{} -> {} spawn skipped: no rooms", NAME, pick.name()); return; }
             Player front = frontPlayer(level, rs);
             try {
-                if (pick.alive().test(level)) { RoomsDebug.log("{} -> {} spawn skipped: already alive", NAME, pick.name()); return; }
-                if (!pick.spawn().spawn(level, rs, front)) RoomsDebug.log("{} -> {} spawn failed", NAME, pick.name());
+                if (!pick.spawn().spawn(level, rs, front)) RoomsDebug.log("{} -> {} spawn failed (placement)", NAME, pick.name());
             } catch (RuntimeException e) { RoomsDebug.error(NAME + " -> " + pick.name() + " spawn failed", e); }
         }));
     }
