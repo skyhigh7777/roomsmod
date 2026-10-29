@@ -191,6 +191,17 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.u.U300Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("u300"));
 
+    // PLACEHOLDER（テスト用）区画。自然出現しない、/rooms spawn のみ
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_32767 = ENTITIES.register("placeholder_32767",
+            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-32767"), MobCategory.MONSTER)
+                    .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_32767"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_65535 = ENTITIES.register("placeholder_65535",
+            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-65535"), MobCategory.MONSTER)
+                    .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_65535"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_2147483648 = ENTITIES.register("placeholder_2147483648",
+            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-2147483648"), MobCategory.MONSTER)
+                    .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_2147483648"));
+
     public RoomsMod(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, com.example.roomsmod.config.RoomsConfig.SPEC);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomsSpawnHandler.class);
@@ -274,7 +285,7 @@ public class RoomsMod {
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
                 B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
-                U20, U60, U120, U200, U300))
+                U20, U60, U120, U200, U300, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

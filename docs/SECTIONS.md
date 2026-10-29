@@ -147,3 +147,16 @@ Constants in `world/HardMode.java`: max 3 per door roll, spawn chance x1.5 (capp
 (B-20/B-40 too), entities that turn around get one more turnaround (B-40, BRusher rebounds, GK-300, U-60, U-300), and when a rusher
 finishes its run there is a 25% chance of another roll on the next tick (`HardMode.chainReroll`). The buffs are fixed at spawn time
 (`hardSpawn`, saved). Category/exclusion rules (`SpawnCategories`, e.g. GK-270 KEEP_MOVING) are unchanged.
+
+## PLACEHOLDER (test only)
+`Sections.PLACEHOLDER` (id `placeholder`, rooms `PLACEHOLDER-001`) is listed in `Sections.TEST_ONLY`: it is not in `ORDER`
+(no fixed chain), not shown on the lobby panel (`Sections.lobbyIds()`), and its spawn table is empty, so it never
+contributes to normal or hard-mode rolls. Start it with `/rooms section placeholder now`; it then continues forever.
+Rooms (`world/PlaceholderRooms.java`): an 11x11 floor with no walls and no ceiling, one hiding table and two lockers.
+Progression still uses the normal exit door: a free-standing door frame (two pillars + lintel, for the number sign) stands just past the +Z edge.
+Fall protection: invisible barriers (3 high) around the floor edge, skipping cells occupied by the previous room's door/wall
+and the door frame. Light comes from invisible `minecraft:light` blocks.
+Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`entity/placeholder/PlaceholderEntity`) only spawn via
+`/rooms spawn placeholder32767|placeholder65535|placeholder2147483648`; for now they stand still in the middle of the player's room
+(no AI, no damage, no sound) and despawn after the usual 2-minute cap. Graphics: single-colour squares (red / green / blue).
+

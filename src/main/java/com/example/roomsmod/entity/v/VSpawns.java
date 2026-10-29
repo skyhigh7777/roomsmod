@@ -60,7 +60,11 @@ public final class VSpawns {
         U60("U-60", "u60", null, RoomsMod.U60),
         U120("U-120", "u120", null, RoomsMod.U120),
         U200("U-200", "u200", null, RoomsMod.U200),
-        U300("U-300", "u300", null, RoomsMod.U300);
+        U300("U-300", "u300", null, RoomsMod.U300),
+        // PLACEHOLDER（テスト用）区画：どの抽選表にも入れない（/rooms spawn のみ）
+        PLACEHOLDER_32767("PLACEHOLDER-32767", "placeholder32767", null, RoomsMod.PLACEHOLDER_32767),
+        PLACEHOLDER_65535("PLACEHOLDER-65535", "placeholder65535", null, RoomsMod.PLACEHOLDER_65535),
+        PLACEHOLDER_2147483648("PLACEHOLDER-2147483648", "placeholder2147483648", null, RoomsMod.PLACEHOLDER_2147483648);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。

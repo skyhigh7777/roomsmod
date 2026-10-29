@@ -149,6 +149,35 @@ public final class Sections {
             new SectionTheme.SignStyle(() -> Blocks.DARK_OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 10));
 
+    /**
+     * PLACEHOLDER（テスト用）。壁も天井もない 11x11 の床に、テーブルとロッカーだけ（world/PlaceholderRooms.java）。
+     * 固定長の進行（ORDER）には入らず、ロビーのパネルにも出ない。/rooms section placeholder でだけ始まり、以後ずっと続く。
+     * エンティティは自然出現しない（rushers は空）。/rooms spawn placeholder32767 などで出す。
+     */
+    public static final SectionTheme PLACEHOLDER = register(new SectionTheme(
+            "placeholder", "PLACEHOLDER",
+            new SectionTheme.Palette(
+                    Blocks.WHITE_CONCRETE::defaultBlockState, Blocks.GRAY_CONCRETE::defaultBlockState, Blocks.GRAY_CONCRETE::defaultBlockState,
+                    () -> Blocks.OAK_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{1, 1, 1, 1, 1},
+            B.furniture(), B.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 1.0f)),
+            2, 1,
+            List.of(),
+            new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.BLACK, false),
+            0, 0));
+
+    /** テスト用のセクション（ロビーのパネルに出さない、進行に入れない）。 */
+    public static final java.util.Set<String> TEST_ONLY = java.util.Set.of("placeholder");
+
+    /** ロビーのスタート選択パネルで巡回するセクション（テスト用を除く）。 */
+    public static List<String> lobbyIds() {
+        List<String> out = new java.util.ArrayList<>();
+        for (String id : THEMES.keySet()) if (!TEST_ONLY.contains(id)) out.add(id);
+        return out;
+    }
+
     // ===================== 固定長のセクション進行 =====================
 
     /** どのセクションも 500 部屋。 */

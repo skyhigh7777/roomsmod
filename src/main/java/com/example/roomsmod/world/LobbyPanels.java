@@ -176,7 +176,7 @@ public final class LobbyPanels {
     public static void click(ServerLevel level, ServerPlayer player, BlockPos pos) {
         Kind k = kindAt(pos.subtract(ORIGIN));
         if (k == null) return;
-        List<String> ids = new ArrayList<>(Sections.ids());
+        List<String> ids = new ArrayList<>(Sections.lobbyIds()); // テスト用（PLACEHOLDER）は出さない
         switch (k) {
             case SECTION -> {
                 int i = Math.max(0, ids.indexOf(section));
