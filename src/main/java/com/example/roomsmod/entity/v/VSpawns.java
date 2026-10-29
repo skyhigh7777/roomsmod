@@ -78,6 +78,8 @@ public final class VSpawns {
         Kind(String display, String id, String group, Supplier<? extends EntityType<? extends VEntity>> type) { this.display = display; this.id = id; this.exclusionGroup = group; this.type = type; }
         /** 同種、または同じ排他グループの種類が生存中か。 */
         public boolean alive(ServerLevel level) {
+            // 3!3!2 は同時に何体いてもよい（抽選・/rooms spawn とも生存チェックなし。ボスバーは1体ごと）
+            if (this == E332) return false;
             // B-110 は B-20 / B-40（Kind ではない）とも同時に出さない
             if (this == B_ERROR && (com.example.roomsmod.event.DoorEventHandler.isA20Alive(level) || com.example.roomsmod.event.DoorEventHandler.isA40Alive(level))) return true;
             for (Kind k : values())
