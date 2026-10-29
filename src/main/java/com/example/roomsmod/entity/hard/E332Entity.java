@@ -1,0 +1,252 @@
+package com.example.roomsmod.entity.hard;
+
+import com.example.roomsmod.RoomsMod;
+import com.example.roomsmod.event.RoomTracker;
+import com.example.roomsmod.entity.v.VEntity;
+import com.example.roomsmod.util.RoomsDebug;
+import com.example.roomsmod.world.RoomsState;
+import com.example.roomsmod.world.section.SectionTheme;
+import com.example.roomsmod.world.section.Sections;
+import com.example.roomsmod.world.section.SpawnCategories;
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.BossEvent;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
+
+/**
+ * 3!3!2。ハードモード専用（どのセクションにも属さない。Sections.hardTable と /rooms spawn 332 のみ）。
+ * 姿なし（不可視・当たり判定なし・描画なし）。タイミングの定数は下を参照。状態は NBT に保存。
+ */
+public class E332Entity extends VEntity {
+    public static final String NAME = "3!3!2";
+    public static final int BAR_DELAY_MIN = 20, BAR_DELAY_MAX = 55;
+    public static final int FILL_MIN = 60, FILL_MAX = 80;
+    public static final int LINGER = 30;
+    public static final String TITLE_START = "!Tz 3!3!2iii", TITLE_PREFIX = "!Tz ";
+
+    /** 各エンティティ（抽選表の名前）の出現・接近の音。ランダムに1つ選んでピッチを変えて鳴らす。 */
+    private static final Map<String, Supplier<SoundEvent>> SOUNDS = new LinkedHashMap<>();
+    static {
+        SOUNDS.put("B-20", RoomsMod.A20_APPROACH::get);
+        SOUNDS.put("B-40", RoomsMod.A40_APPROACH::get);
+        SOUNDS.put("B-15", () -> SoundEvents.PORTAL_AMBIENT);
+        SOUNDS.put("B-30", () -> SoundEvents.WITCH_CELEBRATE);
+        SOUNDS.put("B-50", () -> SoundEvents.SKELETON_AMBIENT);
+        SOUNDS.put("B-70", () -> SoundEvents.ENDER_EYE_DEATH);
+        SOUNDS.put("B-90", () -> SoundEvents.SOUL_ESCAPE.value());
+        SOUNDS.put("B-110", () -> SoundEvents.NOTE_BLOCK_BIT.value());
+        SOUNDS.put("B-130", () -> SoundEvents.WARDEN_AMBIENT);
+        SOUNDS.put("B-155", () -> SoundEvents.EVOKER_FANGS_ATTACK);
+        SOUNDS.put("B-180", () -> SoundEvents.ELDER_GUARDIAN_AMBIENT);
+        SOUNDS.put("B-205", () -> SoundEvents.GHAST_SCREAM);
+        SOUNDS.put("B-230", () -> SoundEvents.ALLAY_AMBIENT_WITHOUT_ITEM);
+        SOUNDS.put("B-260", () -> SoundEvents.WARDEN_SONIC_CHARGE);
+        SOUNDS.put("B-290", () -> SoundEvents.CREEPER_PRIMED);
+        SOUNDS.put("V-10", RoomsMod.V10_APPROACH::get);
+        SOUNDS.put("V-25-T", RoomsMod.V25T_STEP::get);
+        SOUNDS.put("V-25-L", RoomsMod.V25L_STEP::get);
+        SOUNDS.put("V25-BUFFED", RoomsMod.V25B_REVEAL::get);
+        SOUNDS.put("V-100", RoomsMod.V100_KNOCK::get);
+        SOUNDS.put("V-50", RoomsMod.V50_APPROACH::get);
+        SOUNDS.put("GK-10", RoomsMod.GK_MOTH_FLUTTER::get);
+        SOUNDS.put("GK-25", RoomsMod.GK_CHIME_APPROACH::get);
+        SOUNDS.put("GK-45", RoomsMod.GK_WHISPER_SOUND::get);
+        SOUNDS.put("GK-65", RoomsMod.GK_DETENTION_CHAIN::get);
+        SOUNDS.put("GK-85", RoomsMod.GK_DESK_CHECK::get);
+        SOUNDS.put("GK-105", RoomsMod.GK_SUBSTITUTE_CREAK::get);
+        SOUNDS.put("GK-125", RoomsMod.GK_07_KNOCK::get);
+        SOUNDS.put("GK-145", RoomsMod.GK_HOMEWORK_PAGE::get);
+        SOUNDS.put("GK-165", RoomsMod.GK_ROLLCALL_STEP::get);
+        SOUNDS.put("GK-185", RoomsMod.GK_PA_CHIME::get);
+        SOUNDS.put("GK-205", RoomsMod.GK_STARE_HUM::get);
+        SOUNDS.put("GK-225", RoomsMod.GK_JANITOR_SQUEAK::get);
+        SOUNDS.put("GK-245", RoomsMod.GK_ERASER_SCRATCH::get);
+        SOUNDS.put("GK-270", RoomsMod.GK_MIRROR_CHIME::get);
+        SOUNDS.put("GK-300", RoomsMod.GK_BELL2_BELL::get);
+        SOUNDS.put("U-20", RoomsMod.U20_APPROACH::get);
+        SOUNDS.put("U-60", RoomsMod.U60_APPROACH::get);
+        SOUNDS.put("U-120", RoomsMod.U120_APPROACH::get);
+        SOUNDS.put("U-200", RoomsMod.U200_STEP::get);
+        SOUNDS.put("U-300", RoomsMod.U300_APPROACH::get);
+    }
+
+    /** 0=出現直後, 1=待ち, 2=バー進行中, 3=満タン後 */
+    private int phase = 0, phaseTicks = 0, barDelay = 0, fillTicks = 0;
+    private String chosen = null;
+    private ServerBossEvent bar = null;
+
+    public E332Entity(EntityType<? extends Mob> type, Level level) {
+        super(type, level);
+        setInvisible(true);
+        setSilent(true);
+    }
+
+    @Override public String vName() { return NAME; }
+    @Override public boolean isPickable() { return false; }
+    @Override public boolean isAttackable() { return false; }
+    @Override public boolean shouldShowName() { return false; }
+
+    /** 位置は意味を持たない（姿なし）。プレイヤーのいる部屋の経路の先頭に置くだけ。 */
+    @Override
+    protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
+        List<BlockPos> p = playerRoom >= 0 && playerRoom < rs.roomPaths.size() ? rs.roomPaths.get(playerRoom) : List.of();
+        if (p.isEmpty()) return null;
+        BlockPos at = p.get(0);
+        setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
+        startRoom = playerRoom;
+        return at;
+    }
+
+    private void enter(int ph) { phase = ph; phaseTicks = 0; }
+
+    @Override
+    protected void serverTick(ServerLevel level) {
+        if (!isInvisible()) setInvisible(true);
+        phaseTicks++;
+        switch (phase) {
+            case 0 -> {
+                playCue(level);
+                barDelay = BAR_DELAY_MIN + random.nextInt(BAR_DELAY_MAX - BAR_DELAY_MIN + 1);
+                fillTicks = FILL_MIN + random.nextInt(FILL_MAX - FILL_MIN + 1);
+                RoomsDebug.log("{} appeared, bar in {} ticks, fill {} ticks", NAME, barDelay, fillTicks);
+                enter(1);
+            }
+            case 1 -> {
+                if (phaseTicks >= barDelay) {
+                    ensureBar().setName(Component.literal(TITLE_START));
+                    bar.setProgress(0f);
+                    RoomsDebug.log("{} bar shown", NAME);
+                    enter(2);
+                }
+            }
+            case 2 -> {
+                ServerBossEvent b = ensureBar();
+                b.setName(Component.literal(TITLE_START));
+                b.setProgress(Math.min(1f, phaseTicks / (float) Math.max(1, fillTicks)));
+                if (phaseTicks >= fillTicks) {
+                    b.setProgress(1f);
+                    reveal(level);
+                    enter(3);
+                }
+            }
+            case 3 -> {
+                ServerBossEvent b = ensureBar();
+                b.setProgress(1f);
+                if (chosen != null) b.setName(Component.literal(TITLE_PREFIX + chosen));
+                if (phaseTicks >= LINGER) { leave("done"); return; }
+            }
+            default -> enter(0);
+        }
+        if (bar != null) syncBarPlayers(level);
+    }
+
+    /** ランダムなエンティティの音を、ピッチをはっきり変えて（低い ~0.5 か高い ~1.8〜2.0）部屋ディメンションの全員の位置で鳴らす。 */
+    private void playCue(ServerLevel level) {
+        List<String> names = new ArrayList<>(SOUNDS.keySet());
+        String who = names.get(random.nextInt(names.size()));
+        SoundEvent s = SOUNDS.get(who).get();
+        float pitch = random.nextBoolean() ? 0.5f + random.nextFloat() * 0.1f : 1.8f + random.nextFloat() * 0.2f;
+        for (ServerPlayer p : level.players()) level.playSound(null, p.getX(), p.getY(), p.getZ(), s, SoundSource.HOSTILE, 1.0f, pitch);
+        RoomsDebug.log("{} cue sound of {} pitch={}", NAME, who, String.format("%.2f", pitch));
+    }
+
+    /** 名前を決めてバーを書き換え、通常の抽選と同じ出現処理で出す（次の tick、エンティティの tick の外で）。 */
+    private void reveal(ServerLevel level) {
+        List<SectionTheme.RusherSpawn> all = new ArrayList<>();
+        for (SectionTheme.RusherSpawn r : Sections.hardTable()) if (!NAME.equals(r.name())) all.add(r);
+        if (all.isEmpty()) { chosen = "?"; return; }
+        // 通常の抽選と同じく、生存中（同種・排他グループ）と分類の矛盾は避ける。全部ダメなら名前だけ出して出現はしない
+        Map<String, String> present = new LinkedHashMap<>();
+        for (String n : SpawnCategories.aliveNames(level)) if (!NAME.equals(n)) present.put(n, "alive");
+        List<SectionTheme.RusherSpawn> ok = new ArrayList<>();
+        for (SectionTheme.RusherSpawn r : all)
+            if (!r.alive().test(level) && SpawnCategories.conflict(r.name(), present, true) == null) ok.add(r);
+        boolean canSpawn = !ok.isEmpty();
+        List<SectionTheme.RusherSpawn> pool = canSpawn ? ok : all;
+        SectionTheme.RusherSpawn pick = pool.get(random.nextInt(pool.size()));
+        chosen = pick.name();
+        ensureBar().setName(Component.literal(TITLE_PREFIX + chosen));
+        RoomsDebug.log("{} full -> {} (candidates {}/{})", NAME, chosen, ok.size(), all.size());
+        if (!canSpawn) { RoomsDebug.log("{} -> {} spawn skipped: every candidate alive or conflicting", NAME, chosen); return; }
+        var server = level.getServer();
+        server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 1, () -> {
+            RoomsState rs = RoomsState.get(level);
+            if (rs.roomPaths.isEmpty()) return;
+            Player front = frontPlayer(level, rs);
+            try {
+                if (pick.alive().test(level)) { RoomsDebug.log("{} -> {} spawn skipped: already alive", NAME, pick.name()); return; }
+                if (!pick.spawn().spawn(level, rs, front)) RoomsDebug.log("{} -> {} spawn failed", NAME, pick.name());
+            } catch (RuntimeException e) { RoomsDebug.error(NAME + " -> " + pick.name() + " spawn failed", e); }
+        }));
+    }
+
+    /** 一番奥の部屋にいるプレイヤー（扉を開けた人の代わり）。いなければ null。 */
+    private static Player frontPlayer(ServerLevel level, RoomsState rs) {
+        Player best = null; int bi = -2;
+        for (ServerPlayer p : level.players()) {
+            if (p.isSpectator() || !p.isAlive()) continue;
+            int i = RoomTracker.roomIndexAt(rs, p.blockPosition());
+            if (i > bi) { bi = i; best = p; }
+        }
+        return best;
+    }
+
+    private ServerBossEvent ensureBar() {
+        if (bar == null) {
+            String title = phase >= 3 && chosen != null ? TITLE_PREFIX + chosen : TITLE_START;
+            bar = new ServerBossEvent(Component.literal(title), BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS);
+            bar.setProgress(0f);
+        }
+        return bar;
+    }
+
+    /** 部屋ディメンションにいるプレイヤーだけに見せる（出入りに追従）。 */
+    private void syncBarPlayers(ServerLevel level) {
+        List<ServerPlayer> here = level.players();
+        for (ServerPlayer p : new ArrayList<>(bar.getPlayers())) if (!here.contains(p) || p.isRemoved()) bar.removePlayer(p);
+        for (ServerPlayer p : here) if (!bar.getPlayers().contains(p)) bar.addPlayer(p);
+    }
+
+    private void clearBar() {
+        if (bar != null) { bar.removeAllPlayers(); bar.setVisible(false); bar = null; }
+    }
+
+    @Override
+    public void onRemovedFromLevel() {
+        clearBar();
+        super.onRemovedFromLevel();
+    }
+
+    @Override protected String debugState() { return "phase=" + phase + " phaseTicks=" + phaseTicks + " barDelay=" + barDelay + " fill=" + fillTicks + " chosen=" + chosen; }
+
+    @Override
+    public void addAdditionalSaveData(CompoundTag t) {
+        super.addAdditionalSaveData(t);
+        t.putInt("Phase", phase); t.putInt("PhaseTicks", phaseTicks); t.putInt("BarDelay", barDelay); t.putInt("FillTicks", fillTicks);
+        if (chosen != null) t.putString("Chosen", chosen);
+    }
+
+    @Override
+    public void readAdditionalSaveData(CompoundTag t) {
+        super.readAdditionalSaveData(t);
+        phase = t.getInt("Phase"); phaseTicks = t.getInt("PhaseTicks"); barDelay = t.getInt("BarDelay"); fillTicks = t.getInt("FillTicks");
+        chosen = t.contains("Chosen") ? t.getString("Chosen") : null;
+        RoomsDebug.log("{} loaded {}", NAME, debugState());
+    }
+}

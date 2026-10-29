@@ -69,6 +69,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.U120.get(), c -> new BRenderer<>(c, "u120", 2.2f));
         event.registerEntityRenderer(RoomsMod.U200.get(), c -> new BRenderer<>(c, "u200", 2.0f));
         event.registerEntityRenderer(RoomsMod.U300.get(), c -> new BRenderer<>(c, "u300", 2.2f));
+        event.registerEntityRenderer(RoomsMod.E332.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         // PLACEHOLDER：単色の正方形（揺れなし）
         event.registerEntityRenderer(RoomsMod.PLACEHOLDER_32767.get(), c -> new VRenderer<>(c, "placeholder_32767", 1.5f, 0f));
         event.registerEntityRenderer(RoomsMod.PLACEHOLDER_65535.get(), c -> new VRenderer<>(c, "placeholder_65535", 1.5f, 0f));

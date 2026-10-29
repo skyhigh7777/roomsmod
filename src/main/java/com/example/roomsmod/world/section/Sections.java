@@ -238,10 +238,15 @@ public final class Sections {
      * ハードモードの抽選表：登録済みの全セクションの表をつなげたもの（同名は最初の1つ）。
      * 各エンティティの出現開始部屋（minRoom）はそのまま、今いるセクション内の部屋番号と比べる。
      */
+    /** ハードモードの抽選表にだけ入るエンティティ（どのセクションにも属さない）。 */
+    private static final List<SectionTheme.RusherSpawn> HARD_ONLY = List.of(
+            vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.E332, 1, 0.05f));
+
     public static List<SectionTheme.RusherSpawn> hardTable() {
         List<SectionTheme.RusherSpawn> out = new java.util.ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (SectionTheme t : THEMES.values()) for (var r : t.rushers()) if (seen.add(r.name())) out.add(r);
+        for (var r : HARD_ONLY) if (seen.add(r.name())) out.add(r);
         return out;
     }
 

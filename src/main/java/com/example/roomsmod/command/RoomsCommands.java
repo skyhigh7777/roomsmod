@@ -235,6 +235,7 @@ public class RoomsCommands {
                 .then(Commands.literal("u120").executes(ctx -> spawnV(ctx.getSource(), "u120")))
                 .then(Commands.literal("u200").executes(ctx -> spawnV(ctx.getSource(), "u200")))
                 .then(Commands.literal("u300").executes(ctx -> spawnV(ctx.getSource(), "u300")))
+                .then(Commands.literal("332").executes(ctx -> spawnV(ctx.getSource(), "332")))
                 .then(Commands.literal("placeholder32767").executes(ctx -> spawnV(ctx.getSource(), "placeholder32767")))
                 .then(Commands.literal("placeholder65535").executes(ctx -> spawnV(ctx.getSource(), "placeholder65535")))
                 .then(Commands.literal("placeholder2147483648").executes(ctx -> spawnV(ctx.getSource(), "placeholder2147483648")))

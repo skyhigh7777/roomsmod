@@ -61,6 +61,8 @@ public final class VSpawns {
         U120("U-120", "u120", null, RoomsMod.U120),
         U200("U-200", "u200", null, RoomsMod.U200),
         U300("U-300", "u300", null, RoomsMod.U300),
+        // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
+        E332("3!3!2", "332", null, RoomsMod.E332),
         // PLACEHOLDER（テスト用）区画：どの抽選表にも入れない（/rooms spawn のみ）
         PLACEHOLDER_32767("PLACEHOLDER-32767", "placeholder32767", null, RoomsMod.PLACEHOLDER_32767),
         PLACEHOLDER_65535("PLACEHOLDER-65535", "placeholder65535", null, RoomsMod.PLACEHOLDER_65535),
