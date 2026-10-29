@@ -168,11 +168,10 @@ public class E332Entity extends VEntity {
     /**
      * 名前を決めてバーを書き換え、通常の抽選と同じ出現処理で出す（次の tick、エンティティの tick の外で）。
      * 例外：3!3!2 が呼んだ敵は重なりの規則をすべて無視する（生存中の同種・排他グループ、分類の矛盾、GK-270 の単独ルール）。
-     * 候補は 3!3!2 以外のハード表の全エントリ。通常の抽選（DoorEventHandler.rollRushers）は変えない。
+     * 候補は 3!3!2 以外の全エンティティ（summonPool）。通常の抽選（DoorEventHandler.rollRushers）は変えない。
      */
     private void reveal(ServerLevel level) {
-        List<SectionTheme.RusherSpawn> all = new ArrayList<>();
-        for (SectionTheme.RusherSpawn r : Sections.hardTable()) if (!NAME.equals(r.name())) all.add(r);
+        List<SectionTheme.RusherSpawn> all = summonPool();
         if (all.isEmpty()) { chosen = "?"; return; }
         SectionTheme.RusherSpawn pick = all.get(random.nextInt(all.size()));
         chosen = pick.name();
@@ -187,6 +186,21 @@ public class E332Entity extends VEntity {
                 if (!pick.spawn().spawn(level, rs, front)) RoomsDebug.log("{} -> {} spawn failed (placement)", NAME, pick.name());
             } catch (RuntimeException e) { RoomsDebug.error(NAME + " -> " + pick.name() + " spawn failed", e); }
         }));
+    }
+
+    /**
+     * 呼べる敵：3!3!2 以外の全エンティティ。ハード表（B-20/B-40 と各セクションの敵）に、
+     * どの抽選表にも入らない種類（PLACEHOLDER など、/rooms spawn と同じ VSpawns.Kind.spawn で出す）を足したもの。
+     * 通常・ハードの抽選表は変えない。
+     */
+    public static List<SectionTheme.RusherSpawn> summonPool() {
+        List<SectionTheme.RusherSpawn> all = new ArrayList<>();
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (SectionTheme.RusherSpawn r : Sections.hardTable()) if (!NAME.equals(r.name()) && seen.add(r.name())) all.add(r);
+        for (com.example.roomsmod.entity.v.VSpawns.Kind k : com.example.roomsmod.entity.v.VSpawns.Kind.values())
+            if (k != com.example.roomsmod.entity.v.VSpawns.Kind.E332 && seen.add(k.display))
+                all.add(new SectionTheme.RusherSpawn(k.display, 0, 0f, k::alive, k::spawn, k.exclusionGroup));
+        return all;
     }
 
     /** 一番奥の部屋にいるプレイヤー（扉を開けた人の代わり）。いなければ null。 */
