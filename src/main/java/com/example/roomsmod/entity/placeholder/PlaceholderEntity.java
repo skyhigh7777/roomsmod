@@ -18,7 +18,7 @@ import java.util.List;
  * 寿命は他の V 系と同じ VEntity.MAX_LIFE_TICKS（2分）で消える。見た目は単色の正方形（ClientSetup）。
  */
 public class PlaceholderEntity extends VEntity {
-    private final String name;
+    protected final String name;
 
     public PlaceholderEntity(EntityType<? extends Mob> type, Level level, String name) {
         super(type, level);

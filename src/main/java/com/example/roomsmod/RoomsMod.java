@@ -192,8 +192,9 @@ public class RoomsMod {
                     .sized(1.0f, 2.0f).clientTrackingRange(12).updateInterval(1).build("u300"));
 
     // PLACEHOLDER（テスト用）区画。自然出現しない、/rooms spawn のみ
+    public static final DeferredHolder<SoundEvent, SoundEvent> PLACEHOLDER_BEEP = SOUND_EVENTS.register("placeholder_beep", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "placeholder_beep")));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_32767 = ENTITIES.register("placeholder_32767",
-            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-32767"), MobCategory.MONSTER)
+            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of(com.example.roomsmod.entity.placeholder.Placeholder32767Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_32767"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_65535 = ENTITIES.register("placeholder_65535",
             () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-65535"), MobCategory.MONSTER)

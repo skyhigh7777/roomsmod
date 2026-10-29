@@ -238,5 +238,13 @@
       }
     ],
     "subtitle": "subtitles.roomsmod.u300_approach"
+  },
+  "placeholder_beep": {
+    "sounds": [
+      {
+        "name": "minecraft:note/bit"
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.placeholder_beep"
   }
 }
