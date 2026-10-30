@@ -38,6 +38,16 @@ public abstract class VEntity extends Mob {
     /** 出現した部屋が、このエンティティ本来のセクションの外か（ハードの合同抽選で別セクションに出た）。 */
     protected boolean offSection = false;
     private ChunkPos lastForcedChunk = null;
+    /** 最後に tick した時刻（ゲーム時間）。止まっている個体の検出用。保存しない。 */
+    private long lastTickTime = Long.MIN_VALUE;
+
+    /** この tick 数以上 tick していない個体は「生存中」として扱わない（排他・出現ブロックが古い個体で詰まらないように）。 */
+    public static final int STALE_ALIVE_TICKS = 100;
+    /** 見張り：この tick 数止まっていたらチャンクを読み込み直す。 */
+    public static final int STALL_RELOAD_TICKS = 40;
+    /** 見張り：読み込み直しても、この tick 数止まったままなら消す（取り残し防止）。 */
+    public static final int STALL_DISCARD_TICKS = 20 * 30;
+    private static final int WATCHDOG_INTERVAL = 20;
 
     protected VEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -80,6 +90,7 @@ public abstract class VEntity extends Mob {
         this.noPhysics = true;
         if (level().isClientSide()) { clientTick(); return; }
         ServerLevel sl = (ServerLevel) level();
+        lastTickTime = sl.getGameTime();
         ChunkPos c = new ChunkPos(blockPosition());
         RusherChunks.move(sl, this, lastForcedChunk, c);
         lastForcedChunk = c;
@@ -88,6 +99,9 @@ public abstract class VEntity extends Mob {
         if (hasGlowingTag() != glow) setGlowingTag(glow); // 輪郭はデバッグ時のみ（wantsGlow で個別に光らせる）
         if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
         serverTick(sl);
+        // 1 tick で遠くへ動いた（ワープ・高速移動）なら、その場でチケットを移して読み込む。
+        // 次の tick の先頭まで待つと、チケットのないチャンクに入って tick されなくなり、二度と追従できない
+        if (!isRemoved()) preload(getX(), getZ());
         setDeltaMovement(Vec3.ZERO);
         if (dbg && life % 100 == 0)
             RoomsDebug.log("{} status life={} {} pos=({}, {}, {})", vName(), life, debugState(),
@@ -107,11 +121,75 @@ public abstract class VEntity extends Mob {
     protected abstract void serverTick(ServerLevel level);
     protected String debugState() { return ""; }
 
+    /**
+     * (x, z) のチャンクへチケットを移して同期的に読み込む（移動の前に呼ぶ）。
+     * チケットのないチャンクへ飛ぶと、そこが entity-ticking でない限りこの個体は tick されなくなる。
+     */
+    protected void preload(double x, double z) {
+        if (!(level() instanceof ServerLevel sl)) return;
+        ChunkPos c = new ChunkPos(BlockPos.containing(x, 0, z));
+        if (c.equals(lastForcedChunk)) return;
+        RusherChunks.move(sl, this, lastForcedChunk, c);
+        lastForcedChunk = c;
+        sl.getChunk(c.x, c.z);
+    }
+
+    /** 生存中で、最近 tick している（止まった古い個体ではない）。 */
+    public boolean isActive() {
+        if (!isAlive()) return false;
+        if (lastTickTime == Long.MIN_VALUE) return true; // 追加・ロード直後
+        // プレイヤーのいないディメンションはしばらくするとエンティティを tick しなくなるので、そのときは止まっていても生存扱い
+        if (level() instanceof ServerLevel sl && sl.players().isEmpty()) return true;
+        return level().getGameTime() - lastTickTime <= STALE_ALIVE_TICKS;
+    }
+
+    /** 生存確認用：VEntity なら isActive、それ以外は isAlive。 */
+    public static boolean isActive(Entity e) { return e instanceof VEntity v ? v.isActive() : e.isAlive(); }
+
+    /**
+     * サーバーのレベル tick から呼ぶ見張り。tick されなくなった V 系（チケットのないチャンクに入った等）を見つけたら
+     * チャンクを読み込み直し、それでも STALL_DISCARD_TICKS 止まったままなら消す。
+     */
+    public static void watchdog(ServerLevel level) {
+        long now = level.getGameTime();
+        if (now % WATCHDOG_INTERVAL != 0) return;
+        if (level.players().isEmpty()) { // 誰もいない間は止まるのが正常：戻ってきたときに即消さないよう数え直す
+            for (Entity e : level.getAllEntities()) if (e instanceof VEntity v) v.lastTickTime = Long.MIN_VALUE;
+            return;
+        }
+        List<VEntity> stalled = new ArrayList<>();
+        for (Entity e : level.getAllEntities())
+            if (e instanceof VEntity v && v.isAlive()) {
+                if (v.lastTickTime == Long.MIN_VALUE) v.lastTickTime = now; // ロード直後：ここから数える
+                else if (now - v.lastTickTime >= STALL_RELOAD_TICKS) stalled.add(v);
+            }
+        for (VEntity v : stalled) {
+            long t = now - v.lastTickTime;
+            if (t >= STALL_DISCARD_TICKS) {
+                RoomsDebug.warn("{} stalled {} ticks at ({}, {}, {}), discarding", v.vName(), t, f(v.getX()), f(v.getY()), f(v.getZ()));
+                v.discard();
+                continue;
+            }
+            ChunkPos c = new ChunkPos(v.blockPosition());
+            RoomsDebug.log("{} stalled {} ticks at chunk {}, reloading", v.vName(), t, c);
+            RusherChunks.move(level, v, c.equals(v.lastForcedChunk) ? null : v.lastForcedChunk, c);
+            RusherChunks.force(level, v, c, true);
+            v.lastForcedChunk = c;
+            level.getChunk(c.x, c.z);
+        }
+    }
+
     /** 正常な退場。 */
     protected void leave(String why) {
         RoomsDebug.log("{} despawn: {} life={} pos=({}, {}, {})", vName(), why, life,
                 String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
         discard();
+    }
+
+    @Override
+    public void onAddedToLevel() {
+        super.onAddedToLevel();
+        if (level() instanceof ServerLevel sl) lastTickTime = sl.getGameTime();
     }
 
     @Override

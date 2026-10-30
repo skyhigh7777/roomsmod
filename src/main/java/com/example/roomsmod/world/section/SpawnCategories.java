@@ -46,7 +46,7 @@ public final class SpawnCategories {
     public static java.util.Set<String> aliveNames(ServerLevel level) {
         java.util.Set<String> out = new java.util.LinkedHashSet<>();
         for (Entity e : level.getAllEntities()) {
-            if (!e.isAlive()) continue;
+            if (!VEntity.isActive(e)) continue;
             String n = nameOf(e);
             if (n != null) out.add(n);
         }

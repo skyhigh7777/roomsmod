@@ -70,7 +70,7 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
 
     /** 生存中は他の敵の出現をすべて止める。 */
     public static boolean blocksSpawns(ServerLevel level) {
-        for (Entity e : level.getAllEntities()) if (e instanceof Placeholder2147483648Entity && e.isAlive()) return true;
+        for (Entity e : level.getAllEntities()) if (e instanceof Placeholder2147483648Entity p && p.isActive()) return true;
         return false;
     }
 
@@ -112,6 +112,7 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
     private void placeAround(ServerPlayer p) {
         double a = random.nextDouble() * Math.PI * 2;
         double x = p.getX() + Math.cos(a) * SPAWN_DIST, z = p.getZ() + Math.sin(a) * SPAWN_DIST;
+        if (life > 0) preload(x, z); // 出現前（prepare）は VSpawns が読み込む
         moveTo(x, p.getY(), z, getYRot(), getXRot());
         faceTowards(p.position());
         lastPlayerPos = p.position();
@@ -151,6 +152,7 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
         Vec3 pp = p.position();
         if (lastPlayerPos != null) {
             Vec3 d = pp.subtract(lastPlayerPos);
+            preload(getX() + d.x, getZ() + d.z); // プレイヤーのワープ等で大きく動くこともある
             setPos(getX() + d.x, getY() + d.y, getZ() + d.z);
         }
         lastPlayerPos = pp;

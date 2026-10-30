@@ -71,6 +71,7 @@ public class Placeholder32767Entity extends PlaceholderEntity {
     }
 
     private void snapTo(BlockPos at) {
+        if (life > 0) preload(at.getX() + 0.5, at.getZ() + 0.5); // 出現前（prepare）は VSpawns が読み込む
         moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, getYRot(), getXRot()); // 旧位置も同じにする（補間しない）
     }
 

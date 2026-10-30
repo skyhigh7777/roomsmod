@@ -104,7 +104,7 @@ public class Placeholder65535Entity extends PlaceholderEntity {
                 if (phaseTicks >= APPEAR_DELAY) {
                     int room = appearRoom(rs);
                     BlockPos at = Placeholder32767Entity.roomCenter(rs, room);
-                    if (at != null) { moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, getYRot(), getXRot()); startRoom = room; }
+                    if (at != null) { preload(at.getX() + 0.5, at.getZ() + 0.5); moveTo(at.getX() + 0.5, at.getY(), at.getZ() + 0.5, getYRot(), getXRot()); startRoom = room; }
                     setInvisible(false);
                     RoomsDebug.log("{} appeared room={} ({}) marks={}", name, room, RoomTracker.format(rs, room), marks.size());
                     if (marks.isEmpty()) { leave("no marks"); return; }
@@ -182,6 +182,7 @@ public class Placeholder65535Entity extends PlaceholderEntity {
         if (phaseTicks == 1) beepAll(level, 1.0f);
         if (phaseTicks <= MOVE_TICKS) {
             Vec3 p = from.lerp(to, phaseTicks / (double) MOVE_TICKS);
+            preload(p.x, p.z); // 1 tick で何十ブロックも動くので、行き先のチャンクを先に読み込む
             setPos(p.x, p.y, p.z);
             faceTowards(to);
             return false;

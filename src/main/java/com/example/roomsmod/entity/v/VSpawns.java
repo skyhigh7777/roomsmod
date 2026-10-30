@@ -98,7 +98,7 @@ public final class VSpawns {
     }
 
     public static boolean isAlive(ServerLevel level, EntityType<?> type) {
-        for (Entity e : level.getAllEntities()) if (e.getType() == type && e.isAlive()) return true;
+        for (Entity e : level.getAllEntities()) if (e.getType() == type && VEntity.isActive(e)) return true; // 止まった古い個体は数えない
         return false;
     }
 
