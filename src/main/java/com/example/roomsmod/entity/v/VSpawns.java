@@ -113,6 +113,7 @@ public final class VSpawns {
 
     static boolean spawn(Kind k, ServerLevel level, RoomsState rs, Player player) {
         if (rs.roomPaths.isEmpty()) { RoomsDebug.warn("{} spawn skipped: no rooms", k.display); return false; }
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("{} spawn blocked: PLACEHOLDER-2147483648 alive", k.display); return false; }
         int room = playerRoom(rs, player);
         VEntity e = k.type.get().create(level);
         if (e == null) { RoomsDebug.warn("{} spawn failed: create returned null", k.display); return false; }

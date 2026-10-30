@@ -84,7 +84,8 @@ public abstract class VEntity extends Mob {
         RusherChunks.move(sl, this, lastForcedChunk, c);
         lastForcedChunk = c;
         boolean dbg = RoomsDebug.isEnabled();
-        if (hasGlowingTag() != dbg) setGlowingTag(dbg); // 輪郭はデバッグ時のみ
+        boolean glow = dbg || wantsGlow();
+        if (hasGlowingTag() != glow) setGlowingTag(glow); // 輪郭はデバッグ時のみ（wantsGlow で個別に光らせる）
         if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
         serverTick(sl);
         setDeltaMovement(Vec3.ZERO);
@@ -98,6 +99,9 @@ public abstract class VEntity extends Mob {
 
     /** true なら prepare には「いま開けた部屋」（扉の先＝最新の部屋。V-100 と同じ）を渡す。プレイヤーがすでに最新の部屋ならそこ。 */
     public boolean targetsOpenedRoom() { return false; }
+
+    /** デバッグ以外でも輪郭を光らせたいとき true（毎 tick 評価）。 */
+    protected boolean wantsGlow() { return false; }
 
     protected void clientTick() {}
     protected abstract void serverTick(ServerLevel level);

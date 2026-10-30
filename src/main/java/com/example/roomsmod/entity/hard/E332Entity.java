@@ -181,6 +181,7 @@ public class E332Entity extends VEntity {
         server.tell(new net.minecraft.server.TickTask(server.getTickCount() + 1, () -> {
             RoomsState rs = RoomsState.get(level);
             if (rs.roomPaths.isEmpty()) { RoomsDebug.log("{} -> {} spawn skipped: no rooms", NAME, pick.name()); return; }
+            if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("{} -> {} summon blocked: PLACEHOLDER-2147483648 alive", NAME, pick.name()); return; }
             Player front = frontPlayer(level, rs);
             try {
                 if (!pick.spawn().spawn(level, rs, front)) RoomsDebug.log("{} -> {} spawn failed (placement)", NAME, pick.name());

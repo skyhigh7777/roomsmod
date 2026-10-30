@@ -200,7 +200,7 @@ public class RoomsMod {
             () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of(com.example.roomsmod.entity.placeholder.Placeholder65535Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_65535"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_2147483648 = ENTITIES.register("placeholder_2147483648",
-            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-2147483648"), MobCategory.MONSTER)
+            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of(com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_2147483648"));
 
     // 3!3!2（ハードモード専用、どのセクションにも属さない）。姿なし

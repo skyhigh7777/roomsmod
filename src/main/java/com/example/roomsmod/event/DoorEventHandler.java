@@ -209,6 +209,7 @@ public class DoorEventHandler {
 
     /** forceAll=true は全種類を当たり扱い（minRoom は無視しない）。テスト用。 */
     public static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room, boolean forceAll) {
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("rusher roll room={} skipped: PLACEHOLDER-2147483648 alive", room); return; }
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         boolean hard = rs.hardMode;
         var table = hard ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
@@ -297,6 +298,7 @@ public class DoorEventHandler {
 
     public static boolean spawnA40(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return false;
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-40 spawn blocked: PLACEHOLDER-2147483648 alive"); return false; }
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
@@ -319,6 +321,7 @@ public class DoorEventHandler {
 
     public static void spawnA20(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return;
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-20 spawn blocked: PLACEHOLDER-2147483648 alive"); return; }
         // プレイヤーがいるのは直前の部屋（index = room - 1）。そこから約N部屋後ろ。
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);

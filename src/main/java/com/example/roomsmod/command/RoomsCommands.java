@@ -38,6 +38,7 @@ public class RoomsCommands {
         if (roomsLevel == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(roomsLevel);
         if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(roomsLevel)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
         boolean sameAlive = a40 ? com.example.roomsmod.event.DoorEventHandler.isA40Alive(roomsLevel)
                                 : com.example.roomsmod.event.DoorEventHandler.isA20Alive(roomsLevel);
         if (sameAlive) {
@@ -68,6 +69,7 @@ public class RoomsCommands {
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
         var k = com.example.roomsmod.entity.v.VSpawns.Kind.byId(id);
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(lv)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
         if (k.alive(lv)) { src.sendFailure(Component.literal(k.display + "（または同じ排他グループ）はすでに生存中よ")); return 0; }
         com.example.roomsmod.util.RoomsDebug.log("force spawn {} by {}", k.display, src.getTextName());
         if (!k.spawn(lv, rs, src.getPlayer())) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
