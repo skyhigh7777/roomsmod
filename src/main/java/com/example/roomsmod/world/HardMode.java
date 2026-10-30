@@ -12,9 +12,9 @@ public final class HardMode {
 
     // ===== ハードモードの強化（全セクション共通） =====
     /** 扉1枚あたりの出現上限（DoorEventHandler.HARD_MAX_PER_ROLL）。 */
-    public static final int MAX_PER_ROLL = 3;
+    public static final int MAX_PER_ROLL = 2;
     /** 出現確率の倍率（上限 1.0）。 */
-    public static final float CHANCE_MUL = 1.5f;
+    public static final float CHANCE_MUL = 1.2f;
     /** 経路を走るエンティティの猶予（出現〜走り出し）の倍率。 */
     public static final double GRACE_MUL = 0.8;
     /** 経路を走るエンティティの速度の倍率。 */
@@ -22,7 +22,7 @@ public final class HardMode {
     /** 折り返すエンティティの追加の折り返し回数。 */
     public static final int EXTRA_TURNS = 1;
     /** 突進型が走り終えて消えたとき、もう一度抽選する確率。 */
-    public static final float CHAIN_CHANCE = 0.25f;
+    public static final float CHAIN_CHANCE = 0.15f;
 
     /** 猶予 tick にハード倍率をかける（最低 10 tick）。 */
     public static int grace(int ticks, boolean hard) { return hard ? Math.max(10, (int) Math.round(ticks * GRACE_MUL)) : ticks; }
