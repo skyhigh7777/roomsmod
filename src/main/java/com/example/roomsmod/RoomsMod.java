@@ -197,7 +197,7 @@ public class RoomsMod {
             () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of(com.example.roomsmod.entity.placeholder.Placeholder32767Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_32767"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_65535 = ENTITIES.register("placeholder_65535",
-            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-65535"), MobCategory.MONSTER)
+            () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of(com.example.roomsmod.entity.placeholder.Placeholder65535Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 1.0f).clientTrackingRange(12).updateInterval(1).build("placeholder_65535"));
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.placeholder.PlaceholderEntity>> PLACEHOLDER_2147483648 = ENTITIES.register("placeholder_2147483648",
             () -> EntityType.Builder.<com.example.roomsmod.entity.placeholder.PlaceholderEntity>of((t, l) -> new com.example.roomsmod.entity.placeholder.PlaceholderEntity(t, l, "PLACEHOLDER-2147483648"), MobCategory.MONSTER)
