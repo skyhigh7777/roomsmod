@@ -173,7 +173,7 @@ public class E332Entity extends VEntity {
     private void reveal(ServerLevel level) {
         List<SectionTheme.RusherSpawn> all = summonPool();
         if (all.isEmpty()) { chosen = "?"; return; }
-        SectionTheme.RusherSpawn pick = all.get(random.nextInt(all.size()));
+        SectionTheme.RusherSpawn pick = weightedPick(all);
         chosen = pick.name();
         ensureBar().setName(Component.literal(TITLE_PREFIX + chosen));
         RoomsDebug.log("{} full -> {} (of {} candidates, overlap rules ignored, alive={})", NAME, chosen, all.size(), pick.alive().test(level));
@@ -187,6 +187,21 @@ public class E332Entity extends VEntity {
                 if (!pick.spawn().spawn(level, rs, front)) RoomsDebug.log("{} -> {} spawn failed (placement)", NAME, pick.name());
             } catch (RuntimeException e) { RoomsDebug.error(NAME + " -> " + pick.name() + " spawn failed", e); }
         }));
+    }
+
+    /** 召喚候補の重み（通常 1.0、個別に下げたいものだけ小さく）。 */
+    public static float summonWeight(String name) {
+        return com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.NAME.equals(name)
+                ? com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.SUMMON_WEIGHT : 1f;
+    }
+
+    /** summonWeight による重み付き抽選。 */
+    private SectionTheme.RusherSpawn weightedPick(List<SectionTheme.RusherSpawn> all) {
+        double total = 0;
+        for (SectionTheme.RusherSpawn r : all) total += summonWeight(r.name());
+        double x = random.nextDouble() * total;
+        for (SectionTheme.RusherSpawn r : all) { x -= summonWeight(r.name()); if (x < 0) return r; }
+        return all.get(all.size() - 1);
     }
 
     /**

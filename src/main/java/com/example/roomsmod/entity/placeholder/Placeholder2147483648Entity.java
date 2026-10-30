@@ -47,6 +47,10 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
     public static final int FINAL_CYCLE = 13, ROOMS_TO_ESCAPE = 30, GLOW_TICKS = 40;
     public static final int SCREECH_INTERVAL = 6, FADE_STEPS = 6, FADE_INTERVAL = 4;
     public static final float KILL_DAMAGE = 1000f;
+    /** 3!3!2 の召喚候補としての重み（通常の候補 = 1.0）。1/20。 */
+    public static final float SUMMON_WEIGHT = 1f / 20f;
+    /** ハードモード抽選での確率の倍率（通常 = 1.0）。1/10。今はどの抽選表にも入っていないので効かない（入れたときのため）。 */
+    public static final float HARD_CHANCE_MUL = 1f / 10f;
 
     /** 0=待ち, 1=移動, 2=フェードアウト（消える直前） */
     private int phase = 0, phaseTicks = 0, cycle = 1;

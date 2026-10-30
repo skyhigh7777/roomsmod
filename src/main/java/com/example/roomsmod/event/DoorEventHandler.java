@@ -219,6 +219,8 @@ public class DoorEventHandler {
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
             float chance = hard ? Math.min(1f, r.chance() * com.example.roomsmod.world.HardMode.CHANCE_MUL) : r.chance(); // ハード：確率 x1.5
+            if (hard && com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.NAME.equals(r.name()))
+                chance *= com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.HARD_CHANCE_MUL; // ハード：この敵だけ大きく下げる
             hit[k] = local >= r.minRoom() && (level.random.nextFloat() < chance || forceAll);
         }
         StringBuilder sb = new StringBuilder();
