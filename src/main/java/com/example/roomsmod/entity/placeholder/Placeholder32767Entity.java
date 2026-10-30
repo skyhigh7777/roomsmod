@@ -29,7 +29,7 @@ import java.util.List;
  *       ワープするたび、その部屋の範囲内にいて隠れていないプレイヤーは即死。</li>
  *   <li>WARPS 回で消える。</li>
  * </ol>
- * 自然出現しない（/rooms spawn placeholder32767 のみ）。状態は NBT に保存し、途中でロードしても続きから。
+ * 通常は自然出現しない（ハードモードの抽選・3!3!2・/rooms spawn placeholder32767 のみ）。状態は NBT に保存し、途中でロードしても続きから。
  */
 public class Placeholder32767Entity extends PlaceholderEntity {
     public static final int ROOMS_BEHIND = 30, WAIT_MIN = 88, WAIT_MAX = 188, BEEP_TICKS = 20;

@@ -38,7 +38,7 @@ import java.util.List;
  *   <li>印の付いた場所を手前の部屋から順に、MOVE_TICKS で移動して CHECK_TICKS で調べる。そこに隠れているプレイヤーは即死。調べた場所の粒子は消える。</li>
  *   <li>全部調べたら（印が1つもなければ姿を現した時点で）消える。</li>
  * </ol>
- * 自然出現しない（/rooms spawn placeholder65535 と 3!3!2 のみ）。状態は NBT に保存。
+ * 通常は自然出現しない（ハードモードの抽選・3!3!2・/rooms spawn placeholder65535 のみ）。状態は NBT に保存。
  */
 public class Placeholder65535Entity extends PlaceholderEntity {
     public static final int BEEP_TICKS = 10, MARK_DELAY = 30, APPEAR_DELAY = 40;
