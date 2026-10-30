@@ -214,7 +214,7 @@ public class E332Entity extends VEntity {
         java.util.Set<String> seen = new java.util.HashSet<>();
         for (SectionTheme.RusherSpawn r : Sections.hardTable()) if (!NAME.equals(r.name()) && seen.add(r.name())) all.add(r);
         for (com.example.roomsmod.entity.v.VSpawns.Kind k : com.example.roomsmod.entity.v.VSpawns.Kind.values())
-            if (k != com.example.roomsmod.entity.v.VSpawns.Kind.E332 && seen.add(k.display))
+            if (k != com.example.roomsmod.entity.v.VSpawns.Kind.E332 && k != com.example.roomsmod.entity.v.VSpawns.Kind.EXTRABOX && seen.add(k.display))
                 all.add(new SectionTheme.RusherSpawn(k.display, 0, 0f, k::alive, k::spawn, k.exclusionGroup));
         return all;
     }

@@ -68,8 +68,13 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
     /** 13 サイクルは約 3 分。対象不在で止まる分も見込んで余裕を持たせる。 */
     @Override protected int maxLifeTicks() { return 20 * 600; }
 
+    private static int bypass = 0;
+    /** EXTRABOX の召喚の間だけ出現ブロックを無視する（サーバースレッドのみ、入れ子可）。 */
+    public static void bypassBlock(boolean on) { bypass = Math.max(0, bypass + (on ? 1 : -1)); }
+
     /** 生存中は他の敵の出現をすべて止める。 */
     public static boolean blocksSpawns(ServerLevel level) {
+        if (bypass > 0) return false; // EXTRABOX の召喚中は無視
         for (Entity e : level.getAllEntities()) if (e instanceof Placeholder2147483648Entity p && p.isActive()) return true;
         return false;
     }

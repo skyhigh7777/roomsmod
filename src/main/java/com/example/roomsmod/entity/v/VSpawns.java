@@ -66,7 +66,9 @@ public final class VSpawns {
         // PLACEHOLDER（テスト用）区画：区画の表は空。32767 / 65535 はハードの抽選表（Sections.HARD_ONLY）にだけ入る。2147483648 は /rooms spawn と 3!3!2 のみ
         PLACEHOLDER_32767("PLACEHOLDER-32767", "placeholder32767", null, RoomsMod.PLACEHOLDER_32767),
         PLACEHOLDER_65535("PLACEHOLDER-65535", "placeholder65535", null, RoomsMod.PLACEHOLDER_65535),
-        PLACEHOLDER_2147483648("PLACEHOLDER-2147483648", "placeholder2147483648", null, RoomsMod.PLACEHOLDER_2147483648);
+        PLACEHOLDER_2147483648("PLACEHOLDER-2147483648", "placeholder2147483648", null, RoomsMod.PLACEHOLDER_2147483648),
+        // コマンド専用（どの抽選表にも 3!3!2 の候補にも入らない）。表示名は ExtraboxEntity.NAME、別名 EXTRABOX
+        EXTRABOX(com.example.roomsmod.entity.hard.ExtraboxEntity.NAME, "extrabox", null, RoomsMod.EXTRABOX);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。
@@ -79,7 +81,7 @@ public final class VSpawns {
         /** 同種、または同じ排他グループの種類が生存中か。 */
         public boolean alive(ServerLevel level) {
             // 3!3!2 は同時に何体いてもよい（抽選・/rooms spawn とも生存チェックなし。ボスバーは1体ごと）
-            if (this == E332) return false;
+            if (this == E332 || this == EXTRABOX) return false; // EXTRABOX も同時に何体でも
             // B-110 は B-20 / B-40（Kind ではない）とも同時に出さない
             if (this == B_ERROR && (com.example.roomsmod.event.DoorEventHandler.isA20Alive(level) || com.example.roomsmod.event.DoorEventHandler.isA40Alive(level))) return true;
             for (Kind k : values())
