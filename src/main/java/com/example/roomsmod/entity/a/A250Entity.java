@@ -4,6 +4,7 @@ import com.example.roomsmod.hiding.HidingRules;
 import com.example.roomsmod.util.RoomsDamage;
 import com.example.roomsmod.util.RoomsDebug;
 import com.example.roomsmod.world.AbyssRooms;
+import com.example.roomsmod.world.AbyssSqueeze;
 import com.example.roomsmod.world.RoomsState;
 import com.example.roomsmod.world.section.Sections;
 import net.minecraft.core.BlockPos;
@@ -18,26 +19,28 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 
 /**
- * A-250：縦穴の壁が数秒だけ内側へ 1 列せり出す（内側 5x5 → 3x3）。姿はない。
+ * A-250：縦穴の内側 5x5 の一部が数秒だけ壁になる。姿はない。残る（安全な）形は出るたびに抽選（{@link AbyssSqueeze.Shape}、向きもランダム）：
+ * 真ん中の 3x3（少なめ）・片側へ寄せた 3x3・角の 3x3・壁沿いの 2x5・L 字・対角の 2x2 ふたつ。
  * <ul>
- *   <li>予告 {@value #WARN}（ハード {@value #WARN_HARD}）tick：低い地鳴りと、せり出す外周の列に沿って壁の粉が落ちる。</li>
- *   <li>せり出す瞬間、外周の列に {@value #TOLERANCE} ブロックより深く体が入っていればダメージ {@value #DAMAGE}（ハード {@value #DAMAGE_HARD}）、
- *       内側へ押し出す（埋まらない）。真ん中寄り（中心から約 1.2 ブロック以内）にいる・横穴の中・ロッカーなら当たらない。</li>
- *   <li>せり出している {@value #HOLD}（ハード {@value #HOLD_HARD}）tick の間も横穴の入口はふさがない（横穴へ逃げられる）。プレイヤーの体にかかるマスには壁を置かない。
- *       落ちる列の真ん中 3x3 は空いたままなので落下は止まらない。終わったら置いた壁だけ元の空気に戻す（消えるときも必ず戻す）。</li>
- *   <li>A-90 / A-180 / A-50 / A-130 とは同時に出ない（反対側の壁際・雲の隙間へ逃げる必要がある敵と、要求が逆になるため）。</li>
+ *   <li>予告：低い地鳴りと、壁になるマスの中にだけ壁の粉が落ちる（残るマスには落ちない）。長さは形ごとに
+ *       {@link AbyssSqueeze#warnTicks}：最も不利な位置から一番近い安全な位置まで、空中でスニークして動く時間（反応 0.5 秒込み）の
+ *       {@value AbyssSqueeze#MARGIN} 倍（ハード {@value AbyssSqueeze#MARGIN_HARD} 倍）、最低 {@value AbyssSqueeze#MIN_WARN}（ハード {@value AbyssSqueeze#MIN_WARN_HARD}）tick。</li>
+ *   <li>壁になる瞬間、壁になるマスに {@value AbyssSqueeze#TOLERANCE} ブロックより深く体が入っていればダメージ {@value #DAMAGE}（ハード {@value #DAMAGE_HARD}）、
+ *       一番近い残るマスへ押し出す（埋まらない）。残るマスにいる・横穴の中・ロッカーなら当たらない。</li>
+ *   <li>壁の {@value #HOLD}（ハード {@value #HOLD_HARD}）tick の間も横穴の入口はふさがない。プレイヤーの体にかかるマスには壁を置かない。残るマスは上から下まで空いている
+ *       （落下は止まらない）。終わったら置いた壁だけ元の空気に戻す（消えるときも必ず戻す）。</li>
+ *   <li>A-90 / A-180 / A-50 / A-130 とは同時に出ない。</li>
  * </ul>
  */
 public class A250Entity extends AbyssEnemy {
-    public static final int WARN = 50, WARN_HARD = 44, HOLD = 80, HOLD_HARD = 100;
+    public static final int HOLD = 80, HOLD_HARD = 100;
     public static final float DAMAGE = 5f, DAMAGE_HARD = 7f;
-    public static final double TOLERANCE = 0.1;
     private enum State { WARN, CLOSED }
     private State state = State.WARN;
-    private int stateTicks = 0;
+    private int stateTicks = 0, openMask = 0, warn = AbyssSqueeze.MIN_WARN;
+    private String shape = "";
 
     public A250Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "A-250"; }
@@ -49,33 +52,41 @@ public class A250Entity extends AbyssEnemy {
         Player t = pickTarget(level, rs, player);
         if (t == null || AbyssRooms.isHeld(t)) return null;
         if (anyAlive(level, A90Entity.class, A180Entity.class, A50Entity.class, A130Entity.class)) { RoomsDebug.log("A-250 prepare skipped: conflicting A enemy alive"); return null; }
+        java.util.Random r = new java.util.Random(random.nextLong());
+        AbyssSqueeze.Shape sh = AbyssSqueeze.pick(r);
+        int rot = r.nextInt(4);
+        openMask = AbyssSqueeze.mask(sh, rot);
+        shape = sh.name() + "/" + rot;
+        warn = AbyssSqueeze.warnTicks(openMask, hardSpawn);
         targetId = t.getUUID();
         setVirtualPos(pv(rs, t));
-        RoomsDebug.log("A-250 prepare target={}", t.getGameProfile().getName());
+        RoomsDebug.log("A-250 prepare target={} shape={} warn={} worst={} sneakTicks={}", t.getGameProfile().getName(), shape, warn,
+                f(AbyssSqueeze.worstDistance(openMask)), AbyssSqueeze.sneakTicks(AbyssSqueeze.worstDistance(openMask)));
         return blockPosition();
     }
 
     @Override
     protected void serverTick(ServerLevel level) {
         RoomsState rs = RoomsState.get(level);
-        if (rs.abyss == null) { leave("no shaft"); return; }
+        if (rs.abyss == null || openMask == 0) { leave("no shaft"); return; }
         Player t = target(level, rs);
         stateTicks++;
         if (t != null) setVirtualPos(pv(rs, t));
         switch (state) {
             case WARN -> {
                 if (t == null) { leave("target gone"); return; }
-                if (life == 1) RoomsDebug.announce(java.util.List.of(t), "A-250：壁が動くわ（真ん中へ）", "A-250 telegraph");
+                if (life == 1) RoomsDebug.announce(java.util.List.of(t), "A-250：壁が動くわ（粉の落ちていない所へ、" + shape + "）", "A-250 telegraph shape={} warn={}", shape, warn);
                 if (stateTicks % 8 == 1) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.AMBIENT_BASALT_DELTAS_MOOD.value(), SoundSource.HOSTILE, 2.0f, 0.5f);
                 if (stateTicks % 12 == 1) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.GRINDSTONE_USE, SoundSource.HOSTILE, 1.5f, 0.5f);
+                if (warn - stateTicks == 15) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.PISTON_CONTRACT, SoundSource.HOSTILE, 2.0f, 0.4f); // 直前の合図
                 dust(level, rs);
-                if (stateTicks >= (hardSpawn ? WARN_HARD : WARN)) close(level, rs);
+                if (stateTicks >= warn) close(level, rs);
             }
             case CLOSED -> {
-                if (!AbyssRooms.squeezed(rs)) AbyssRooms.setSqueeze(level, rs, true); // 読み込み直後など
+                if (!AbyssRooms.squeezed(rs)) AbyssRooms.setSqueeze(level, rs, openMask); // 読み込み直後など
                 else AbyssRooms.tickSqueeze(level, rs);
                 if (stateTicks >= (hardSpawn ? HOLD_HARD : HOLD) || t == null) {
-                    AbyssRooms.setSqueeze(level, rs, false);
+                    AbyssRooms.clearSqueeze(level, rs);
                     level.playSound(null, getX(), getY(), getZ(), SoundEvents.PISTON_CONTRACT, SoundSource.HOSTILE, 3.0f, 0.5f);
                     leave(t == null ? "target gone" : "opened");
                 }
@@ -87,29 +98,28 @@ public class A250Entity extends AbyssEnemy {
         AbyssRooms.Shaft s = rs.abyss;
         for (Player p : level.players()) {
             if (!inShaft(rs, p) || !(p instanceof ServerPlayer sp) || HidingRules.isHiding(p)) continue;
-            if (!AbyssRooms.inSqueezeRing(s, p, 0)) continue;
-            boolean hit = AbyssRooms.inSqueezeRing(s, p, TOLERANCE);
-            AbyssRooms.pushInside(sp, s, 0.05); // 壁の中に埋めない
+            if (!AbyssRooms.inSqueezeZone(s, openMask, p, 0)) continue;
+            boolean hit = AbyssRooms.inSqueezeZone(s, openMask, p, AbyssSqueeze.TOLERANCE);
+            AbyssRooms.pushToOpen(sp, s, openMask, 0.05); // 壁の中に埋めない
             if (hit) {
                 RoomsDamage.hurt(this, p, hardDamage(DAMAGE, DAMAGE_HARD));
-                RoomsDebug.log("A-250 crushed {}", p.getGameProfile().getName());
+                RoomsDebug.log("A-250 crushed {} shape={}", p.getGameProfile().getName(), shape);
             }
         }
-        AbyssRooms.setSqueeze(level, rs, true);
+        AbyssRooms.setSqueeze(level, rs, openMask);
         level.playSound(null, getX(), getY(), getZ(), SoundEvents.PISTON_EXTEND, SoundSource.HOSTILE, 3.0f, 0.5f);
         state = State.CLOSED; stateTicks = 0;
     }
 
-    /** 予告：せり出す外周の列に沿って壁の粉を落とす（プレイヤーの上下数ブロック）。 */
+    /** 予告：壁になるマスの中にだけ壁の粉を落とす（プレイヤーの上下数ブロック）。残るマスには何も出さない。 */
     private void dust(ServerLevel level, RoomsState rs) {
         BlockParticleOption opt = new BlockParticleOption(ParticleTypes.FALLING_DUST, Sections.A.palette().wall().get());
-        double c = AbyssRooms.IN + 0.5, half = AbyssRooms.SQUEEZE_HALF;
+        double cx = cx(rs.abyss), cz = cz(rs.abyss);
         for (Player p : level.players()) if (p instanceof ServerPlayer sp && inShaft(rs, p))
-            for (int i = 0; i < 10; i++) {
-                double along = (random.nextDouble() * 2 - 1) * c, depth = half + random.nextDouble() * (c - half);
-                int side = random.nextInt(4);
-                double dx = side < 2 ? (side == 0 ? depth : -depth) : along, dz = side < 2 ? along : (side == 2 ? depth : -depth);
-                level.sendParticles(sp, opt, true, cx(rs.abyss) + dx, p.getY() + (random.nextDouble() - 0.3) * 6, cz(rs.abyss) + dz, 1, 0, 0, 0, 0);
+            for (int dx = -AbyssRooms.IN; dx <= AbyssRooms.IN; dx++) for (int dz = -AbyssRooms.IN; dz <= AbyssRooms.IN; dz++) {
+                if (AbyssSqueeze.open(openMask, dx, dz)) continue;
+                for (int i = 0; i < 2; i++)
+                    level.sendParticles(sp, opt, true, cx + dx + (random.nextDouble() - 0.5) * 0.8, p.getY() + (random.nextDouble() - 0.35) * 7, cz + dz + (random.nextDouble() - 0.5) * 0.8, 1, 0, 0, 0, 0);
             }
     }
 
@@ -118,16 +128,21 @@ public class A250Entity extends AbyssEnemy {
         // 消えるときは必ず壁を戻す（チャンクの読み込み解除・終了時は戻さない：読み込み後の refresh が縦穴の列を片付ける）
         if (level() instanceof ServerLevel sl && state == State.CLOSED) {
             RemovalReason r = getRemovalReason();
-            if (r == null || r.shouldDestroy()) AbyssRooms.setSqueeze(sl, RoomsState.get(sl), false);
+            if (r == null || r.shouldDestroy()) AbyssRooms.clearSqueeze(sl, RoomsState.get(sl));
         }
         super.onRemovedFromLevel();
     }
 
-    @Override protected String debugState() { return "state=" + state + " t=" + stateTicks + (hardSpawn ? " hard" : ""); }
-    @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putString("State", state.name()); t.putInt("StateTicks", stateTicks); }
+    @Override protected String debugState() { return "state=" + state + " t=" + stateTicks + " shape=" + shape + " warn=" + warn + (hardSpawn ? " hard" : ""); }
+    @Override public void addAdditionalSaveData(CompoundTag t) {
+        super.addAdditionalSaveData(t);
+        t.putString("State", state.name()); t.putInt("StateTicks", stateTicks); t.putInt("OpenMask", openMask); t.putInt("Warn", warn); t.putString("Shape", shape);
+    }
     @Override public void readAdditionalSaveData(CompoundTag t) {
         super.readAdditionalSaveData(t);
         try { state = State.valueOf(t.getString("State")); } catch (IllegalArgumentException e) { state = State.WARN; }
         stateTicks = t.getInt("StateTicks");
+        openMask = t.contains("OpenMask") ? t.getInt("OpenMask") : AbyssSqueeze.mask(AbyssSqueeze.Shape.CENTER, 0);
+        warn = t.contains("Warn") ? t.getInt("Warn") : AbyssSqueeze.MIN_WARN; shape = t.getString("Shape");
     }
 }

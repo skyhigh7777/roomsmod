@@ -115,9 +115,10 @@ public class A350Entity extends AbyssEnemy {
         level.playSound(null, sp.getX(), sp.getY(), sp.getZ(), SoundEvents.EVOKER_FANGS_ATTACK, SoundSource.HOSTILE, 3.0f, 0.6f);
         level.sendParticles(ParticleTypes.DAMAGE_INDICATOR, sp.getX(), sp.getY() + 1, sp.getZ(), 6, 0.3, 0.3, 0.3, 0.1);
         RoomsDamage.hurt(this, sp, hardDamage(DAMAGE, DAMAGE_HARD));
-        // 縦穴の中心へ吐き出す（同じ高さ、縦穴の列は常に空いている）→ 口を閉じる
+        // 縦穴の中心（狭まっていれば一番近い残るマス）へ吐き出す → 口を閉じる
         AbyssRooms.Shaft s = rs.abyss;
-        sp.connection.teleport(cx(s), sp.getY(), cz(s), sp.getYRot(), sp.getXRot());
+        Vec3 c = AbyssRooms.safeColumnPoint(s, cx(s), sp.getY(), cz(s), sp.getBbWidth() / 2 + 0.05); // A-250 で狭まっていれば残るマスへ
+        sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
         sp.setDeltaMovement(0, -AbyssRooms.MAX_FALL, 0);
         sp.fallDistance = 0;
         RoomsDebug.log("A-350 bit {} (hiding={})", sp.getGameProfile().getName(), hiding);

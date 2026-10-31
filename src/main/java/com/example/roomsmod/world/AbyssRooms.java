@@ -92,6 +92,8 @@ public final class AbyssRooms {
         final Map<Integer, Alcove> fakes = new HashMap<>();
         /** 縦穴を狭めている間か（{@link #setSqueeze}）と、そのために置いたブロック。保存しない（読み込み後は clearColumn が片付ける）。 */
         boolean squeeze = false;
+        /** 狭めている間に残すマス（AbyssSqueeze のマスク）。 */
+        int squeezeOpen = 0;
         final java.util.Set<BlockPos> squeezeCells = new java.util.HashSet<>();
 
         Shaft(int ox, int oy, int oz, int entryRoom, int bottomY) { this.ox = ox; this.oy = oy; this.oz = oz; this.entryRoom = entryRoom; this.bottomY = bottomY; }
@@ -423,7 +425,7 @@ public final class AbyssRooms {
         Shaft s = rs.abyss;
         if (s == null || Sections.forRoom(rs, room) != Sections.A || room < s.entryRoom) return null;
         if (room == s.entryRoom) return new Vec3(s.ox + CX + 0.5, s.oy + 1, s.oz + 1.5);
-        return new Vec3(s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5);
+        return safeColumnPoint(s, s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, 0.35);
     }
 
 
@@ -485,8 +487,6 @@ public final class AbyssRooms {
         return false;
     }
 
-    /** 縦穴の内側の外周 1 列（5x5 のふち）。狭めるとここが壁になり、内側 3x3 が残る。 */
-    private static boolean ringCell(int x, int z) { return Math.max(Math.abs(x - CX), Math.abs(z - CZ)) == IN; }
 
     /** 見えている横穴の入口（外周の列のうち、横穴の床〜天井の高さ）。狭めてもふさがない。 */
     private static java.util.Set<BlockPos> alcoveMouths(Shaft s) {
@@ -500,9 +500,14 @@ public final class AbyssRooms {
         return out;
     }
 
+    /** 狭めている間、縦穴の内側のマス (x, z)（小部屋の origin からのローカル座標）が壁になるか（横穴の入口は別に除く）。 */
+    private static boolean closing(Shaft s, int x, int z) {
+        return s.squeeze && Math.abs(x - CX) <= IN && Math.abs(z - CZ) <= IN && !AbyssSqueeze.open(s.squeezeOpen, x - CX, z - CZ);
+    }
+
     /**
-     * 狭めている間：外周の列（横穴の入口を除く）を壁にする。プレイヤーの体にかかるマスには置かない（埋まらない）。
-     * 横穴の入口になったマスは空ける。refresh（1 周ごと）と敵の tick から呼ぶ。
+     * 狭めている間：形（{@link AbyssSqueeze}）で残すマス以外を壁にする。横穴の入口・松明・看板・プレイヤーの体にかかるマスには置かない（埋まらない）。
+     * 残すマスに壁が残っていれば空ける（落ちる道は上から下まで途切れない）。refresh（1 周ごと）と敵の tick から呼ぶ。
      */
     private static void reconcileSqueeze(ServerLevel level, Shaft s, List<BlockPos> changed) {
         java.util.Set<BlockPos> mouths = alcoveMouths(s);
@@ -512,14 +517,14 @@ public final class AbyssRooms {
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
         for (int y = s.oy - 1; y > s.bottomY; y--)
             for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) {
-                if (!ringCell(x, z)) continue;
                 m.set(s.ox + x, y, s.oz + z);
                 boolean placed = s.squeezeCells.contains(m);
-                boolean want = !mouths.contains(m);
+                boolean cell = closing(s, x, z);
+                boolean want = cell && !mouths.contains(m);
                 if (want) for (var b : bodies) if (b.intersects(m.getX(), m.getY(), m.getZ(), m.getX() + 1, m.getY() + 1, m.getZ() + 1)) { want = false; break; }
                 if (want && !placed) {
                     BlockState cur = level.getBlockState(m);
-                    if (cur == w) { s.squeezeCells.add(m.immutable()); continue; } // 読み込み前に置いた壁（外周の列に壁があるのは狭めた時だけ）
+                    if (cur == w) { s.squeezeCells.add(m.immutable()); continue; } // 読み込み前に置いた壁（縦穴の内側に壁があるのは狭めた時だけ）
                     if (!cur.isAir()) continue; // 松明・看板は残す
                     BlockPos q = m.immutable();
                     set(level, q, w, changed);
@@ -528,27 +533,38 @@ public final class AbyssRooms {
                     BlockPos q = m.immutable();
                     if (level.getBlockState(q) == w) set(level, q, air, changed);
                     s.squeezeCells.remove(q);
+                } else if (!cell && !placed && level.getBlockState(m) == w) {
+                    set(level, m.immutable(), air, changed); // 残すマスの古い壁（読み込み前のもの）
                 }
             }
     }
 
-    /** 縦穴を狭める（on）・元に戻す（off）。戻すときは置いた壁だけを空気に戻す。 */
-    public static void setSqueeze(ServerLevel level, RoomsState rs, boolean on) {
+    /** 縦穴を狭める（openMask：残すマス、{@link AbyssSqueeze}）。 */
+    public static void setSqueeze(ServerLevel level, RoomsState rs, int openMask) {
+        Shaft s = rs.abyss;
+        if (s == null) return;
+        List<BlockPos> changed = new ArrayList<>();
+        DropGuard.begin();
+        try { s.squeeze = true; s.squeezeOpen = openMask; reconcileSqueeze(level, s, changed); }
+        finally { DropGuard.end("abyss squeeze"); }
+        sendBlocks(level, s, changed);
+        RoomsDebug.log("abyss squeeze on mask={} blocks={}", Integer.toBinaryString(openMask), changed.size());
+    }
+
+    /** 元に戻す：置いた壁だけを空気に戻す。 */
+    public static void clearSqueeze(ServerLevel level, RoomsState rs) {
         Shaft s = rs.abyss;
         if (s == null) return;
         List<BlockPos> changed = new ArrayList<>();
         DropGuard.begin();
         try {
-            if (on) { s.squeeze = true; reconcileSqueeze(level, s, changed); }
-            else {
-                BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
-                for (BlockPos q : s.squeezeCells) if (level.getBlockState(q) == w) set(level, q, air, changed);
-                s.squeezeCells.clear();
-                s.squeeze = false;
-            }
+            BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
+            for (BlockPos q : s.squeezeCells) if (level.getBlockState(q) == w) set(level, q, air, changed);
+            s.squeezeCells.clear();
+            s.squeeze = false;
         } finally { DropGuard.end("abyss squeeze"); }
         sendBlocks(level, s, changed);
-        RoomsDebug.log("abyss squeeze {} blocks={}", on ? "on" : "off", changed.size());
+        RoomsDebug.log("abyss squeeze off blocks={}", changed.size());
     }
 
     /** 狭めている間に毎 tick（プレイヤーが空けたマスを埋め、横穴の入口を空ける）。 */
@@ -563,13 +579,10 @@ public final class AbyssRooms {
 
     public static boolean squeezed(RoomsState rs) { return rs.abyss != null && rs.abyss.squeeze; }
 
-    /** 縦穴の中心から、狭めたときに残る内側（3x3）の端まで（ブロック）。 */
-    public static final double SQUEEZE_HALF = IN - 0.5;
-
     /**
-     * プレイヤーの体が外周の列のうち狭めると壁になるマス（横穴の入口を除く）に、横に tolerance より深く入っているか（横穴の中にかかっていれば除く）。
+     * 形 openMask で狭めたとき、プレイヤーの体が壁になるマス（横穴の入口を除く）に横に tolerance より深く入っているか（横穴の中にかかっていれば除く）。
      */
-    public static boolean inSqueezeRing(Shaft s, net.minecraft.world.entity.player.Player p, double tolerance) {
+    public static boolean inSqueezeZone(Shaft s, int openMask, net.minecraft.world.entity.player.Player p, double tolerance) {
         if (inAnyAlcove(s, p)) return false;
         net.minecraft.world.phys.AABB bb = p.getBoundingBox().deflate(tolerance, 0, tolerance);
         java.util.Set<BlockPos> mouths = alcoveMouths(s);
@@ -577,17 +590,29 @@ public final class AbyssRooms {
         int z0 = (int) Math.floor(bb.minZ), z1 = (int) Math.floor(bb.maxZ - 1.0E-7);
         for (int x = x0; x <= x1; x++) for (int z = z0; z <= z1; z++) {
             int lx = x - s.ox, lz = z - s.oz;
-            if (Math.abs(lx - CX) > IN || Math.abs(lz - CZ) > IN || !ringCell(lx, lz)) continue;
+            if (Math.abs(lx - CX) > IN || Math.abs(lz - CZ) > IN || AbyssSqueeze.open(openMask, lx - CX, lz - CZ)) continue;
             for (int y = y0; y <= y1; y++) if (!mouths.contains(new BlockPos(x, y, z))) return true;
         }
         return false;
     }
 
-    /** プレイヤーを内側（3x3）へ寄せる（高さはそのまま、下向きの速さ）。 */
-    public static void pushInside(ServerPlayer sp, Shaft s, double margin) {
-        double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5, r = SQUEEZE_HALF - sp.getBbWidth() / 2 - margin;
-        double x = Math.max(cx - r, Math.min(cx + r, sp.getX())), z = Math.max(cz - r, Math.min(cz + r, sp.getZ()));
-        sp.connection.teleport(x, sp.getY(), z, sp.getYRot(), sp.getXRot());
+    /**
+     * 縦穴の中の (x, z) に一番近い、落ちる道の上の安全な位置（狭めていなければそのまま（中心寄せは呼び出し側）、狭めていれば残るマスに体が収まる位置）。
+     * 見張り・噛みつきの吐き出し・ワープなど、縦穴の中へプレイヤーを置くときに使う（壁の中に置かない）。
+     */
+    public static Vec3 safeColumnPoint(Shaft s, double x, double y, double z, double halfWidth) {
+        double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5;
+        if (!s.squeeze) return new Vec3(x, y, z);
+        double[] q = AbyssSqueeze.nearestFit(s.squeezeOpen, x - cx, z - cz, halfWidth);
+        return q == null ? new Vec3(x, y, z) : new Vec3(cx + q[0], y, cz + q[1]);
+    }
+
+    /** プレイヤーを狭めたあとも残るマスへ寄せる（一番近い位置、高さはそのまま、下向きの速さ）。 */
+    public static void pushToOpen(ServerPlayer sp, Shaft s, int openMask, double margin) {
+        double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5;
+        double[] q = AbyssSqueeze.nearestFit(openMask, sp.getX() - cx, sp.getZ() - cz, sp.getBbWidth() / 2 + margin);
+        if (q == null) return;
+        sp.connection.teleport(cx + q[0], sp.getY(), cz + q[1], sp.getYRot(), sp.getXRot());
         sp.setDeltaMovement(0, -MAX_FALL, 0);
         sp.fallDistance = 0;
         LAST.put(sp.getUUID(), sp.position());
@@ -730,8 +755,8 @@ public final class AbyssRooms {
             DropGuard.begin();
             try { n = clearColumn(level, s, changed); } finally { DropGuard.end("abyss stall clear"); }
             sendBlocks(level, s, changed);
-            double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5;
-            sp.connection.teleport(cx, pos.y, cz, sp.getYRot(), sp.getXRot());
+            Vec3 c = safeColumnPoint(s, s.ox + CX + 0.5, pos.y, s.oz + CZ + 0.5, sp.getBbWidth() / 2 + 0.05); // 狭めている間は残るマスへ
+            sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
             sp.setDeltaMovement(0, -MAX_FALL, 0);
             sp.fallDistance = 0;
             LAST.put(id, sp.position());
@@ -744,7 +769,8 @@ public final class AbyssRooms {
             RoomsDebug.log("abyss stall player={} room={} y={} still stuck -> forced loop", sp.getGameProfile().getName(), cur, String.format("%.1f", pos.y));
             loop(level, rs, s, sp, cur);
             if (sp.level() == level && s.contains(sp.position())) {
-                sp.connection.teleport(s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, sp.getYRot(), sp.getXRot());
+                Vec3 c = safeColumnPoint(s, s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, sp.getBbWidth() / 2 + 0.05);
+                sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
                 sp.setDeltaMovement(0, -MAX_FALL, 0);
                 sp.fallDistance = 0;
                 LAST.put(id, sp.position());
