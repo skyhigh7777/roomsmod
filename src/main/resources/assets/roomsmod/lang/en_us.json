@@ -143,5 +143,9 @@
   "subtitles.roomsmod.placeholder_beep": "Beep",
   "entity.roomsmod.a25": "A-25",
   "entity.roomsmod.a90": "A-90",
-  "entity.roomsmod.a180": "A-180"
+  "entity.roomsmod.a180": "A-180",
+  "entity.roomsmod.a50": "A-50",
+  "entity.roomsmod.a130": "A-130",
+  "entity.roomsmod.a250": "A-250",
+  "entity.roomsmod.a350": "A-350"
 }

@@ -57,6 +57,57 @@ public abstract class AbyssEnemy extends VEntity {
 
     protected float hardDamage(float normal, float hard) { return hardSpawn ? hard : normal; }
 
+    // ---- 横穴の取り合い ----
+
+    /** この敵が潜んでいて危ない横穴の部屋（A-90）。なければ -1。 */
+    public int dangerAlcove() { return -1; }
+    /** この敵が「ここへ隠れて」と予約した横穴の部屋（A-50 / A-130）。なければ -1。ほかの敵（A-90）はここに潜まない。 */
+    public int reservedAlcove() { return -1; }
+
+    /** 生きている敵が潜んでいる（危ない）横穴の部屋。 */
+    public static java.util.Set<Integer> dangerAlcoves(ServerLevel level) {
+        java.util.Set<Integer> out = new java.util.HashSet<>();
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities())
+            if (e instanceof AbyssEnemy a && a.isAlive() && a.dangerAlcove() >= 0) out.add(a.dangerAlcove());
+        return out;
+    }
+
+    /** 危ない横穴と予約された横穴の部屋（新しく潜む敵が避ける）。 */
+    public static java.util.Set<Integer> claimedOrReserved(ServerLevel level) {
+        java.util.Set<Integer> out = dangerAlcoves(level);
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities())
+            if (e instanceof AbyssEnemy a && a.isAlive() && a.reservedAlcove() >= 0) out.add(a.reservedAlcove());
+        return out;
+    }
+
+    /** 種類 cls の A の敵が生きているか。 */
+    public static boolean anyAlive(ServerLevel level, Class<?>... cls) {
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities())
+            if (e instanceof AbyssEnemy && com.example.roomsmod.entity.v.VEntity.isActive(e)) for (Class<?> c : cls) if (c.isInstance(e)) return true;
+        return false;
+    }
+
+    /**
+     * 部屋 from 以降 maxRooms 部屋以内で、床が仮想の y = belowY 以下にある、危なくない（本物の）横穴の部屋。なければ -1。
+     * 「予告から十分に時間のある横穴」を選ぶのに使う。
+     */
+    protected static int freeAlcoveBelow(ServerLevel level, RoomsState rs, int from, int maxRooms, double belowY) {
+        AbyssRooms.Shaft s = rs.abyss;
+        if (s == null) return -1;
+        java.util.Set<Integer> bad = dangerAlcoves(level);
+        for (int r = Math.max(from, s.entryRoom); r <= from + maxRooms; r++) {
+            if (!AbyssSpace.isAbyssRoom(rs, r) || bad.contains(r)) continue;
+            AbyssRooms.AlcoveSpot a = AbyssRooms.alcoveSpot(level, s, r);
+            if (a != null && a.floorY() <= belowY) return r;
+        }
+        return -1;
+    }
+
+    /** プレイヤーが横穴の中（体の中心）か、ロッカーに隠れているか。 */
+    protected static boolean sheltered(RoomsState rs, Player p, double inflate) {
+        return com.example.roomsmod.hiding.HidingRules.isHiding(p) || (rs.abyss != null && AbyssRooms.centerInAlcove(rs.abyss, p, inflate));
+    }
+
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);

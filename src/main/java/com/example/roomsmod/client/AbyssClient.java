@@ -21,7 +21,15 @@ public final class AbyssClient {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         LocalPlayer p = Minecraft.getInstance().player;
-        if (p == null || !AbyssRooms.clientActive || p.isSpectator() || p.getAbilities().flying) return;
+        if (p == null) return;
+        float hold = AbyssRooms.clientHoldVy;
+        if (!Float.isNaN(hold) && !p.isSpectator() && !p.getAbilities().flying) { // 引き止め（A-50）：縦の速さだけ固定、横は自由に動ける
+            Vec3 v = p.getDeltaMovement();
+            p.setDeltaMovement(v.x, hold, v.z);
+            p.fallDistance = 0;
+            return;
+        }
+        if (!AbyssRooms.clientActive || p.isSpectator() || p.getAbilities().flying) return;
         double cap = p.isShiftKeyDown() ? AbyssRooms.MAX_FALL_SNEAK : AbyssRooms.MAX_FALL;
         Vec3 v = p.getDeltaMovement();
         if (v.y < -cap) p.setDeltaMovement(v.x, -cap, v.z);
@@ -81,5 +89,5 @@ public final class AbyssClient {
     }
 
     @SubscribeEvent
-    public static void onLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) { AbyssRooms.clientActive = false; }
+    public static void onLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) { AbyssRooms.clientActive = false; AbyssRooms.clientHoldVy = Float.NaN; }
 }

@@ -88,6 +88,11 @@ public final class AbyssRooms {
         boolean built = false, sealed = false;
         /** 今ブロックで見えている層1の部屋（先頭）。保存しない（AbyssSpace.lead が補う）。 */
         int lead = Integer.MIN_VALUE;
+        /** 本物の横穴のない部屋に足した「見た目だけの横穴」（部屋 → 横穴）。保存しない（置いた敵が毎 tick 登録し直す）。 */
+        final Map<Integer, Alcove> fakes = new HashMap<>();
+        /** 縦穴を狭めている間か（{@link #setSqueeze}）と、そのために置いたブロック。保存しない（読み込み後は clearColumn が片付ける）。 */
+        boolean squeeze = false;
+        final java.util.Set<BlockPos> squeezeCells = new java.util.HashSet<>();
 
         Shaft(int ox, int oy, int oz, int entryRoom, int bottomY) { this.ox = ox; this.oy = oy; this.oz = oz; this.entryRoom = entryRoom; this.bottomY = bottomY; }
 
@@ -116,8 +121,8 @@ public final class AbyssRooms {
         @Override public String toString() { return "Shaft[o=(" + ox + "," + oy + "," + oz + ") entry=" + entryRoom + " bottom=" + bottomY + "]"; }
     }
 
-    /** 横穴（side の壁、床の高さは層の底から off）。 */
-    record Alcove(Direction side, int off) {}
+    /** 横穴（side の壁、床の高さは層の底から off）。fake は見た目だけの横穴（照明なし）。 */
+    public record Alcove(Direction side, int off, boolean fake) {}
 
     // ===================== 生成 =====================
 
@@ -228,7 +233,7 @@ public final class AbyssRooms {
             set(level, p, lower, changed);
             set(level, p.above(), lower.setValue(com.example.roomsmod.block.LockerBlock.HALF, net.minecraft.world.level.block.state.properties.DoubleBlockHalf.UPPER), changed);
         }
-        set(level, rot(s, a.side(), 0, fy + 3, -IN - 2), Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true), changed);
+        if (!a.fake()) set(level, rot(s, a.side(), 0, fy + 3, -IN - 2), Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true), changed);
     }
 
     /** 層 k の照明（四隅の魂の松明）と外壁の内側（作り直し用）。 */
@@ -272,7 +277,13 @@ public final class AbyssRooms {
         while (a < room) a += 2 + (int) Math.floorMod(mix(level.getSeed(), a), 2L);
         if (a != room) return null;
         Random r = new Random(mix(level.getSeed(), room * 31L + 7));
-        return new Alcove(SIDES[r.nextInt(4)], ALCOVE_OFF_MIN + r.nextInt(ALCOVE_OFF_MAX - ALCOVE_OFF_MIN + 1));
+        return new Alcove(SIDES[r.nextInt(4)], ALCOVE_OFF_MIN + r.nextInt(ALCOVE_OFF_MAX - ALCOVE_OFF_MIN + 1), false);
+    }
+
+    /** 部屋 room に見えている横穴（本物、なければ見た目だけのもの）。 */
+    static Alcove shownFor(ServerLevel level, Shaft s, int room) {
+        Alcove a = alcoveFor(level, s, room);
+        return a != null ? a : s.fakes.get(room);
     }
 
     /** 部屋 room の横穴（仮想座標）：奥（ロッカーの間）・入口（張り出し）の立ち位置と、横穴の床の y。なければ null。 */
@@ -302,8 +313,8 @@ public final class AbyssRooms {
         return new net.minecraft.world.phys.AABB(b.minX(), b.minY(), b.minZ(), b.maxX() + 1, b.maxY() + 1, b.maxZ() + 1);
     }
 
-    /** プレイヤーの体が今見えているどれかの横穴の中にかかっているか（横穴に立っている・入りかけ）。 */
-    private static boolean inAnyAlcove(Shaft s, ServerPlayer p) {
+    /** プレイヤーの体が今見えているどれかの横穴の中にかかっているか（横穴に立っている・入りかけ）。見た目だけの横穴も含む。 */
+    public static boolean inAnyAlcove(Shaft s, net.minecraft.world.entity.player.Player p) {
         net.minecraft.world.phys.AABB bb = p.getBoundingBox().inflate(0.05);
         for (int k = 0; k < SEGMENTS; k++) if (s.shown[k] != null && alcoveInterior(s, k, s.shown[k]).intersects(bb)) return true;
         return false;
@@ -334,6 +345,7 @@ public final class AbyssRooms {
         for (int y = s.oy - 1; y > s.bottomY; y--)
             for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) {
                 m.set(s.ox + x, y, s.oz + z);
+                if (s.squeeze && s.squeezeCells.contains(m)) continue; // 狭めている間の壁は残す
                 BlockState st = level.getBlockState(m);
                 if (st.isAir() || st.getCollisionShape(level, m).isEmpty()) continue;
                 BlockPos q = m.immutable();
@@ -353,6 +365,19 @@ public final class AbyssRooms {
         }
     }
 
+    /** 層 k を部屋 room の中身にする（横穴に人がいれば作り直さない）。作り直したら true。 */
+    private static boolean updateSegment(ServerLevel level, RoomsState rs, Shaft s, int k, int room, boolean force, List<BlockPos> changed, List<BlockPos> signs) {
+        Alcove want = shownFor(level, s, room), have = s.shown[k];
+        if (!force && occupied(level, s, k, have)) { RoomsDebug.log("abyss segment {} kept (alcove occupied) room={}", k, s.shownRoom[k]); return false; }
+        if (force) segmentShell(level, s, k, changed);
+        else if (have != null && !have.equals(want)) alcove(level, s, k, have, true, changed);
+        if (want != null && (force || !want.equals(have))) alcove(level, s, k, want, false, changed);
+        if (force || s.shownRoom[k] != room) sign(level, rs, s, k, room, changed, signs);
+        s.shown[k] = want;
+        s.shownRoom[k] = room;
+        return true;
+    }
+
     /**
      * 層 k の中身を「部屋 lead + (k - 1)」に合わせる。差分だけブロックを置き換え、置き換えたブロックはすぐ近くのプレイヤーへ送る
      * （この後のテレポートより先に届くように）。
@@ -367,15 +392,8 @@ public final class AbyssRooms {
             if (force) { java.util.Arrays.fill(s.shown, null); java.util.Arrays.fill(s.shownRoom, Integer.MIN_VALUE); }
             for (int k = 0; k < SEGMENTS; k++) {
                 int room = lead + k - 1;
-                if (!force && s.shownRoom[k] == room) continue;
-                Alcove want = alcoveFor(level, s, room), have = s.shown[k];
-                if (!force && occupied(level, s, k, have)) { RoomsDebug.log("abyss segment {} kept (alcove occupied) room={}", k, s.shownRoom[k]); continue; }
-                if (force) segmentShell(level, s, k, changed);
-                else if (have != null && !have.equals(want)) alcove(level, s, k, have, true, changed);
-                if (want != null && (force || !want.equals(have))) alcove(level, s, k, want, false, changed);
-                sign(level, rs, s, k, room, changed, signs);
-                s.shown[k] = want;
-                s.shownRoom[k] = room;
+                if (!force && s.shownRoom[k] == room && java.util.Objects.equals(s.shown[k], shownFor(level, s, room))) continue;
+                updateSegment(level, rs, s, k, room, force, changed, signs);
             }
             s.built = true;
             s.lead = lead;
@@ -388,6 +406,7 @@ public final class AbyssRooms {
             }
             int cleared = clearColumn(level, s, changed);
             if (cleared > 0) RoomsDebug.log("abyss refresh cleared {} solid blocks from the fall column", cleared);
+            if (s.squeeze) reconcileSqueeze(level, s, changed);
         } finally { DropGuard.end("abyss refresh"); }
         if (changed.isEmpty() && signs.isEmpty()) return;
         Vec3 c = Vec3.atCenterOf(s.at(CX, s.segTop(1), CZ));
@@ -406,6 +425,210 @@ public final class AbyssRooms {
         if (room == s.entryRoom) return new Vec3(s.ox + CX + 0.5, s.oy + 1, s.oz + 1.5);
         return new Vec3(s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5);
     }
+
+
+    // ===================== 敵が使う仕掛け（見た目だけの横穴・縦穴を狭める・引き止め） =====================
+
+    /** 部屋 room の層を今見えている層から探して作り直す（見た目だけの横穴を足した・消したとき）。 */
+    private static void refreshRoom(ServerLevel level, RoomsState rs, Shaft s, int room) {
+        List<BlockPos> changed = new ArrayList<>(), signs = new ArrayList<>();
+        DropGuard.begin();
+        try {
+            for (int k = 0; k < SEGMENTS; k++)
+                if (s.built && s.shownRoom[k] == room && !java.util.Objects.equals(s.shown[k], shownFor(level, s, room)))
+                    updateSegment(level, rs, s, k, room, false, changed, signs);
+            if (s.squeeze) reconcileSqueeze(level, s, changed);
+        } finally { DropGuard.end("abyss fake alcove"); }
+        sendBlocks(level, s, changed);
+    }
+
+    /**
+     * 本物の横穴のない部屋 room に見た目だけの横穴を置く（null で消す）。本物の横穴がある部屋には置かない。
+     * 敵の出現条件（{@link AbyssSpace#alcoveWithin}・{@link #alcoveSpot}）は本物の横穴だけを数えるので、隠れ場所の数は減らない。
+     */
+    public static boolean setFake(ServerLevel level, RoomsState rs, int room, Direction side, int off) {
+        Shaft s = rs.abyss;
+        if (s == null || alcoveFor(level, s, room) != null) return false;
+        Alcove want = side == null ? null : new Alcove(side, Math.max(ALCOVE_OFF_MIN, Math.min(ALCOVE_OFF_MAX, off)), true);
+        Alcove had = want == null ? s.fakes.remove(room) : s.fakes.put(room, want);
+        if (!java.util.Objects.equals(had, want)) refreshRoom(level, rs, s, room);
+        return true;
+    }
+
+    public static boolean hasFake(RoomsState rs, int room) { return rs.abyss != null && rs.abyss.fakes.containsKey(room); }
+
+    /** 部屋 room の見た目だけの横穴の床の高さ（仮想座標）と奥・入口。なければ null。 */
+    public static AlcoveSpot fakeSpot(RoomsState rs, int room) {
+        Shaft s = rs.abyss;
+        Alcove a = s == null ? null : s.fakes.get(room);
+        if (a == null) return null;
+        int fy = s.segBottom(1) + a.off();
+        int off = AbyssSpace.roomOffset(s, room);
+        Vec3 back = Vec3.atBottomCenterOf(rot(s, a.side(), 0, fy + 1, -IN - 2)).subtract(0, off, 0);
+        Vec3 mouth = Vec3.atBottomCenterOf(rot(s, a.side(), 0, fy + 1, -IN)).subtract(0, off, 0);
+        return new AlcoveSpot(back, mouth, fy + 1 - off);
+    }
+
+    /** 部屋 room の見た目だけの横穴が今ブロックとして見えていれば、その中の範囲（実際の座標）。 */
+    public static net.minecraft.world.phys.AABB fakeInterior(RoomsState rs, int room) {
+        Shaft s = rs.abyss;
+        if (s == null) return null;
+        for (int k = 0; k < SEGMENTS; k++)
+            if (s.shownRoom[k] == room && s.shown[k] != null && s.shown[k].fake()) return alcoveInterior(s, k, s.shown[k]);
+        return null;
+    }
+
+    /** プレイヤーの体の中心（足元から胸まで）が見えているどれかの横穴の中（inflate だけ縦穴側へ甘く）にあるか。見た目だけの横穴も含む。 */
+    public static boolean centerInAlcove(Shaft s, net.minecraft.world.entity.player.Player p, double inflate) {
+        Vec3 c = p.position().add(0, 0.5, 0);
+        for (int k = 0; k < SEGMENTS; k++) if (s.shown[k] != null && alcoveInterior(s, k, s.shown[k]).inflate(inflate).contains(c)) return true;
+        return false;
+    }
+
+    /** 縦穴の内側の外周 1 列（5x5 のふち）。狭めるとここが壁になり、内側 3x3 が残る。 */
+    private static boolean ringCell(int x, int z) { return Math.max(Math.abs(x - CX), Math.abs(z - CZ)) == IN; }
+
+    /** 見えている横穴の入口（外周の列のうち、横穴の床〜天井の高さ）。狭めてもふさがない。 */
+    private static java.util.Set<BlockPos> alcoveMouths(Shaft s) {
+        java.util.Set<BlockPos> out = new java.util.HashSet<>();
+        for (int k = 0; k < SEGMENTS; k++) {
+            Alcove a = s.shown[k];
+            if (a == null) continue;
+            int fy = s.segBottom(k) + a.off();
+            for (int dx = -1; dx <= 1; dx++) for (int y = 0; y <= 3; y++) out.add(rot(s, a.side(), dx, fy + y, -IN));
+        }
+        return out;
+    }
+
+    /**
+     * 狭めている間：外周の列（横穴の入口を除く）を壁にする。プレイヤーの体にかかるマスには置かない（埋まらない）。
+     * 横穴の入口になったマスは空ける。refresh（1 周ごと）と敵の tick から呼ぶ。
+     */
+    private static void reconcileSqueeze(ServerLevel level, Shaft s, List<BlockPos> changed) {
+        java.util.Set<BlockPos> mouths = alcoveMouths(s);
+        List<net.minecraft.world.phys.AABB> bodies = new ArrayList<>();
+        for (ServerPlayer p : level.players()) if (!p.isSpectator() && s.contains(p.position())) bodies.add(p.getBoundingBox().inflate(0.1));
+        BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
+        BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
+        for (int y = s.oy - 1; y > s.bottomY; y--)
+            for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) {
+                if (!ringCell(x, z)) continue;
+                m.set(s.ox + x, y, s.oz + z);
+                boolean placed = s.squeezeCells.contains(m);
+                boolean want = !mouths.contains(m);
+                if (want) for (var b : bodies) if (b.intersects(m.getX(), m.getY(), m.getZ(), m.getX() + 1, m.getY() + 1, m.getZ() + 1)) { want = false; break; }
+                if (want && !placed) {
+                    BlockState cur = level.getBlockState(m);
+                    if (cur == w) { s.squeezeCells.add(m.immutable()); continue; } // 読み込み前に置いた壁（外周の列に壁があるのは狭めた時だけ）
+                    if (!cur.isAir()) continue; // 松明・看板は残す
+                    BlockPos q = m.immutable();
+                    set(level, q, w, changed);
+                    s.squeezeCells.add(q);
+                } else if (!want && placed) {
+                    BlockPos q = m.immutable();
+                    if (level.getBlockState(q) == w) set(level, q, air, changed);
+                    s.squeezeCells.remove(q);
+                }
+            }
+    }
+
+    /** 縦穴を狭める（on）・元に戻す（off）。戻すときは置いた壁だけを空気に戻す。 */
+    public static void setSqueeze(ServerLevel level, RoomsState rs, boolean on) {
+        Shaft s = rs.abyss;
+        if (s == null) return;
+        List<BlockPos> changed = new ArrayList<>();
+        DropGuard.begin();
+        try {
+            if (on) { s.squeeze = true; reconcileSqueeze(level, s, changed); }
+            else {
+                BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
+                for (BlockPos q : s.squeezeCells) if (level.getBlockState(q) == w) set(level, q, air, changed);
+                s.squeezeCells.clear();
+                s.squeeze = false;
+            }
+        } finally { DropGuard.end("abyss squeeze"); }
+        sendBlocks(level, s, changed);
+        RoomsDebug.log("abyss squeeze {} blocks={}", on ? "on" : "off", changed.size());
+    }
+
+    /** 狭めている間に毎 tick（プレイヤーが空けたマスを埋め、横穴の入口を空ける）。 */
+    public static void tickSqueeze(ServerLevel level, RoomsState rs) {
+        Shaft s = rs.abyss;
+        if (s == null || !s.squeeze) return;
+        List<BlockPos> changed = new ArrayList<>();
+        DropGuard.begin();
+        try { reconcileSqueeze(level, s, changed); } finally { DropGuard.end("abyss squeeze"); }
+        sendBlocks(level, s, changed);
+    }
+
+    public static boolean squeezed(RoomsState rs) { return rs.abyss != null && rs.abyss.squeeze; }
+
+    /** 縦穴の中心から、狭めたときに残る内側（3x3）の端まで（ブロック）。 */
+    public static final double SQUEEZE_HALF = IN - 0.5;
+
+    /**
+     * プレイヤーの体が外周の列のうち狭めると壁になるマス（横穴の入口を除く）に、横に tolerance より深く入っているか（横穴の中にかかっていれば除く）。
+     */
+    public static boolean inSqueezeRing(Shaft s, net.minecraft.world.entity.player.Player p, double tolerance) {
+        if (inAnyAlcove(s, p)) return false;
+        net.minecraft.world.phys.AABB bb = p.getBoundingBox().deflate(tolerance, 0, tolerance);
+        java.util.Set<BlockPos> mouths = alcoveMouths(s);
+        int x0 = (int) Math.floor(bb.minX), x1 = (int) Math.floor(bb.maxX - 1.0E-7), y0 = (int) Math.floor(bb.minY), y1 = (int) Math.floor(bb.maxY - 1.0E-7);
+        int z0 = (int) Math.floor(bb.minZ), z1 = (int) Math.floor(bb.maxZ - 1.0E-7);
+        for (int x = x0; x <= x1; x++) for (int z = z0; z <= z1; z++) {
+            int lx = x - s.ox, lz = z - s.oz;
+            if (Math.abs(lx - CX) > IN || Math.abs(lz - CZ) > IN || !ringCell(lx, lz)) continue;
+            for (int y = y0; y <= y1; y++) if (!mouths.contains(new BlockPos(x, y, z))) return true;
+        }
+        return false;
+    }
+
+    /** プレイヤーを内側（3x3）へ寄せる（高さはそのまま、下向きの速さ）。 */
+    public static void pushInside(ServerPlayer sp, Shaft s, double margin) {
+        double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5, r = SQUEEZE_HALF - sp.getBbWidth() / 2 - margin;
+        double x = Math.max(cx - r, Math.min(cx + r, sp.getX())), z = Math.max(cz - r, Math.min(cz + r, sp.getZ()));
+        sp.connection.teleport(x, sp.getY(), z, sp.getYRot(), sp.getXRot());
+        sp.setDeltaMovement(0, -MAX_FALL, 0);
+        sp.fallDistance = 0;
+        LAST.put(sp.getUUID(), sp.position());
+    }
+
+    /** サーバー → クライアント：引き止め（on の間、縦の速さを vy に固定。横は自由）。 */
+    public record HoldPayload(boolean on, float vy) implements CustomPacketPayload {
+        public static final Type<HoldPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "abyss_hold"));
+        public static final StreamCodec<ByteBuf, HoldPayload> STREAM_CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, HoldPayload::on, ByteBufCodecs.FLOAT, HoldPayload::vy, HoldPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** クライアント側：引き止められている間の縦の速さ（NaN = なし）。 */
+    public static volatile float clientHoldVy = Float.NaN;
+
+    /** 引き止め中のプレイヤー → 期限（ゲーム時間）。期限が切れたら自動で放す（敵が消えても取り残さない）。 */
+    private static final Map<UUID, Long> HELD = new HashMap<>();
+    private static final Map<UUID, Float> HELD_VY = new HashMap<>();
+
+    /** 引き止める（vy：縦の速さ、ticks：この tick 数だけ有効。毎 tick 呼び直して延ばす）。見張り（止まっている判定）は引き止め中は数えない。 */
+    public static void hold(ServerPlayer sp, float vy, int ticks) {
+        UUID id = sp.getUUID();
+        HELD.put(id, sp.serverLevel().getGameTime() + ticks);
+        Float prev = HELD_VY.put(id, vy);
+        if (prev == null || Math.abs(prev - vy) > 1.0E-4f) PacketDistributor.sendToPlayer(sp, new HoldPayload(true, vy));
+        sp.fallDistance = 0;
+        STILL.remove(id);
+    }
+
+    public static void release(ServerPlayer sp) {
+        UUID id = sp.getUUID();
+        HELD.remove(id);
+        if (HELD_VY.remove(id) != null) PacketDistributor.sendToPlayer(sp, new HoldPayload(false, 0f));
+        STILL.remove(id);
+        LAST.put(id, sp.position());
+    }
+
+    public static boolean isHeld(net.minecraft.world.entity.player.Player p) { return HELD.containsKey(p.getUUID()); }
+
+    /** 引き止めで上がってよい足の高さの上限（実際の座標。小部屋の床・天井に頭をぶつけない）。 */
+    public static double holdCeiling(RoomsState rs) { return rs.abyss == null ? Double.MAX_VALUE : rs.abyss.oy - 4.0; }
 
     // ===================== 落下・1周 =====================
 
@@ -433,7 +656,9 @@ public final class AbyssRooms {
         modBus.addListener((RegisterPayloadHandlersEvent e) -> e.registrar("1").playToClient(AbyssPayload.TYPE, AbyssPayload.STREAM_CODEC,
                 (msg, ctx) -> ctx.enqueueWork(() -> clientActive = msg.active()))
                 .playToClient(AbyssSpace.ShiftPayload.TYPE, AbyssSpace.ShiftPayload.STREAM_CODEC,
-                        (msg, ctx) -> ctx.enqueueWork(() -> AbyssSpace.clientShift.accept(msg))));
+                        (msg, ctx) -> ctx.enqueueWork(() -> AbyssSpace.clientShift.accept(msg)))
+                .playToClient(HoldPayload.TYPE, HoldPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> clientHoldVy = msg.on() ? msg.vy() : Float.NaN)));
     }
 
     /** プレイヤーの今の部屋（縦穴の中）。わからなければ fallback。 */
@@ -459,9 +684,12 @@ public final class AbyssRooms {
         Vec3 pos = sp.position();
         if (s == null || !s.contains(pos) || sp.isSpectator()) {
             setActive(sp, false);
+            if (HELD.containsKey(id)) release(sp);
             ROOM.remove(id); LAST.remove(id); STILL.remove(id);
             return;
         }
+        Long heldUntil = HELD.get(id);
+        if (heldUntil != null && sp.serverLevel().getGameTime() > heldUntil) { RoomsDebug.log("abyss hold expired player={}", sp.getGameProfile().getName()); release(sp); }
         setActive(sp, true);
         sp.fallDistance = 0;
         ServerLevel level = sp.serverLevel();
@@ -492,7 +720,7 @@ public final class AbyssRooms {
         UUID id = sp.getUUID();
         Vec3 pos = sp.position();
         boolean candidate = inFallColumn(s, pos) && LockerManager.getSpot(sp) == null && !sp.getAbilities().flying
-                && !sp.isPassenger() && !inAnyAlcove(s, sp);
+                && !sp.isPassenger() && !inAnyAlcove(s, sp) && !HELD.containsKey(id); // 引き止め中（A-50）は止まっていて正常
         boolean falling = last != null && pos.y < last.y - 0.02;
         if (!candidate || falling) { STILL.remove(id); return false; }
         int t = STILL.merge(id, 1, Integer::sum);
@@ -578,11 +806,11 @@ public final class AbyssRooms {
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         UUID id = event.getEntity().getUUID();
-        ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id); STILL.remove(id);
+        ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id); STILL.remove(id); HELD.remove(id); HELD_VY.remove(id);
     }
 
     @SubscribeEvent
     public static void onChangeDim(PlayerEvent.PlayerChangedDimensionEvent event) {
-        if (event.getEntity() instanceof ServerPlayer sp) setActive(sp, false);
+        if (event.getEntity() instanceof ServerPlayer sp) { setActive(sp, false); if (HELD.containsKey(sp.getUUID())) release(sp); }
     }
 }

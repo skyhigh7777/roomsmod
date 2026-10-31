@@ -65,6 +65,11 @@ public final class VSpawns {
         A25("A-25", "a25", null, RoomsMod.A25),
         A90("A-90", "a90", null, RoomsMod.A90),
         A180("A-180", "a180", null, RoomsMod.A180),
+        // A-50 / A-130 / A-250 は同時に 1 体まで（引き止め・隠れる・真ん中へ寄る：要求がぶつかる）。ほかとの組み合わせは各 prepareFor で判定
+        A50("A-50", "a50", "a_trap", RoomsMod.A50),
+        A130("A-130", "a130", "a_trap", RoomsMod.A130),
+        A250("A-250", "a250", "a_trap", RoomsMod.A250),
+        A350("A-350", "a350", null, RoomsMod.A350),
         // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
         E332("3!3!2", "mimic", null, RoomsMod.E332),
         // PLACEHOLDER（テスト用）区画：区画の表は空。32767 / 65535 はハードの抽選表（Sections.HARD_ONLY）にだけ入る。2147483648 は /rooms spawn と 3!3!2 のみ

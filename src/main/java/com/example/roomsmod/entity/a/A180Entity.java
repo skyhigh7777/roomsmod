@@ -59,6 +59,7 @@ public class A180Entity extends AbyssEnemy {
         if (!ready(rs)) return null;
         Player t = pickTarget(level, rs, player);
         if (t == null) return null;
+        if (anyAlive(level, A250Entity.class)) { RoomsDebug.log("A-180 prepare skipped: A-250 alive"); return null; } // 雲の隙間（壁際）へ逃げられない
         targetId = t.getUUID();
         Vec3 p = pv(rs, t);
         setVirtualPos(new Vec3(cx(rs.abyss), p.y - (DEPTH_ROOMS + 0.6) * AbyssRooms.L, cz(rs.abyss)));

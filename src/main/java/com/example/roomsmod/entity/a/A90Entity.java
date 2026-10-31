@@ -56,13 +56,17 @@ public class A90Entity extends AbyssEnemy {
         return out;
     }
 
+    @Override public int dangerAlcove() { return alcoveRoom; }
+
     @Override
     public BlockPos prepareFor(ServerLevel level, RoomsState rs, Player player, int playerRoom) {
         if (!ready(rs)) return null;
         Player t = pickTarget(level, rs, player);
         if (t == null) return null;
+        if (anyAlive(level, A250Entity.class)) { RoomsDebug.log("A-90 prepare skipped: A-250 alive"); return null; } // 反対側の壁際へ逃げられない
         int room = AbyssRooms.roomOf(t, playerRoom);
         Set<Integer> claimed = claimedAlcoves(level);
+        claimed.addAll(claimedOrReserved(level)); // A-50 / A-130 が「ここへ隠れて」と予約した横穴には潜まない
         int r = AbyssSpace.alcoveWithin(level, rs, room + 2, 4, claimed);
         if (r < 0) { RoomsDebug.log("A-90 prepare skipped: no alcove 2..6 rooms below {}", room); return null; }
         // 隠れる場所を奪い切らない：この横穴以外にも、すぐ下に使える横穴があること
