@@ -27,14 +27,21 @@ import java.util.List;
  *   <li>ランダムなピッチのビープ音を3つ同時に鳴らし、BEEP_TICKS 待つ（鳴り終わるまで）。</li>
  *   <li>最奥から WARP_ROOMS 部屋（1 以上）のうち、直前と違うランダムな部屋の真ん中へ WARP_INTERVAL tick ごとにワープ（WARPS 回）。
  *       ワープするたび、その部屋の範囲内にいて隠れていないプレイヤーは即死。</li>
- *   <li>WARPS 回で消える。</li>
+ *   <li>WARPS 回で消える。消えるとき（寿命切れ・コマンドで消された時も）部屋ディメンションの全員に消える音（ビーコンの停止音＋低いビープ）。</li>
  * </ol>
+ * 気配の音：今いる部屋（出現〜3つのビープの間は出現した部屋、ワープ中はワープ先）の中にいるプレイヤー全員に、その人の位置で
+ * 唸り（ビーコンの音、{@value #HUM_PERIOD} tick ごと）を鳴らす（その人にだけ送るので距離で小さくならず、ほかの部屋には漏れない）。
+ * ワープで部屋に来た瞬間はその部屋の人にテレポート音も。部屋を出る・別の部屋へ移る・消えると唸りを止める。
  * 通常は自然出現しない（ハードモードの抽選・3!3!2・/rooms spawn placeholder32767 のみ）。状態は NBT に保存し、途中でロードしても続きから。
  */
 public class Placeholder32767Entity extends PlaceholderEntity {
     public static final int ROOMS_BEHIND = 30, WAIT_MIN = 88, WAIT_MAX = 188, BEEP_TICKS = 20;
     public static final int WARP_ROOMS = 15, WARP_INTERVAL = 2, WARPS = 70;
     public static final float KILL_DAMAGE = 1000f;
+
+    public static final int HUM_PERIOD = 40;
+    /** 唸りが聞こえているプレイヤー → 最後に鳴らした tick（life）。 */
+    private final java.util.Map<java.util.UUID, Integer> hearing = new java.util.HashMap<>();
 
     /** 0=出現直後, 1=待ち, 2=3つのビープの後, 3=ワープ中 */
     private int phase = 0, phaseTicks = 0, waitTicks = 0, warps = 0, lastRoom = -1;
@@ -87,12 +94,69 @@ public class Placeholder32767Entity extends PlaceholderEntity {
         for (ServerPlayer p : level.players()) level.playSound(null, p.getX(), p.getY(), p.getZ(), s, SoundSource.HOSTILE, 1.0f, pitch);
     }
 
+    /** 今いる部屋（出現〜3つのビープは出現した部屋、ワープ中は直前のワープ先）。 */
+    private int currentRoom() { return lastRoom >= 0 ? lastRoom : startRoom; }
+
+    /** その人にだけ、その人の位置で鳴らす（距離で減衰しない・ほかの人には聞こえない）。 */
+    private static void playTo(ServerPlayer p, SoundEvent s, float volume, float pitch, long seed) {
+        p.connection.send(new net.minecraft.network.protocol.game.ClientboundSoundPacket(net.minecraft.core.registries.BuiltInRegistries.SOUND_EVENT.wrapAsHolder(s), SoundSource.HOSTILE, p.getX(), p.getY(), p.getZ(), volume, pitch, seed));
+    }
+
+    private static void stopHum(ServerPlayer p) {
+        p.connection.send(new net.minecraft.network.protocol.game.ClientboundStopSoundPacket(net.minecraft.sounds.SoundEvents.BEACON_AMBIENT.getLocation(), SoundSource.HOSTILE));
+    }
+
+    /** 部屋の中の人に唸りを鳴らし続ける。入った人にはすぐ、出た人のは止める。arrived = ワープでこの部屋に来た瞬間。 */
+    private void presence(ServerLevel level, RoomsState rs, boolean arrived) {
+        int room = currentRoom();
+        java.util.Set<java.util.UUID> now = new java.util.HashSet<>();
+        for (ServerPlayer p : level.players()) {
+            if (p.isSpectator() || !p.isAlive() || room < 0 || RoomTracker.roomIndexAt(rs, p.blockPosition()) != room) continue;
+            now.add(p.getUUID());
+            Integer last = hearing.get(p.getUUID());
+            if (last == null || life - last >= HUM_PERIOD) {
+                playTo(p, net.minecraft.sounds.SoundEvents.BEACON_AMBIENT, 1.0f, 0.5f, random.nextLong());
+                hearing.put(p.getUUID(), life);
+            }
+            if (arrived) playTo(p, net.minecraft.sounds.SoundEvents.ENDERMAN_TELEPORT, 0.8f, 0.5f, random.nextLong());
+        }
+        for (var it = hearing.keySet().iterator(); it.hasNext(); ) {
+            java.util.UUID id = it.next();
+            if (now.contains(id)) continue;
+            it.remove();
+            if (level.getPlayerByUUID(id) instanceof ServerPlayer p) stopHum(p);
+        }
+    }
+
+    /** 消える：唸りを止めて、部屋ディメンションの全員に消える音（どこにいても聞こえる）。 */
+    @Override
+    public void onRemovedFromLevel() {
+        if (level() instanceof ServerLevel sl) {
+            for (java.util.UUID id : hearing.keySet()) if (sl.getPlayerByUUID(id) instanceof ServerPlayer p) stopHum(p);
+            hearing.clear();
+            RemovalReason why = getRemovalReason();
+            if (why != null && why.shouldDestroy()) {
+                for (ServerPlayer p : sl.players()) {
+                    playTo(p, net.minecraft.sounds.SoundEvents.BEACON_DEACTIVATE, 1.0f, 0.5f, random.nextLong());
+                    playTo(p, RoomsMod.PLACEHOLDER_BEEP.get(), 1.0f, 0.5f, random.nextLong());
+                }
+                RoomsDebug.log("{} despawn sound to {} players", name, sl.players().size());
+            }
+        }
+        super.onRemovedFromLevel();
+    }
+
     private void enter(int ph) { phase = ph; phaseTicks = 0; }
 
     @Override
     protected void serverTick(ServerLevel level) {
         RoomsState rs = RoomsState.get(level);
         phaseTicks++;
+        int before = currentRoom();
+        try { tickPhase(level, rs); } finally { if (!isRemoved()) presence(level, rs, phase == 3 && currentRoom() != before); }
+    }
+
+    private void tickPhase(ServerLevel level, RoomsState rs) {
         switch (phase) {
             case 0 -> {
                 beep(level, 1.0f);
