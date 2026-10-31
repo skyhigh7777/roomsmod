@@ -88,6 +88,25 @@ public abstract class AbyssEnemy extends VEntity {
     }
 
     /**
+     * 一緒にいると避け方がぶつかる A の敵の種類（新しい敵だけが並べる）。判定は両向き：自分の表にある敵が生きている、
+     * または生きている敵の表に自分が入っていれば出ない（古い敵の prepareFor も conflictAlive を見る）。
+     */
+    protected Class<?>[] incompatible() { return new Class<?>[0]; }
+
+    /** 一緒にいてはいけない A の敵が生きているか（両向き）。 */
+    protected boolean conflictAlive(ServerLevel level) {
+        for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
+            if (!(e instanceof AbyssEnemy a) || a == this || !com.example.roomsmod.entity.v.VEntity.isActive(e)) continue;
+            for (Class<?> c : incompatible()) if (c.isInstance(a)) return true;
+            for (Class<?> c : a.incompatible()) if (c.isInstance(this)) return true;
+        }
+        return false;
+    }
+
+    /** 仮想座標 v の、プレイヤー t の近くでの実際の位置（t の実際の位置と仮想の位置の差で写す。パーティクル用）。 */
+    protected static Vec3 nearPhysical(RoomsState rs, Player t, Vec3 v) { return t.position().add(v.subtract(pv(rs, t))); }
+
+    /**
      * 部屋 from 以降 maxRooms 部屋以内で、床が仮想の y = belowY 以下にある、危なくない（本物の）横穴の部屋。なければ -1。
      * 「予告から十分に時間のある横穴」を選ぶのに使う。
      */

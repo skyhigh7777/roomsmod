@@ -57,6 +57,7 @@ public class A50Entity extends AbyssEnemy {
     @Override
     public BlockPos prepareFor(ServerLevel level, RoomsState rs, Player player, int playerRoom) {
         if (!ready(rs)) return null;
+        if (conflictAlive(level)) { RoomsDebug.log("A-50 prepare skipped: conflicting A enemy alive"); return null; }
         Player t = pickTarget(level, rs, player);
         if (t == null || HidingRules.isHiding(t) || AbyssRooms.isHeld(t)) return null;
         if (blockers(level)) { RoomsDebug.log("A-50 prepare skipped: A-25 / A-90 / A-180 alive"); return null; }

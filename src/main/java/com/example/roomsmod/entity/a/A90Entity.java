@@ -61,6 +61,7 @@ public class A90Entity extends AbyssEnemy {
     @Override
     public BlockPos prepareFor(ServerLevel level, RoomsState rs, Player player, int playerRoom) {
         if (!ready(rs)) return null;
+        if (conflictAlive(level)) { RoomsDebug.log("A-90 prepare skipped: conflicting A enemy alive"); return null; }
         Player t = pickTarget(level, rs, player);
         if (t == null) return null;
         if (anyAlive(level, A250Entity.class)) { RoomsDebug.log("A-90 prepare skipped: A-250 alive"); return null; } // 反対側の壁際へ逃げられない

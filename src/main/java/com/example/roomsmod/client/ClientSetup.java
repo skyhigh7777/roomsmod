@@ -77,6 +77,9 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.A130.get(), c -> new BRenderer<>(c, "a130", 2.6f));
         event.registerEntityRenderer(RoomsMod.A250.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（壁が動く）
         event.registerEntityRenderer(RoomsMod.A350.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（横穴そのもの）
+        event.registerEntityRenderer(RoomsMod.A200.get(), c -> new BRenderer<>(c, "a200", 1.8f));
+        event.registerEntityRenderer(RoomsMod.A300.get(), c -> new BRenderer<>(c, "a300", 1.9f));
+        event.registerEntityRenderer(RoomsMod.A450.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（重力が変わる）
         event.registerEntityRenderer(RoomsMod.E332.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         event.registerEntityRenderer(RoomsMod.EXTRABOX.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         // PLACEHOLDER：単色の正方形（揺れなし）

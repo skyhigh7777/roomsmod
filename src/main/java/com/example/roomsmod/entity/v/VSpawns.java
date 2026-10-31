@@ -70,6 +70,10 @@ public final class VSpawns {
         A130("A-130", "a130", "a_trap", RoomsMod.A130),
         A250("A-250", "a250", "a_trap", RoomsMod.A250),
         A350("A-350", "a350", null, RoomsMod.A350),
+        // A-200 / A-300 / A-450 の組み合わせは AbyssEnemy.incompatible（両向き）で判定
+        A200("A-200", "a200", null, RoomsMod.A200),
+        A300("A-300", "a300", null, RoomsMod.A300),
+        A450("A-450", "a450", null, RoomsMod.A450),
         // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
         E332("3!3!2", "mimic", null, RoomsMod.E332),
         // PLACEHOLDER（テスト用）区画：区画の表は空。32767 / 65535 はハードの抽選表（Sections.HARD_ONLY）にだけ入る。2147483648 は /rooms spawn と 3!3!2 のみ
