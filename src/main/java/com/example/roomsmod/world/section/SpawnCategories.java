@@ -22,10 +22,10 @@ public final class SpawnCategories {
 
     private static final Map<String, Category> BY_NAME = new LinkedHashMap<>();
     static {
-        BY_NAME.put("GK-270", Category.KEEP_MOVING);
-        for (String n : new String[]{"V-25-T", "V-25-L", "V25-BUFFED", "GK-165"}) BY_NAME.put(n, Category.SEARCHER);
+        BY_NAME.put("S-270", Category.KEEP_MOVING);
+        for (String n : new String[]{"V-25-T", "V-25-L", "V25-BUFFED", "S-165"}) BY_NAME.put(n, Category.SEARCHER);
         for (String n : new String[]{"B-20", "B-40", "B-15", "B-50", "B-90", "B-130", "B-180", "B-230", "B-260", "B-290",
-                "V-10", "V-50", "GK-225", "GK-245", "GK-300",
+                "V-10", "V-50", "S-225", "S-245", "S-300",
                 "U-20", "U-60", "U-120", "U-200", "U-300"}) BY_NAME.put(n, Category.HIDE_REQUIRED);
     }
 
@@ -54,7 +54,7 @@ public final class SpawnCategories {
     }
 
     /**
-     * name を出すと present（生存中＋この抽選で出す予定）と矛盾するなら、その説明（例 "KEEP_MOVING vs HIDE_REQUIRED, alive=GK-270"）。矛盾しなければ null。
+     * name を出すと present（生存中＋この抽選で出す予定）と矛盾するなら、その説明（例 "KEEP_MOVING vs HIDE_REQUIRED, alive=S-270"）。矛盾しなければ null。
      * present の値は "alive" か "roll"。
      */
     public static String conflict(String name, Map<String, String> present, boolean hard) {

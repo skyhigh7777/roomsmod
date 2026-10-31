@@ -63,21 +63,21 @@ public class E332Entity extends VEntity {
         SOUNDS.put("V25-BUFFED", RoomsMod.V25B_REVEAL::get);
         SOUNDS.put("V-100", RoomsMod.V100_KNOCK::get);
         SOUNDS.put("V-50", RoomsMod.V50_APPROACH::get);
-        SOUNDS.put("GK-10", RoomsMod.GK_MOTH_FLUTTER::get);
-        SOUNDS.put("GK-25", RoomsMod.GK_CHIME_APPROACH::get);
-        SOUNDS.put("GK-45", RoomsMod.GK_WHISPER_SOUND::get);
-        SOUNDS.put("GK-65", RoomsMod.GK_DETENTION_CHAIN::get);
-        SOUNDS.put("GK-85", RoomsMod.GK_DESK_CHECK::get);
-        SOUNDS.put("GK-105", RoomsMod.GK_SUBSTITUTE_CREAK::get);
-        SOUNDS.put("GK-125", RoomsMod.GK_07_KNOCK::get);
-        SOUNDS.put("GK-145", RoomsMod.GK_HOMEWORK_PAGE::get);
-        SOUNDS.put("GK-165", RoomsMod.GK_ROLLCALL_STEP::get);
-        SOUNDS.put("GK-185", RoomsMod.GK_PA_CHIME::get);
-        SOUNDS.put("GK-205", RoomsMod.GK_STARE_HUM::get);
-        SOUNDS.put("GK-225", RoomsMod.GK_JANITOR_SQUEAK::get);
-        SOUNDS.put("GK-245", RoomsMod.GK_ERASER_SCRATCH::get);
-        SOUNDS.put("GK-270", RoomsMod.GK_MIRROR_CHIME::get);
-        SOUNDS.put("GK-300", RoomsMod.GK_BELL2_BELL::get);
+        SOUNDS.put("S-10", RoomsMod.GK_MOTH_FLUTTER::get);
+        SOUNDS.put("S-25", RoomsMod.GK_CHIME_APPROACH::get);
+        SOUNDS.put("S-45", RoomsMod.GK_WHISPER_SOUND::get);
+        SOUNDS.put("S-65", RoomsMod.GK_DETENTION_CHAIN::get);
+        SOUNDS.put("S-85", RoomsMod.GK_DESK_CHECK::get);
+        SOUNDS.put("S-105", RoomsMod.GK_SUBSTITUTE_CREAK::get);
+        SOUNDS.put("S-125", RoomsMod.GK_07_KNOCK::get);
+        SOUNDS.put("S-145", RoomsMod.GK_HOMEWORK_PAGE::get);
+        SOUNDS.put("S-165", RoomsMod.GK_ROLLCALL_STEP::get);
+        SOUNDS.put("S-185", RoomsMod.GK_PA_CHIME::get);
+        SOUNDS.put("S-205", RoomsMod.GK_STARE_HUM::get);
+        SOUNDS.put("S-225", RoomsMod.GK_JANITOR_SQUEAK::get);
+        SOUNDS.put("S-245", RoomsMod.GK_ERASER_SCRATCH::get);
+        SOUNDS.put("S-270", RoomsMod.GK_MIRROR_CHIME::get);
+        SOUNDS.put("S-300", RoomsMod.GK_BELL2_BELL::get);
         SOUNDS.put("U-20", RoomsMod.U20_APPROACH::get);
         SOUNDS.put("U-60", RoomsMod.U60_APPROACH::get);
         SOUNDS.put("U-120", RoomsMod.U120_APPROACH::get);
@@ -167,7 +167,7 @@ public class E332Entity extends VEntity {
 
     /**
      * 名前を決めてバーを書き換え、通常の抽選と同じ出現処理で出す（次の tick、エンティティの tick の外で）。
-     * 例外：3!3!2 が呼んだ敵は重なりの規則をすべて無視する（生存中の同種・排他グループ、分類の矛盾、GK-270 の単独ルール）。
+     * 例外：3!3!2 が呼んだ敵は重なりの規則をすべて無視する（生存中の同種・排他グループ、分類の矛盾、S-270 の単独ルール）。
      * 候補は 3!3!2 以外の全エンティティ（summonPool）。通常の抽選（DoorEventHandler.rollRushers）は変えない。
      */
     private void reveal(ServerLevel level) {

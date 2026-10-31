@@ -106,7 +106,7 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.v.V50Entity::new, MobCategory.MONSTER)
                     .sized(1.0f, 2.4f).clientTrackingRange(12).updateInterval(1).build("v50"));
 
-    // ---- GK（学校）区画 ----
+    // ---- S（School、旧 GK）区画（定数名・登録 ID は GK のまま） ----
     public static final DeferredHolder<SoundEvent, SoundEvent> GK_CHIME_APPROACH = SOUND_EVENTS.register("gk_chime_approach", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_chime_approach")));
     public static final DeferredHolder<SoundEvent, SoundEvent> GK_ROLLCALL_STEP = SOUND_EVENTS.register("gk_rollcall_step", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_rollcall_step")));
     public static final DeferredHolder<SoundEvent, SoundEvent> GK_ROLLCALL_CHECK = SOUND_EVENTS.register("gk_rollcall_check", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "gk_rollcall_check")));
@@ -221,6 +221,7 @@ public class RoomsMod {
         NeoForge.EVENT_BUS.register(com.example.roomsmod.item.FlashlightHandler.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DebugNoDeath.class);
         com.example.roomsmod.stamina.Stamina.init(modEventBus);
+        com.example.roomsmod.world.AbyssRooms.init(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.stamina.Stamina.class);
         ENTITIES.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);

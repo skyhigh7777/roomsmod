@@ -100,9 +100,9 @@ public class RoomsCommands {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
-        rs.setChain("b");
+        rs.setChain(com.example.roomsmod.world.section.Sections.firstId());
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を既定（B → V → GK → U、各 " + com.example.roomsmod.world.section.Sections.SECTION_LENGTH + " 部屋）に戻したわ"), true);
+        src.sendSuccess(() -> Component.literal("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、各 " + com.example.roomsmod.world.section.Sections.SECTION_LENGTH + " 部屋）に戻したわ"), true);
         return 1;
     }
 
@@ -211,27 +211,27 @@ public class RoomsCommands {
                     .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
-                // 番号名（B-15 / GK-10 / B-110 など）
+                // 番号名（B-15 / S-10 / B-110 など）
                 .then(Commands.literal("b15").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
                 .then(Commands.literal("b30").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
                 .then(Commands.literal("b50").executes(ctx -> spawnV(ctx.getSource(), "breach")))
                 .then(Commands.literal("b70").executes(ctx -> spawnV(ctx.getSource(), "beye")))
                 .then(Commands.literal("b90").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
-                .then(Commands.literal("gk10").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
-                .then(Commands.literal("gk25").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
-                .then(Commands.literal("gk45").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
-                .then(Commands.literal("gk65").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
-                .then(Commands.literal("gk85").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
-                .then(Commands.literal("gk105").executes(ctx -> spawnV(ctx.getSource(), "gksubstitute")))
-                .then(Commands.literal("gk125").executes(ctx -> spawnV(ctx.getSource(), "gk07")))
-                .then(Commands.literal("gk145").executes(ctx -> spawnV(ctx.getSource(), "gkrewind")))
-                .then(Commands.literal("gk165").executes(ctx -> spawnV(ctx.getSource(), "gkmimic")))
-                .then(Commands.literal("gk185").executes(ctx -> spawnV(ctx.getSource(), "gkpa")))
-                .then(Commands.literal("gk205").executes(ctx -> spawnV(ctx.getSource(), "gk12")))
-                .then(Commands.literal("gk225").executes(ctx -> spawnV(ctx.getSource(), "gkjanitor")))
-                .then(Commands.literal("gk245").executes(ctx -> spawnV(ctx.getSource(), "gkeraser")))
-                .then(Commands.literal("gk270").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
-                .then(Commands.literal("gk300").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
+                .then(Commands.literal("s10").executes(ctx -> spawnV(ctx.getSource(), "smoth")))
+                .then(Commands.literal("s25").executes(ctx -> spawnV(ctx.getSource(), "schime")))
+                .then(Commands.literal("s45").executes(ctx -> spawnV(ctx.getSource(), "swhisper")))
+                .then(Commands.literal("s65").executes(ctx -> spawnV(ctx.getSource(), "sdetention")))
+                .then(Commands.literal("s85").executes(ctx -> spawnV(ctx.getSource(), "squiz")))
+                .then(Commands.literal("s105").executes(ctx -> spawnV(ctx.getSource(), "ssubstitute")))
+                .then(Commands.literal("s125").executes(ctx -> spawnV(ctx.getSource(), "s07")))
+                .then(Commands.literal("s145").executes(ctx -> spawnV(ctx.getSource(), "srewind")))
+                .then(Commands.literal("s165").executes(ctx -> spawnV(ctx.getSource(), "smimic")))
+                .then(Commands.literal("s185").executes(ctx -> spawnV(ctx.getSource(), "spa")))
+                .then(Commands.literal("s205").executes(ctx -> spawnV(ctx.getSource(), "sstare")))
+                .then(Commands.literal("s225").executes(ctx -> spawnV(ctx.getSource(), "sjanitor")))
+                .then(Commands.literal("s245").executes(ctx -> spawnV(ctx.getSource(), "seraser")))
+                .then(Commands.literal("s270").executes(ctx -> spawnV(ctx.getSource(), "smirror")))
+                .then(Commands.literal("s300").executes(ctx -> spawnV(ctx.getSource(), "sbell2")))
                 .then(Commands.literal("u20").executes(ctx -> spawnV(ctx.getSource(), "u20")))
                 .then(Commands.literal("u60").executes(ctx -> spawnV(ctx.getSource(), "u60")))
                 .then(Commands.literal("u120").executes(ctx -> spawnV(ctx.getSource(), "u120")))

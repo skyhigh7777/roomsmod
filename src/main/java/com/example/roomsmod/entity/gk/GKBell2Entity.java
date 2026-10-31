@@ -14,7 +14,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.Level;
 
-/** GK-300。 */
+/** S-300。 */
 public class GKBell2Entity extends VPathWalker {
     public static final int ROOMS_BEHIND = 5, ROOMS_AHEAD = 1, TURN_PAUSE = 50;
     private boolean turned = false;
@@ -22,7 +22,7 @@ public class GKBell2Entity extends VPathWalker {
     private int turns = 0;
     private int pause = 0;
     public GKBell2Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-300"; }
+    @Override public String vName() { return "S-300"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
     @Override protected double speed() { return 1.2; }
     @Override protected int graceTicks() { return 80; }

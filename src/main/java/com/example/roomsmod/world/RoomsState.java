@@ -28,13 +28,19 @@ public class RoomsState extends SavedData {
     public final List<List<BoundingBox>> generatedRooms = new ArrayList<>();
     /** 部屋ごとの経路（入口→折れ点→出口扉、床+1）。generatedRoomsと同じindex。 */
     public final List<List<BlockPos>> roomPaths = new ArrayList<>();
-    /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。既定は A のみ。 */
+    /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。 */
     /** ハードモード：全セクションのエンティティがどの部屋でも出る（サーバー共有・セーブに保存）。 */
     public boolean hardMode = false;
-    /** 既定は B → V → GK → U（各 Sections.SECTION_LENGTH 部屋）。 */
-    public final List<SectionStart> sections = new ArrayList<>(com.example.roomsmod.world.section.Sections.fixedChain("b"));
+    /** 既定は V → B → U → S → A（各 Sections.SECTION_LENGTH 部屋、V はロビー 0 から）。 */
+    public final List<SectionStart> sections = new ArrayList<>(com.example.roomsmod.world.section.Sections.fixedChain(com.example.roomsmod.world.section.Sections.firstId()));
 
     public record SectionStart(String themeId, int startRoom) {}
+
+    /** セクション表の形式。2 = 進行順 V → B → U → S → A（S は旧 GK、A は Abyss）。 */
+    public static final int SECTIONS_VERSION = 2;
+
+    /** A（Abyss）区画の縦穴（AbyssRooms）。まだ作っていなければ null。ロビー生成（reset）で消える。 */
+    public com.example.roomsmod.world.AbyssRooms.Shaft abyss = null;
 
     /** セクションを追加（startRoom 昇順に並べる）。 */
     public void addSection(String themeId, int startRoom) {
@@ -73,6 +79,7 @@ public class RoomsState extends SavedData {
         generatedDoors.clear();
         generatedRooms.clear();
         roomPaths.clear();
+        abyss = null;
         setDirty();
     }
 
@@ -136,7 +143,9 @@ public class RoomsState extends SavedData {
             secs.add(c);
         }
         tag.put("sections", secs);
+        if (abyss != null) tag.put("abyss", abyss.save());
         tag.putBoolean("sectionsFixed", true);
+        tag.putInt("sectionsVersion", SECTIONS_VERSION);
         RoomsDebug.log("state saved: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", currentRoom, generatedRooms.size(), generatedDoors.size(), expectedExitDoor);
         return tag;
     }
@@ -162,16 +171,21 @@ public class RoomsState extends SavedData {
             s.roomPaths.add(path);
         }
         s.hardMode = tag.getBoolean("hardMode");
+        if (tag.contains("abyss")) s.abyss = com.example.roomsmod.world.AbyssRooms.Shaft.load(tag.getCompound("abyss"));
         if (tag.contains("sections")) {
             s.sections.clear();
             for (Tag t : tag.getList("sections", Tag.TAG_COMPOUND)) {
                 CompoundTag c = (CompoundTag) t;
-                s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(c.getString("theme")), c.getInt("start")));
+                String theme = c.getString("theme");
+                // version 1 以前の "a" は B の旧名（今の "a" は Abyss）
+                if (tag.getInt("sectionsVersion") < 2 && "a".equalsIgnoreCase(theme)) theme = "b";
+                s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(theme), c.getInt("start")));
             }
-            if (s.sections.isEmpty()) s.sections.add(new SectionStart("b", 0));
-            if (!tag.getBoolean("sectionsFixed")) {
-                // 旧形式（長さ固定なし）：開始セクション（通し番号 1 までに始まる最後のもの）から固定長の進行に作り直す
-                String first = "b";
+            if (s.sections.isEmpty()) s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.firstId(), 0));
+            if (!tag.getBoolean("sectionsFixed") || tag.getInt("sectionsVersion") < SECTIONS_VERSION) {
+                // 旧形式（長さ固定なし、または進行順が V → B → U → S → A になる前）：
+                // 開始セクション（通し番号 1 までに始まる最後のもの）から今の固定長の進行に作り直す
+                String first = com.example.roomsmod.world.section.Sections.firstId();
                 for (SectionStart sec : s.sections) if (sec.startRoom() <= 1) first = sec.themeId();
                 List<SectionStart> old = new ArrayList<>(s.sections);
                 s.sections.clear();

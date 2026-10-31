@@ -42,7 +42,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_WHISPER.get(), c -> new VRenderer<>(c, "gk_whisper", 2.0f, 0.3f));
         event.registerEntityRenderer(RoomsMod.GK_DETENTION.get(), c -> new VRenderer<>(c, "gk_detention", 2.4f, 0.02f));
-        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f).outlineOnly()); // GK-105 は姿を描かない。デバッグ時だけ光る輪郭のみ。手がかりは偽の扉だけ
+        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f).outlineOnly()); // S-105 は姿を描かない。デバッグ時だけ光る輪郭のみ。手がかりは偽の扉だけ
         event.registerEntityRenderer(RoomsMod.GK_ERASER.get(), c -> new VRenderer<>(c, "gk_eraser", 2.2f, 0.4f));
         event.registerEntityRenderer(RoomsMod.GK_QUIZ.get(), c -> new VRenderer<>(c, "gk_quiz", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_PA.get(), c -> new VRenderer<>(c, "gk_pa", 1.0f, 0.05f));

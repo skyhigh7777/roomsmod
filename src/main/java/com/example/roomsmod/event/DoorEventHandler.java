@@ -49,7 +49,7 @@ public class DoorEventHandler {
             if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
                 BlockPos dp = s0.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? event.getPos().below() : event.getPos();
                 if (com.example.roomsmod.entity.gk.GKDoorTricks.closableOpenDoor(event.getLevel(), dp)) {
-                    // GK-125 が見張る扉だけは閉められる（サーバーで閉める）
+                    // S-125 が見張る扉だけは閉められる（サーバーで閉める）
                     event.setCanceled(true);
                     if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl)
                         com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(sl, RoomsState.get(sl), event.getEntity(), dp);
@@ -147,7 +147,7 @@ public class DoorEventHandler {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
                 || b instanceof com.example.roomsmod.block.HidingTableBlock
-                || b instanceof net.minecraft.world.level.block.BellBlock // GK-25 のベル
+                || b instanceof net.minecraft.world.level.block.BellBlock // S-25 のベル
                 || b instanceof DoorBlock;
     }
 
@@ -200,6 +200,19 @@ public class DoorEventHandler {
     }
 
     /**
+     * 扉以外で次の部屋へ進んだとき（A の縦穴の1周）：扉を通ったときと同じく、ハードの告知と出現抽選をする。
+     * 部屋の生成（RoomGenerator.generateNextRoom）は呼び出し側で済ませておく。
+     */
+    public static void onRoomAdvanced(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        if (rs.hardMode) com.example.roomsmod.world.HardMode.announceRoom(level, rs, room);
+        try {
+            rollRushers(level, rs, player, room);
+        } catch (RuntimeException e) {
+            RoomsDebug.error("rusher spawn failed", e);
+        }
+    }
+
+    /**
      * ラッシャー抽選。B-20 と B-40 はそれぞれ独立に抽選し、同じ部屋で両方出ることもある。
      * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
@@ -212,7 +225,8 @@ public class DoorEventHandler {
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("rusher roll room={} skipped: PLACEHOLDER-2147483648 alive", room); return; }
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         boolean hard = rs.hardMode;
-        var table = hard ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        // A（Abyss）は床・扉のない縦穴なので、ハードでも A の表だけを使う（確率の倍率などハードの強化はそのまま）
+        var table = hard && theme != com.example.roomsmod.world.section.Sections.A ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
@@ -265,8 +279,8 @@ public class DoorEventHandler {
                 }
             }
         }
-        // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U) {
+        // S / B / U / A は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
+        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U || theme == com.example.roomsmod.world.section.Sections.A) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);

@@ -175,9 +175,11 @@ public class RoomGenerator {
         BlockPos exit;
         DropGuard.begin();
         try { exit = generateNextRoomInner(level, origin, roomNumber); } finally { DropGuard.end("room " + roomNumber + " generation"); }
-        try { placeBattery(level, roomNumber); }
+        // A（縦穴）には床がないので電池・包帯は置かない
+        boolean abyss = com.example.roomsmod.world.section.Sections.forRoom(RoomsState.get(level), roomNumber) == com.example.roomsmod.world.section.Sections.A;
+        if (!abyss) try { placeBattery(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("battery placement failed room=" + roomNumber, e); }
-        try { placeBandage(level, roomNumber); }
+        if (!abyss) try { placeBandage(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("bandage placement failed room=" + roomNumber, e); }
         LobbyPanels.refreshDeepest(level);
         return exit;
@@ -220,6 +222,7 @@ public class RoomGenerator {
         if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.GK) return GKRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.U) return CorridorRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.A) return AbyssRooms.generate(level, origin, roomNumber, state, prevTheme != theme);
         if (theme == com.example.roomsmod.world.section.Sections.PLACEHOLDER) return PlaceholderRooms.generate(level, origin, roomNumber, rand, state);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         String planInfo = lastPlanInfo;

@@ -52,7 +52,7 @@ public final class LobbyPanels {
     static final int FZ = 31, FX = 14;
 
     /** 共有の選択。 */
-    static String section = "b";
+    static String section = Sections.firstId();
     static int stepIndex = 0;
 
     public static String selectedSection() { return section; }
@@ -133,7 +133,7 @@ public final class LobbyPanels {
 
     static String label() {
         SectionTheme t = Sections.find(section);
-        return (t == null ? "B" : t.prefix()) + "-" + String.format("%03d", selectedRoom());
+        return (t == null ? Sections.first().prefix() : t.prefix()) + "-" + String.format("%03d", selectedRoom());
     }
 
     static String deepestLabel(RoomsState rs) {

@@ -50,6 +50,9 @@ public final class SafeSpot {
     }
 
     public static Vec3 find(ServerLevel l, RoomsState rs, int room) {
+        // A（縦穴）：床がないので決まった位置（AbyssRooms）
+        Vec3 abyss = AbyssRooms.spotFor(rs, room);
+        if (abyss != null) return abyss;
         List<BlockPos> path = room >= 0 && room < rs.roomPaths.size() ? rs.roomPaths.get(room) : List.of();
         List<BlockPos> cand = new ArrayList<>();
         // 経路の各区間の点（中央→外側の順）

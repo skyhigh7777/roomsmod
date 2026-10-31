@@ -15,12 +15,12 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-/** GK-245：前方の部屋から逆向きに来る。 */
+/** S-245：前方の部屋から逆向きに来る。 */
 public class GKEraserEntity extends VPathWalker {
     public static final double FREEZE_RANGE = 14.0, FREEZE_DOT = 0.85;
     private int frozenTicks = 0;
     public GKEraserEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-245"; }
+    @Override public String vName() { return "S-245"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
     @Override protected double speed() { return 0.55; }
     @Override protected int graceTicks() { return 70; }
@@ -40,7 +40,7 @@ public class GKEraserEntity extends VPathWalker {
             if (FlashlightHandler.heldOn(p).isEmpty() || !canSee(p)) continue;
             Vec3 to = getEyePosition().subtract(p.getEyePosition()).normalize();
             if (p.getViewVector(1f).dot(to) > FREEZE_DOT) {
-                if (frozenTicks++ % 20 == 0) RoomsDebug.log(p, "GK-245: 光で止まっているわ", "GK-245 frozen by flashlight player={} frozenTicks={}", p.getGameProfile().getName(), frozenTicks);
+                if (frozenTicks++ % 20 == 0) RoomsDebug.log(p, "S-245: 光で止まっているわ", "S-245 frozen by flashlight player={} frozenTicks={}", p.getGameProfile().getName(), frozenTicks);
                 return true;
             }
         }

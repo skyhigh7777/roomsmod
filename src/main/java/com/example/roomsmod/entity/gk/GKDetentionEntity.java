@@ -27,26 +27,26 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * GK-65：次の出口扉を施錠し、部屋のどこかに「通行証」を落とす。拾えば解錠（時間切れでも解錠）。
- * 通行証はこの個体専用（タグに持ち主の UUID）。別の GK-65 の通行証では開かない（複数いても取り合わない）。
- * 同じ扉をすでに別の GK-65 が施錠しているなら出現しない（3!3!2 の召喚でも）。
+ * S-65：次の出口扉を施錠し、部屋のどこかに「通行証」を落とす。拾えば解錠（時間切れでも解錠）。
+ * 通行証はこの個体専用（タグに持ち主の UUID）。別の S-65 の通行証では開かない（複数いても取り合わない）。
+ * 同じ扉をすでに別の S-65 が施錠しているなら出現しない（3!3!2 の召喚でも）。
  * 置き場所は「経路を塞がない床」→「部屋の安全な床」→「経路の上」の順で探し、どこにも置けなければ施錠しない。
  * 施錠中に通行証が無くなった（拾われずに消えた・落として消えた等）ら置き直し、置けなければ解錠して去る。
  */
 public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
     public static final int LOCK_TICKS = 20 * 80;
     public static final String TAG = "roomsmod_gk_pass";
-    /** 通行証の持ち主（GK-65 の UUID）を入れるタグ。無い通行証（旧版）はどの GK-65 でも使える。 */
+    /** 通行証の持ち主（S-65 の UUID）を入れるタグ。無い通行証（旧版）はどの S-65 でも使える。 */
     public static final String OWNER_TAG = "roomsmod_gk_pass_owner";
     /** 通行証がどこにも見つからない状態がこの tick 数続いたら置き直す。 */
     public static final int PASS_MISSING_TICKS = 40;
-    /** 通行証を探す範囲（GK-65 からの距離）。 */
+    /** 通行証を探す範囲（S-65 からの距離）。 */
     public static final double PASS_SEARCH_RADIUS = 96;
     private BlockPos door = null;
     private UUID passItem = null;
     private int missingTicks = 0;
     public GKDetentionEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-65"; }
+    @Override public String vName() { return "S-65"; }
     @Override protected int maxLifeTicks() { return LOCK_TICKS; }
 
     static boolean isPass(ItemStack s) {
@@ -66,27 +66,27 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = rs.roomPaths.size() - 1;
         door = rs.expectedExitDoor;
-        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("GK-65 spawn skipped: no unopened exit door ({})", door); return null; }
+        if (door == null || rs.generatedDoors.contains(door)) { RoomsDebug.log("S-65 spawn skipped: no unopened exit door ({})", door); return null; }
         for (Entity e : level.getAllEntities())
             if (e instanceof GKDetentionEntity o && o != this && o.isAlive() && o.guards(door)) {
-                RoomsDebug.log("GK-65 spawn skipped: door {} already locked by another GK-65", door); return null;
+                RoomsDebug.log("S-65 spawn skipped: door {} already locked by another S-65", door); return null;
             }
-        if (!dropPass(level, rs)) { RoomsDebug.log("GK-65 spawn skipped: no spot for the pass in room {} (door not locked)", startRoom); return null; }
+        if (!dropPass(level, rs)) { RoomsDebug.log("S-65 spawn skipped: no spot for the pass in room {} (door not locked)", startRoom); return null; }
         BlockPos stand = door.north();
         setPos(stand.getX() + 0.5, stand.getY(), stand.getZ() + 0.5);
         level.playSound(null, door, RoomsMod.GK_DETENTION_CHAIN.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
-        RoomsDebug.log("GK-65 locked {} room={}", door, startRoom);
+        RoomsDebug.log("S-65 locked {} room={}", door, startRoom);
         return stand;
     }
 
     /** 通行証の置き場所：経路を塞がない床 → 部屋の安全な床 → 経路の上（入口寄りも含む）。無ければ null。 */
     private BlockPos passSpot(ServerLevel level, RoomsState rs) {
         List<BlockPos> s = GKUtil.freeSpots(level, rs, startRoom, level.random, 1);
-        if (!s.isEmpty()) { RoomsDebug.log("GK-65 pass spot: free floor {}", s.get(0)); return s.get(0); }
+        if (!s.isEmpty()) { RoomsDebug.log("S-65 pass spot: free floor {}", s.get(0)); return s.get(0); }
         Vec3 v = SafeSpot.findRandom(level, rs, startRoom, level.random);
-        if (v != null) { RoomsDebug.log("GK-65 pass spot: fallback room floor {}", v); return BlockPos.containing(v); }
+        if (v != null) { RoomsDebug.log("S-65 pass spot: fallback room floor {}", v); return BlockPos.containing(v); }
         v = SafeSpot.find(level, rs, startRoom);
-        if (v != null) { RoomsDebug.log("GK-65 pass spot: fallback path {}", v); return BlockPos.containing(v); }
+        if (v != null) { RoomsDebug.log("S-65 pass spot: fallback path {}", v); return BlockPos.containing(v); }
         return null;
     }
 
@@ -100,11 +100,11 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
         pass.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         ItemEntity it = new ItemEntity(level, at.getX() + 0.5, at.getY() + 0.1, at.getZ() + 0.5, pass, 0, 0, 0);
         it.setUnlimitedLifetime(); it.setGlowingTag(true);
-        if (!level.addFreshEntity(it)) { RoomsDebug.warn("GK-65 pass drop failed at {}", at); return false; }
+        if (!level.addFreshEntity(it)) { RoomsDebug.warn("S-65 pass drop failed at {}", at); return false; }
         if (passItem != null) { Entity old = level.getEntity(passItem); if (old != null && old != it) old.discard(); }
         passItem = it.getUUID();
         missingTicks = 0;
-        RoomsDebug.log("GK-65 pass at {} (room {}) door={}", at, startRoom, door);
+        RoomsDebug.log("S-65 pass at {} (room {}) door={}", at, startRoom, door);
         return true;
     }
 
@@ -124,7 +124,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
     public void punish(ServerLevel level, Player p) {
         level.playSound(null, door, RoomsMod.GK_DETENTION_CHAIN.get(), SoundSource.HOSTILE, 2.0f, 0.6f);
         GKUtil.actionbar(List.of(p), Component.translatable("message.roomsmod.gk_detention_locked"));
-        RoomsDebug.log(p, "GK-65: 施錠中（通行証を探して）", "GK-65 blocked door {} player={}", door, p.getGameProfile().getName());
+        RoomsDebug.log(p, "S-65: 施錠中（通行証を探して）", "S-65 blocked door {} player={}", door, p.getGameProfile().getName());
     }
 
     @Override
@@ -138,7 +138,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
                     inv.setItem(i, ItemStack.EMPTY);
                     level.playSound(null, door, net.minecraft.sounds.SoundEvents.IRON_DOOR_OPEN, SoundSource.BLOCKS, 1.5f, 1.2f);
                     GKUtil.actionbar(List.of(p), Component.translatable("message.roomsmod.gk_detention_open"));
-                    RoomsDebug.log(p, "GK-65: 通行証で解錠したわ", "GK-65 unlocked by pass player={} door={}", p.getGameProfile().getName(), door);
+                    RoomsDebug.log(p, "S-65: 通行証で解錠したわ", "S-65 unlocked by pass player={} door={}", p.getGameProfile().getName(), door);
                     leave("pass used");
                     return;
                 }
@@ -147,7 +147,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
         if (life % 10 == 0) {
             if (passExists(level)) missingTicks = 0;
             else if ((missingTicks += 10) >= PASS_MISSING_TICKS) {
-                RoomsDebug.log("GK-65 pass missing for {} ticks, re-dropping (door={})", missingTicks, door);
+                RoomsDebug.log("S-65 pass missing for {} ticks, re-dropping (door={})", missingTicks, door);
                 if (!dropPass(level, RoomsState.get(level))) { leave("pass lost and no spot to re-drop (unlocked)"); return; }
             }
         }

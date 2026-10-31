@@ -32,7 +32,7 @@ import java.util.List;
  *   <li>候補はハードモードの抽選表（Sections.hardTable）。1回の中では全部別の敵（回をまたいだ重複は可）。</li>
  *   <li>召喚は 3!3!2 と同じ通常の出現処理（ハードの強化・セクション外の扱いもそのまま）。
  *       排他グループ・同時出現の規則・生存中チェック・PLACEHOLDER-2147483648 の出現ブロックは無視。
- *       ただし GK-65 の「1つの扉に1体」だけは残る（GKDetentionEntity.prepare）。</li>
+ *       ただし S-65 の「1つの扉に1体」だけは残る（GKDetentionEntity.prepare）。</li>
  * </ol>
  * 状態は NBT に保存。
  */
