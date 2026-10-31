@@ -32,7 +32,7 @@ public abstract class BRusher extends VPathWalker {
     /** 折り返す回数。 */
     protected int maxRebounds() { return 0; }
     /** 実際の折り返し回数（ハードで出現したら折り返す種類だけ +HardMode.EXTRA_TURNS）。 */
-    protected final int rebounds() { int n = maxRebounds(); return n > 0 && hardSpawn ? n + com.example.roomsmod.world.HardMode.EXTRA_TURNS : n; }
+    protected final int rebounds() { if (inAbyss()) return 0; int n = maxRebounds(); return n > 0 && hardSpawn ? n + com.example.roomsmod.world.HardMode.EXTRA_TURNS : n; }
     /** 終点で先頭に戻ってもう一度通る回数。 */
     protected int extraPasses() { return 0; }
     /** 折り返し・再通過の前の待ち。 */
@@ -46,8 +46,12 @@ public abstract class BRusher extends VPathWalker {
     @Override protected int graceTicks() { return 70; }
     @Override protected float damage() { return 40f; }
 
+    @Override public boolean canChaseInAbyss() { return true; }
+
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
+        // A の縦穴：上から縦に追ってきて、追い越したら数部屋奥へ消える（折り返し・再通過なし）
+        if (com.example.roomsmod.world.AbyssSpace.isAbyssRoom(rs, playerRoom)) return prepareAbyss(rs, playerRoom, Math.max(3, roomsBehind()));
         return placeAtStart(rs, Math.max(0, playerRoom - roomsBehind()), Math.min(rs.roomPaths.size() - 1, playerRoom + roomsAhead()));
     }
 
@@ -73,6 +77,7 @@ public abstract class BRusher extends VPathWalker {
 
     @Override
     protected boolean onPathEnd(ServerLevel level) {
+        if (inAbyss()) return false; // 縦穴では折り返さない（深いところへ消える）
         if (rebounds < rebounds()) {
             rebounds++; pause = turnPause(); stopped = false;
             reversePath();

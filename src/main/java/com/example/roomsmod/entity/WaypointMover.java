@@ -20,13 +20,28 @@ public final class WaypointMover {
 
     /** @return 新しい waypointIndex。target に到達していれば reached[0]=true。 */
     public int step(Entity e, String name, List<BlockPos> wps, int index, int target, double speed, boolean[] reached) {
+        return step(e, name, e.position(), v -> e.setPos(v.x, v.y, v.z), false, wps, index, target, speed, reached);
+    }
+
+    /** これより遠い経由点へは歩かずに跳ぶ（A の縦穴の仮想座標と普通の部屋の継ぎ目など）。 */
+    public static final double JUMP_DIST = 96;
+
+    /**
+     * from（仮想座標など）から動かし、結果を apply に渡す。snapFar なら JUMP_DIST より遠い経由点へはその場で跳ぶ。
+     */
+    public int step(Entity e, String name, Vec3 from, java.util.function.Consumer<Vec3> apply, boolean snapFar, List<BlockPos> wps, int index, int target, double speed, boolean[] reached) {
         reached[0] = false;
         if (wps.isEmpty()) { reached[0] = true; return index; }
         index = Math.max(0, Math.min(index, wps.size() - 1));
         target = Math.max(0, Math.min(target, wps.size() - 1));
         int startIndex = index;
-        Vec3 pos = e.position();
+        Vec3 pos = from;
+        Vec3 start = from;
         double budget = speed;
+        if (snapFar && Vec3.atBottomCenterOf(wps.get(index)).distanceTo(pos) > JUMP_DIST) {
+            RoomsDebug.log("{} jump to far waypoint {}/{} {}", name, index, wps.size(), wps.get(index));
+            pos = Vec3.atBottomCenterOf(wps.get(index));
+        }
         while (true) {
             Vec3 goal = Vec3.atBottomCenterOf(wps.get(index));
             double dist = goal.distanceTo(pos);
@@ -41,7 +56,7 @@ public final class WaypointMover {
                 break;
             }
         }
-        if (index != startIndex || reached[0] || pos.distanceToSqr(e.position()) > 1.0E-4) lastProgressTick = e.tickCount;
+        if (index != startIndex || reached[0] || pos.distanceToSqr(start) > 1.0E-4) lastProgressTick = e.tickCount;
         if (!reached[0] && index == startIndex && e.tickCount - lastProgressTick >= STUCK_TICKS) {
             BlockPos snap = wps.get(index);
             RoomsDebug.log("{} stuck watchdog: no progress for {} ticks at waypoint {}/{} pos=({}, {}, {}) -> snapping to {}",
@@ -52,7 +67,7 @@ public final class WaypointMover {
             else index += Integer.signum(target - index);
             lastProgressTick = e.tickCount;
         }
-        e.setPos(pos.x, pos.y, pos.z);
+        apply.accept(pos);
         e.setDeltaMovement(Vec3.ZERO);
         return index;
     }

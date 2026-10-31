@@ -225,8 +225,13 @@ public class DoorEventHandler {
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("rusher roll room={} skipped: PLACEHOLDER-2147483648 alive", room); return; }
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         boolean hard = rs.hardMode;
-        // A（Abyss）は床・扉のない縦穴なので、ハードでも A の表だけを使う（確率の倍率などハードの強化はそのまま）
-        var table = hard && theme != com.example.roomsmod.world.section.Sections.A ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        var table = hard ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        // A（Abyss）は床・扉のない縦穴：通常は A 専用の敵だけ、ハードはほかのセクションの敵のうち縦に追ってこられる種類だけ（AbyssSpace.allowedInAbyss）
+        if (theme == com.example.roomsmod.world.section.Sections.A) {
+            var t2 = new java.util.ArrayList<com.example.roomsmod.world.section.SectionTheme.RusherSpawn>();
+            for (var r : table) if (com.example.roomsmod.world.AbyssSpace.allowedInAbyss(level, r.name(), hard)) t2.add(r);
+            table = t2;
+        }
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
@@ -315,6 +320,7 @@ public class DoorEventHandler {
     public static boolean spawnA40(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return false;
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-40 spawn blocked: PLACEHOLDER-2147483648 alive"); return false; }
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-40")) return false;
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
@@ -338,6 +344,7 @@ public class DoorEventHandler {
     public static void spawnA20(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return;
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-20 spawn blocked: PLACEHOLDER-2147483648 alive"); return; }
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-20")) return;
         // プレイヤーがいるのは直前の部屋（index = room - 1）。そこから約N部屋後ろ。
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);

@@ -26,6 +26,7 @@ public class U200Entity extends URusher {
 
     public U200Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "U-200"; }
+    @Override public boolean canChaseInAbyss() { return false; } // 落ちる速さより遅い
     @Override protected int maxLifeTicks() { return LIFE; }
     @Override protected double speed() { return seesSomeone ? SPEED : LOST_SPEED; }
     @Override protected double baseAccel() { return ACCEL; }

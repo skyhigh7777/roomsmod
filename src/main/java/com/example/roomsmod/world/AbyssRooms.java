@@ -67,12 +67,12 @@ public final class AbyssRooms {
     /** 縦穴の層の数（層0=上、層1=プレイヤーが落ちる層、層2・3=下に見える層）。 */
     public static final int SEGMENTS = 4;
     /** 最下層の下の余白（ここは常に空、底は黒い床）。 */
-    static final int BOTTOM_GAP = 4;
-    /** 落下速度の上限（ブロック/tick）。12 ブロック/秒。スニーク中はこの半分。 */
-    public static final double MAX_FALL = 0.6, MAX_FALL_SNEAK = 0.3;
+    public static final int BOTTOM_GAP = 4;
+    /** 落下速度の上限（ブロック/tick）。5 ブロック/秒（1 部屋 約 2.4 秒）。スニーク中はこの半分。 */
+    public static final double MAX_FALL = 0.25, MAX_FALL_SNEAK = 0.125;
 
     // ローカル座標（小部屋の origin から）。縦穴の内側 x 8..12, z 3..7、壁は 3 ブロック厚（x 5..15, z 0..10）
-    static final int CX = 10, CZ = 5, IN = 2, X0 = 5, X1 = 15, Z0 = 0, Z1 = 10;
+    public static final int CX = 10, CZ = 5, IN = 2, X0 = 5, X1 = 15, Z0 = 0, Z1 = 10;
     /** 看板と照明の層内の高さ（層の底から）。 */
     static final int SIGN_OFF = 9, TORCH_OFF = 3;
     /** 横穴の床の層内の高さの範囲（底から）。床+4 が天井で層内に収まる。 */
@@ -86,6 +86,8 @@ public final class AbyssRooms {
         final Alcove[] shown = new Alcove[SEGMENTS];
         final int[] shownRoom = new int[SEGMENTS];
         boolean built = false, sealed = false;
+        /** 今ブロックで見えている層1の部屋（先頭）。保存しない（AbyssSpace.lead が補う）。 */
+        int lead = Integer.MIN_VALUE;
 
         Shaft(int ox, int oy, int oz, int entryRoom, int bottomY) { this.ox = ox; this.oy = oy; this.oz = oz; this.entryRoom = entryRoom; this.bottomY = bottomY; }
 
@@ -97,15 +99,15 @@ public final class AbyssRooms {
 
         public static Shaft load(CompoundTag t) { return new Shaft(t.getInt("x"), t.getInt("y"), t.getInt("z"), t.getInt("entry"), t.getInt("bottom")); }
 
-        BlockPos at(int x, int y, int z) { return new BlockPos(ox + x, y, oz + z); }
+        public BlockPos at(int x, int y, int z) { return new BlockPos(ox + x, y, oz + z); }
         /** 層 k のいちばん上のブロックの y。 */
-        int segTop(int k) { return oy - 1 - k * L; }
-        int segBottom(int k) { return segTop(k) - L + 1; }
+        public int segTop(int k) { return oy - 1 - k * L; }
+        public int segBottom(int k) { return segTop(k) - L + 1; }
         /** 足がこの y より下（層2）に入ったら 1 周。 */
         int loopY() { return segBottom(1); }
 
         /** 縦穴（と小部屋）の水平範囲・高さの範囲に入っているか。 */
-        boolean contains(Vec3 p) {
+        public boolean contains(Vec3 p) {
             return p.x >= ox + X0 && p.x < ox + X1 + 1 && p.z >= oz + Z0 && p.z < oz + Z1 + 1 && p.y >= bottomY && p.y < oy + 6;
         }
         /** 縦穴の中（小部屋の床より下）か。 */
@@ -317,6 +319,7 @@ public final class AbyssRooms {
                 s.shownRoom[k] = room;
             }
             s.built = true;
+            s.lead = lead;
             // 最初の部屋より先へ進んだら、小部屋の穴をふさぐ（上へは戻れない）
             boolean seal = lead > s.entryRoom;
             if (seal != s.sealed || force) {
@@ -363,7 +366,15 @@ public final class AbyssRooms {
 
     public static void init(IEventBus modBus) {
         modBus.addListener((RegisterPayloadHandlersEvent e) -> e.registrar("1").playToClient(AbyssPayload.TYPE, AbyssPayload.STREAM_CODEC,
-                (msg, ctx) -> ctx.enqueueWork(() -> clientActive = msg.active())));
+                (msg, ctx) -> ctx.enqueueWork(() -> clientActive = msg.active()))
+                .playToClient(AbyssSpace.ShiftPayload.TYPE, AbyssSpace.ShiftPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> AbyssSpace.clientShift.accept(msg))));
+    }
+
+    /** プレイヤーの今の部屋（縦穴の中）。わからなければ fallback。 */
+    public static int roomOf(net.minecraft.world.entity.player.Player p, int fallback) {
+        Integer r = ROOM.get(p.getUUID());
+        return r != null ? r : fallback;
     }
 
     private static void setActive(ServerPlayer p, boolean on) {
@@ -415,6 +426,7 @@ public final class AbyssRooms {
         sp.fallDistance = 0;
         LAST.put(id, sp.position());
         ROOM.put(id, next);
+        if (generated) AbyssSpace.afterLoop(level, rs, s); // 敵（とパーティクル）も同じだけ上へ：位置関係を保つ
         int loops = LOOPS.merge(id, 1, Integer::sum);
         if (RoomsDebug.isEnabled()) {
             int depth = (next - s.entryRoom) * L + (s.oy - (int) Math.floor(sp.getY()));

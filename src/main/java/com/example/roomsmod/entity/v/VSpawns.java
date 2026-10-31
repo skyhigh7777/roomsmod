@@ -88,6 +88,7 @@ public final class VSpawns {
                 if ((k == this || sharesGroup(exclusionGroup, k.exclusionGroup)) && isAlive(level, k.type.get())) return true;
             return false;
         }
+        public static Kind byDisplay(String name) { for (Kind k : values()) if (k.display.equals(name)) return k; return null; }
         public static Kind byId(String id) { for (Kind k : values()) if (k.id.equals(id)) return k; return null; }
         public boolean spawn(ServerLevel level, RoomsState rs, Player player) { return VSpawns.spawn(this, level, rs, player); }
     }
@@ -117,6 +118,8 @@ public final class VSpawns {
         if (rs.roomPaths.isEmpty()) { RoomsDebug.warn("{} spawn skipped: no rooms", k.display); return false; }
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("{} spawn blocked: PLACEHOLDER-2147483648 alive", k.display); return false; }
         int room = playerRoom(rs, player);
+        // A の縦穴：通常は A 専用の敵だけ、ハードは縦に追ってこられる種類だけ（コマンドは制限なし）
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, room, k.display)) return false;
         VEntity e = k.type.get().create(level);
         if (e == null) { RoomsDebug.warn("{} spawn failed: create returned null", k.display); return false; }
         if (e.targetsOpenedRoom()) room = Math.min(room + 1, rs.roomPaths.size() - 1);

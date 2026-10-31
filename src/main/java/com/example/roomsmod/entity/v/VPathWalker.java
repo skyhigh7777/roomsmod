@@ -29,6 +29,8 @@ public abstract class VPathWalker extends VEntity {
     /** 加減速つきの今の速度（ブロック/tick）。accel() <= 0 の種類は使わない。 */
     protected double curSpeed = 0;
     private List<BlockPos> wps = null;
+    /** 経路の末尾に、A の縦穴で数部屋奥まで伸ばした点を足しているか（AbyssSpace.AHEAD_ROOMS）。 */
+    private boolean abyssTail = false;
     private final WaypointMover mover = new WaypointMover();
     private final boolean[] reached = new boolean[1];
 
@@ -91,7 +93,7 @@ public abstract class VPathWalker extends VEntity {
     /** 今の位置から経路の終点までの距離（経由点に沿って）。 */
     private double remainingDistance(List<BlockPos> w) {
         if (w.isEmpty() || waypointIndex >= w.size()) return 0;
-        net.minecraft.world.phys.Vec3 at = position();
+        net.minecraft.world.phys.Vec3 at = virtualPos();
         double sum = 0;
         for (int i = waypointIndex; i < w.size(); i++) {
             net.minecraft.world.phys.Vec3 g = net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(i));
@@ -103,6 +105,29 @@ public abstract class VPathWalker extends VEntity {
     }
 
     /**
+     * 部屋 lo..hi の経路（A の縦穴は仮想座標）。forward で終点が A の部屋なら、さらに AHEAD_ROOMS 部屋奥（の縦穴の底）まで伸ばす
+     * （プレイヤーを追い越したら、すぐ前で消えたり折り返したりせず、深いところへ消えていくように）。
+     */
+    private List<BlockPos> buildPath(RoomsState rs, int lo, int hi, boolean forward) {
+        abyssTail = false;
+        if (rs.abyss == null) return pathOf(rs, lo, hi);
+        List<BlockPos> w = com.example.roomsmod.world.AbyssSpace.pathOf(rs, lo, hi);
+        if (forward && com.example.roomsmod.world.AbyssSpace.isAbyssRoom(rs, hi)) {
+            w.add(com.example.roomsmod.world.AbyssSpace.roomBottom(rs.abyss, hi + com.example.roomsmod.world.AbyssSpace.AHEAD_ROOMS));
+            abyssTail = true;
+        }
+        return w;
+    }
+
+    /** A の縦穴の中での出現：プレイヤーの部屋の above 部屋上（縦穴の上）から、プレイヤーの部屋へ向かって縦に追ってくる。 */
+    protected BlockPos prepareAbyss(RoomsState rs, int playerRoom, int above) {
+        int from = Math.max(rs.abyss.entryRoom, playerRoom - Math.max(1, above));
+        BlockPos at = placeAtStart(rs, from, playerRoom);
+        RoomsDebug.log("{} prepare (abyss, from above) playerRoom={} rooms {}->{} (+{} deeper)", vName(), playerRoom, from, playerRoom, com.example.roomsmod.world.AbyssSpace.AHEAD_ROOMS);
+        return at;
+    }
+
+    /**
      * 経路を部屋 from → to に張り替える（from > to なら逆向き）。今の位置から走り出す（ワープしない）。
      * 前向き（to >= from）なら、以後も新しい部屋ができると延長する。
      */
@@ -111,7 +136,7 @@ public abstract class VPathWalker extends VEntity {
         int last = Math.max(0, rs.roomPaths.size() - 1);
         from = Math.max(0, Math.min(from, last)); to = Math.max(0, Math.min(to, last));
         startRoom = from; endRoom = to;
-        List<BlockPos> w = pathOf(rs, Math.min(from, to), Math.max(from, to));
+        List<BlockPos> w = buildPath(rs, Math.min(from, to), Math.max(from, to), to >= from);
         if (to < from) java.util.Collections.reverse(w);
         wps = w;
         waypointIndex = 0;
@@ -122,7 +147,7 @@ public abstract class VPathWalker extends VEntity {
         if (wps == null && level() instanceof ServerLevel sl) {
             RoomsState rs = RoomsState.get(sl);
             boolean rev = endRoom < startRoom;
-            wps = pathOf(rs, Math.min(startRoom, endRoom), Math.max(startRoom, endRoom));
+            wps = new ArrayList<>(buildPath(rs, Math.min(startRoom, endRoom), Math.max(startRoom, endRoom), !rev));
             if (rev) java.util.Collections.reverse(wps);
             waypointIndex = Math.min(waypointIndex, wps.size());
         }
@@ -140,7 +165,20 @@ public abstract class VPathWalker extends VEntity {
         int last = rs.roomPaths.size() - 1;
         if (last <= endRoom) return w;
         int before = wps.size();
-        for (BlockPos p : pathOf(rs, endRoom + 1, last))
+        if (abyssTail && !wps.isEmpty()) {
+            boolean allAbyss = true;
+            for (int i = endRoom + 1; i <= last; i++) if (!com.example.roomsmod.world.AbyssSpace.isAbyssRoom(rs, i)) { allAbyss = false; break; }
+            if (allAbyss) { // 縦穴は 1 本の線：末尾の点を深くするだけ（もう通り過ぎた点へ戻らない）
+                wps.set(wps.size() - 1, com.example.roomsmod.world.AbyssSpace.roomBottom(rs.abyss, last + com.example.roomsmod.world.AbyssSpace.AHEAD_ROOMS));
+                endRoom = last;
+                RoomsDebug.log("{} abyss path deepened to room {}", vName(), last + com.example.roomsmod.world.AbyssSpace.AHEAD_ROOMS);
+                return wps;
+            }
+            wps.remove(wps.size() - 1);
+            waypointIndex = Math.min(waypointIndex, wps.size());
+        }
+        List<BlockPos> more = buildPath(rs, endRoom + 1, last, true);
+        for (BlockPos p : more)
             if (wps.isEmpty() || !wps.get(wps.size() - 1).equals(p)) wps.add(p);
         endRoom = last;
         RoomsDebug.log("{} path extended to room {} (+{} waypoints)", vName(), last, wps.size() - before);
@@ -163,7 +201,7 @@ public abstract class VPathWalker extends VEntity {
         if (wps == null || wps.isEmpty()) return;
         waypointIndex = 0;
         BlockPos s = wps.get(0);
-        setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
+        setVirtualPos(new net.minecraft.world.phys.Vec3(s.getX() + 0.5, s.getY(), s.getZ() + 0.5));
     }
 
     /** 経路の長さ（まだ読み込んでいなければ 0）。 */
@@ -172,11 +210,11 @@ public abstract class VPathWalker extends VEntity {
     /** startRoom→endRoom の経路の先頭に置く。 */
     protected BlockPos placeAtStart(RoomsState rs, int from, int to) {
         startRoom = from; endRoom = to; wps = null;
-        List<BlockPos> w = pathOf(rs, Math.min(from, to), Math.max(from, to));
+        List<BlockPos> w = buildPath(rs, Math.min(from, to), Math.max(from, to), to >= from);
         if (w.isEmpty()) return null;
         BlockPos s = to < from ? w.get(w.size() - 1) : w.get(0);
-        setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
-        return s;
+        setVirtualPos(new net.minecraft.world.phys.Vec3(s.getX() + 0.5, s.getY(), s.getZ() + 0.5));
+        return blockPosition(); // 実際の位置（チャンクの読み込み用）
     }
 
     @Override
@@ -195,10 +233,14 @@ public abstract class VPathWalker extends VEntity {
             if (chainsOnFinish()) com.example.roomsmod.world.HardMode.chainReroll(level, vName());
             return;
         }
-        int idx = mover.step(this, vName(), w, waypointIndex, w.size() - 1, stepSpeed(w), reached);
-        if (idx < w.size()) faceTowards(net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(idx)));
+        boolean abyss = RoomsState.get(level).abyss != null;
+        int idx = abyss
+                ? mover.step(this, vName(), virtualPos(), this::setVirtualPos, true, w, waypointIndex, w.size() - 1, stepSpeed(w), reached)
+                : mover.step(this, vName(), w, waypointIndex, w.size() - 1, stepSpeed(w), reached);
+        if (idx < w.size()) faceTowards(position().add(net.minecraft.world.phys.Vec3.atBottomCenterOf(w.get(idx)).subtract(virtualPos())));
         waypointIndex = reached[0] ? w.size() : idx;
-        for (Player p : playersNear(hitRange())) RusherHits.tryHit(this, vName(), p, canSee(p), damage());
+        // 縦穴の中では仮想座標どうしの距離・視線（ループしても位置関係はそのまま）
+        for (Player p : playersNearVirtual(hitRange())) RusherHits.tryHit(this, vName(), p, canSeeVirtual(p), damage());
     }
 
     @Override
@@ -212,6 +254,7 @@ public abstract class VPathWalker extends VEntity {
         super.addAdditionalSaveData(tag);
         tag.putInt("EndRoom", endRoom); tag.putInt("WaypointIndex", waypointIndex); tag.putInt("Grace", grace);
         tag.putDouble("CurSpeed", curSpeed);
+        tag.putBoolean("AbyssTail", abyssTail);
     }
 
     @Override

@@ -49,9 +49,9 @@ public class RoomsCommands {
         }
         var player = src.getPlayer();
         if (a40) {
-            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
+            if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player))) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
         } else {
-            com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player);
+            com.example.roomsmod.world.AbyssSpace.asCommand(() -> { com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player); return true; });
         }
         src.sendSuccess(() -> Component.literal((a40 ? "B-40" : "B-20") + "を出現させたわ"), true);
         return 1;
@@ -72,7 +72,7 @@ public class RoomsCommands {
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(lv)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
         if (k.alive(lv)) { src.sendFailure(Component.literal(k.display + "（または同じ排他グループ）はすでに生存中よ")); return 0; }
         com.example.roomsmod.util.RoomsDebug.log("force spawn {} by {}", k.display, src.getTextName());
-        if (!k.spawn(lv, rs, src.getPlayer())) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
+        if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> k.spawn(lv, rs, src.getPlayer()))) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
         src.sendSuccess(() -> Component.literal(k.display + "を出現させたわ"), true);
         return 1;
     }

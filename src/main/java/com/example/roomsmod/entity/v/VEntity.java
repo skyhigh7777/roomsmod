@@ -27,7 +27,7 @@ import java.util.List;
  * V（Village）区画のエンティティ共通部分：物理なし・重力なし・自然消滅なし、チャンクチケット、
  * デバッグ時のみ発光、寿命（MAX_LIFE_TICKS 経過で必ず消える）、視線判定、保存。
  */
-public abstract class VEntity extends Mob {
+public abstract class VEntity extends Mob implements com.example.roomsmod.world.AbyssSpace.Tracked {
     /** どの V エンティティも最終的にこの tick 数で消える（取り残し防止）。 */
     public static final int MAX_LIFE_TICKS = 20 * 120;
 
@@ -40,6 +40,10 @@ public abstract class VEntity extends Mob {
     private ChunkPos lastForcedChunk = null;
     /** 最後に tick した時刻（ゲーム時間）。止まっている個体の検出用。保存しない。 */
     private long lastTickTime = Long.MIN_VALUE;
+    /** A の縦穴の仮想座標（AbyssSpace）。null なら実際の位置そのもの。 */
+    protected Vec3 vpos = null;
+    /** 仮想座標が縦穴の見えている範囲の外で、隠れた位置に置いているか。 */
+    protected final boolean[] abyssHidden = new boolean[1];
 
     /** この tick 数以上 tick していない個体は「生存中」として扱わない（排他・出現ブロックが古い個体で詰まらないように）。 */
     public static final int STALE_ALIVE_TICKS = 100;
@@ -98,6 +102,7 @@ public abstract class VEntity extends Mob {
         boolean glow = dbg || wantsGlow();
         if (hasGlowingTag() != glow) setGlowingTag(glow); // 輪郭はデバッグ時のみ（wantsGlow で個別に光らせる）
         if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
+        if (vpos != null) abyssResync(sl, RoomsState.get(sl));
         serverTick(sl);
         // 1 tick で遠くへ動いた（ワープ・高速移動）なら、その場でチケットを移して読み込む。
         // 次の tick の先頭まで待つと、チケットのないチャンクに入って tick されなくなり、二度と追従できない
@@ -212,6 +217,7 @@ public abstract class VEntity extends Mob {
         tag.putInt("StartRoom", startRoom);
         tag.putBoolean("HardSpawn", hardSpawn);
         tag.putBoolean("OffSection", offSection);
+        if (vpos != null) { tag.putDouble("AbyssVX", vpos.x); tag.putDouble("AbyssVY", vpos.y); tag.putDouble("AbyssVZ", vpos.z); }
     }
 
     @Override
@@ -221,6 +227,84 @@ public abstract class VEntity extends Mob {
         startRoom = tag.getInt("StartRoom");
         hardSpawn = tag.getBoolean("HardSpawn");
         offSection = tag.getBoolean("OffSection");
+        vpos = tag.contains("AbyssVY") ? new Vec3(tag.getDouble("AbyssVX"), tag.getDouble("AbyssVY"), tag.getDouble("AbyssVZ")) : null;
+    }
+
+    // ---- A の縦穴（仮想座標） ----
+
+    /** ハードモードで A の縦穴に出てよい（上から縦に追ってくる動きにできる）ほかのセクションの種類か。 */
+    public boolean canChaseInAbyss() { return false; }
+
+    /** A 専用の種類か（通常モードの A に出てよいのはこれだけ）。 */
+    public boolean isAbyssNative() { return false; }
+
+    /** 移動の計算に使う位置（縦穴の中なら仮想座標）。 */
+    public final Vec3 virtualPos() { return vpos != null ? vpos : position(); }
+
+    /** 仮想座標で動かす（縦穴がなければ普通に setPos）。実際の位置は AbyssSpace.toPhysical。 */
+    protected final void setVirtualPos(Vec3 v) {
+        if (level() instanceof ServerLevel sl) {
+            RoomsState rs = RoomsState.get(sl);
+            if (rs.abyss != null) {
+                vpos = v;
+                Vec3 p = com.example.roomsmod.world.AbyssSpace.toPhysical(rs, v, abyssHidden);
+                setPos(p.x, p.y, p.z);
+                return;
+            }
+        }
+        vpos = null;
+        abyssHidden[0] = false;
+        setPos(v.x, v.y, v.z);
+    }
+
+    /** 縦穴の仮想座標で動いているか。 */
+    public final boolean inAbyss() {
+        return vpos != null && level() instanceof ServerLevel sl && com.example.roomsmod.world.AbyssSpace.isShaftVirtual(RoomsState.get(sl), vpos);
+    }
+
+    @Override
+    public double abyssResync(ServerLevel level, RoomsState rs) {
+        if (vpos == null || !com.example.roomsmod.world.AbyssSpace.isShaftVirtual(rs, vpos)) return 0;
+        Vec3 p = com.example.roomsmod.world.AbyssSpace.toPhysical(rs, vpos, abyssHidden);
+        double dy = p.y - getY();
+        if (Math.abs(dy) < 1.0E-6 && Math.abs(p.x - getX()) < 1.0E-6 && Math.abs(p.z - getZ()) < 1.0E-6) return 0;
+        setPos(p.x, p.y, p.z);
+        return dy;
+    }
+
+    /** 半径内の生存プレイヤー（縦穴の中なら仮想座標どうしの距離）。 */
+    protected List<Player> playersNearVirtual(double r) {
+        if (vpos == null || !(level() instanceof ServerLevel sl)) return playersNear(r);
+        RoomsState rs = RoomsState.get(sl);
+        List<Player> out = new ArrayList<>();
+        for (Player p : sl.players())
+            if (!p.isSpectator() && p.isAlive() && com.example.roomsmod.world.AbyssSpace.playerVirtual(rs, p).distanceTo(vpos) <= r) out.add(p);
+        return out;
+    }
+
+    /** 仮想座標でのプレイヤーとの距離。 */
+    protected double virtualDistanceTo(Player p) {
+        if (vpos == null || !(level() instanceof ServerLevel sl)) return distanceTo(p);
+        return com.example.roomsmod.world.AbyssSpace.playerVirtual(RoomsState.get(sl), p).distanceTo(vpos);
+    }
+
+    /**
+     * 縦穴の中の視線：プレイヤーから見た仮想の位置関係のまま、縦穴の中（見えている範囲）に置き直した目の位置から判定する
+     * （縦穴は同じ層の繰り返しなので、どの層で調べても同じ）。縦穴の外なら canSee。
+     */
+    public boolean canSeeVirtual(Player target) {
+        if (vpos == null || !(level() instanceof ServerLevel sl)) return canSee(target);
+        RoomsState rs = RoomsState.get(sl);
+        var s = rs.abyss;
+        if (s == null) return canSee(target);
+        Vec3 pe = target.getEyePosition();
+        Vec3 pv = com.example.roomsmod.world.AbyssSpace.playerVirtual(rs, target, pe);
+        Vec3 a = pe.add(vpos.add(0, getEyeHeight(), 0).subtract(pv));
+        double lo = s.bottomY + 1.2, hi = s.oy - 1.2;
+        double cx = s.ox + com.example.roomsmod.world.AbyssRooms.CX + 0.5, cz = s.oz + com.example.roomsmod.world.AbyssRooms.CZ + 0.5, in = com.example.roomsmod.world.AbyssRooms.IN + 0.4;
+        a = new Vec3(Math.max(cx - in, Math.min(cx + in, a.x)), Math.max(lo, Math.min(hi, a.y)), Math.max(cz - in, Math.min(cz + in, a.z)));
+        BlockHitResult hit = level().clip(new ClipContext(a, pe, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        return hit.getType() == HitResult.Type.MISS || a.distanceTo(hit.getLocation()) >= a.distanceTo(pe) - 0.5;
     }
 
     // ---- helpers ----

@@ -100,7 +100,7 @@ public class ExtraboxEntity extends VEntity {
             try {
                 for (SectionTheme.RusherSpawn r : chosen) {
                     try {
-                        if (r.spawn().spawn(level, rs, front)) ok++; else failed.add(r.name());
+                        if (com.example.roomsmod.world.AbyssSpace.asCommand(() -> r.spawn().spawn(level, rs, front))) ok++; // コマンド専用の枠：A の制限なし else failed.add(r.name());
                     } catch (RuntimeException e) { failed.add(r.name()); RoomsDebug.error(ALIAS + " -> " + r.name() + " spawn failed", e); }
                 }
             } finally { Placeholder2147483648Entity.bypassBlock(false); }
