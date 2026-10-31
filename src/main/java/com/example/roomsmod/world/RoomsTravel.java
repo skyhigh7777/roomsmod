@@ -34,7 +34,7 @@ public final class RoomsTravel {
 
     public static boolean start(ServerLevel lv, ServerPlayer p, int n) {
         if (busy()) { p.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return false; }
-        BlockPos origin = new BlockPos(0, 1, 0);
+        BlockPos origin = RoomsLayout.LOBBY_ORIGIN;
         BlockPos lobbyExit = RoomGenerator.generateLobby(lv, origin);
         RoomsState.get(lv).markDoorGenerated(lobbyExit);
         level = lv; player = p.getUUID(); playerRef = p; target = n; next = 1; startedMs = System.currentTimeMillis();

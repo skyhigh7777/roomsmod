@@ -22,7 +22,8 @@ import java.util.List;
  * 状態は RoomsState（SavedData）に永続化。リセットはロビー生成（/rooms enter, /rooms to）時のみ。
  */
 public class DoorEventHandler {
-    public static final int baseFloorY = 1;
+    /** ロビーの床の y（RoomsLayout.LOBBY_Y。未使用だが互換のため残す）。 */
+    public static final int baseFloorY = com.example.roomsmod.world.RoomsLayout.LOBBY_Y;
     /** B-20 が出現する、プレイヤーから何部屋後ろか。 */
     public static final int A20_ROOMS_BEHIND = 10;
     /** GK 区画で1回の抽選で出る最大数。 */

@@ -39,7 +39,7 @@ public final class LobbyPanels {
 
     public static final int MAX_ROOM = 500;
     public static final int[] STEPS = {1, 50, 100, 150, 200, 250, 300, 400, 500};
-    static final BlockPos ORIGIN = new BlockPos(0, 1, 0);
+    static final BlockPos ORIGIN = RoomsLayout.LOBBY_ORIGIN;
 
     enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD }
 

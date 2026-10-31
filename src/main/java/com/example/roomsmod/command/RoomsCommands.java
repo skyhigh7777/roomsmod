@@ -133,13 +133,13 @@ public class RoomsCommands {
     public static boolean sendToLobby(ServerPlayer player) {
         ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) return false;
-        player.teleportTo(roomsLevel, 10.5, 2, 16.5, 0, 0);
+        player.teleportTo(roomsLevel, com.example.roomsmod.world.RoomsLayout.SPAWN_X, com.example.roomsmod.world.RoomsLayout.SPAWN_Y, com.example.roomsmod.world.RoomsLayout.SPAWN_Z, 0, 0);
         // /rooms to の生成中にロビーを作り直すと進行表が途中で消え、部屋番号がずれる（死亡→リスポーン等）。生成中は移動だけ
         if (com.example.roomsmod.world.RoomsTravel.busy()) {
             com.example.roomsmod.util.RoomsDebug.log("send to lobby {}: rooms-to in progress -> teleport only (no lobby reset)", player.getGameProfile().getName());
             return true;
         }
-        com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, new BlockPos(0, 1, 0));
+        com.example.roomsmod.world.RoomGenerator.generateLobby(roomsLevel, com.example.roomsmod.world.RoomsLayout.LOBBY_ORIGIN);
         return true;
     }
 
