@@ -54,7 +54,7 @@ import java.util.UUID;
  *       位置・向き・速度をそのまま {@value #L} ブロック上へ相対テレポート（層1の同じ場所）して 1 部屋進む。</li>
  *   <li>層 k の中身（横穴・ロッカー・番号の看板）は「先頭のプレイヤーの部屋 + (k - 1)」の部屋のもの。1 周ごとに中身を 1 層ぶん上へずらすので、
  *       テレポートの前後で周りの見た目は同じ（ブロックの差し替えはテレポートより先にクライアントへ送る）。</li>
- *   <li>横穴（ロッカー2つ）は 2〜3 部屋ごと。落ちながら横へ動いて入る。最初の 1 周で小部屋の穴をふさぐ（上へは戻れない）。</li>
+ *   <li>横穴（ロッカー2つ）は 2〜3 部屋ごと。落ちながら横穴の高さで壁の方へ動いて入る（縦穴の列には何も置かない＝途中で止まらない）。最初の 1 周で小部屋の穴をふさぐ（上へは戻れない）。</li>
  *   <li>縦穴の中では落下ダメージなし。落下速度の上限（約 12 ブロック/秒、スニーク中は約半分）はクライアント側（ClientAbyss / AbyssClient）。</li>
  * </ul>
  */
@@ -213,8 +213,9 @@ public final class AbyssRooms {
     private static void alcove(ServerLevel level, Shaft s, int k, Alcove a, boolean remove, List<BlockPos> changed) {
         int fy = s.segBottom(k) + a.off();
         BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
-        // 張り出し（縦穴の内側の壁沿い 1 列、着地しやすく）
-        for (int dx = -1; dx <= 1; dx++) set(level, rot(s, a.side(), dx, fy, -IN), remove ? air : floor(), changed);
+        // 縦穴の内側（落ちる列）には何も置かない：壁沿いに落ちているプレイヤーが乗って止まらないように。
+        // 横穴へは、横穴の高さで壁の方へ動けば横穴の床に乗れる（古い張り出しが残っていれば消す）
+        for (int dx = -1; dx <= 1; dx++) set(level, rot(s, a.side(), dx, fy, -IN), air, changed);
         // 横穴の中（奥行き 2、幅 3、高さ 3）
         for (int dz = -IN - 1; dz >= -IN - 2; dz--) for (int dx = -1; dx <= 1; dx++) for (int y = 1; y <= 3; y++)
             set(level, rot(s, a.side(), dx, fy + y, dz), remove ? w : air, changed);
@@ -294,17 +295,62 @@ public final class AbyssRooms {
         return z ^ (z >>> 31);
     }
 
-    /** 横穴の範囲にプレイヤーがいる（隠れている）か。いれば、その層は作り直さない。 */
+    /** 層 k の横穴 a の中（縦穴の列は含まない：床〜天井、奥行き 2）の範囲。 */
+    private static net.minecraft.world.phys.AABB alcoveInterior(Shaft s, int k, Alcove a) {
+        int fy = s.segBottom(k) + a.off();
+        BoundingBox b = BoundingBox.fromCorners(rot(s, a.side(), -1, fy, -IN - 1), rot(s, a.side(), 1, fy + 4, -IN - 2));
+        return new net.minecraft.world.phys.AABB(b.minX(), b.minY(), b.minZ(), b.maxX() + 1, b.maxY() + 1, b.maxZ() + 1);
+    }
+
+    /** プレイヤーの体が今見えているどれかの横穴の中にかかっているか（横穴に立っている・入りかけ）。 */
+    private static boolean inAnyAlcove(Shaft s, ServerPlayer p) {
+        net.minecraft.world.phys.AABB bb = p.getBoundingBox().inflate(0.05);
+        for (int k = 0; k < SEGMENTS; k++) if (s.shown[k] != null && alcoveInterior(s, k, s.shown[k]).intersects(bb)) return true;
+        return false;
+    }
+
+    /**
+     * 横穴の中にプレイヤーがいる（隠れている）か。いれば、その層は作り直さない。
+     * 縦穴の列（壁沿いに落ちているだけ）は含めない：通りかかっただけで層の更新が止まらないように。
+     */
     private static boolean occupied(ServerLevel level, Shaft s, int k, Alcove a) {
         if (a == null) return false;
-        int fy = s.segBottom(k) + a.off();
-        BoundingBox box = BoundingBox.fromCorners(rot(s, a.side(), -1, fy, -IN), rot(s, a.side(), 1, fy + 4, -IN - 2));
+        net.minecraft.world.phys.AABB box = alcoveInterior(s, k, a);
         for (ServerPlayer p : level.players()) {
-            if (box.isInside(p.blockPosition())) return true;
+            if (box.intersects(p.getBoundingBox().deflate(0.01))) return true;
             BlockPos h = LockerManager.getSpotPos(p);
-            if (h != null && box.isInside(h)) return true;
+            if (h != null && box.contains(Vec3.atCenterOf(h))) return true;
         }
         return false;
+    }
+
+    /**
+     * 縦穴の落ちる列（内側 5x5、小部屋の床の下〜底の上）に当たり判定のあるブロックがあれば空気にする（松明・看板は残る）。
+     * 何があっても落下の途中で止まらないように、refresh のたびと見張り（{@link #onPlayerTick}）から呼ぶ。
+     */
+    private static int clearColumn(ServerLevel level, Shaft s, List<BlockPos> changed) {
+        int n = 0;
+        BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
+        for (int y = s.oy - 1; y > s.bottomY; y--)
+            for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) {
+                m.set(s.ox + x, y, s.oz + z);
+                BlockState st = level.getBlockState(m);
+                if (st.isAir() || st.getCollisionShape(level, m).isEmpty()) continue;
+                BlockPos q = m.immutable();
+                level.setBlock(q, Blocks.AIR.defaultBlockState(), FLAGS);
+                if (changed != null) changed.add(q);
+                n++;
+            }
+        return n;
+    }
+
+    private static void sendBlocks(ServerLevel level, Shaft s, List<BlockPos> changed) {
+        if (changed.isEmpty()) return;
+        Vec3 c = Vec3.atCenterOf(s.at(CX, s.segTop(1), CZ));
+        for (ServerPlayer p : level.players()) {
+            if (p.position().distanceToSqr(c) > 96 * 96) continue;
+            for (BlockPos q : changed) p.connection.send(new ClientboundBlockUpdatePacket(level, q));
+        }
     }
 
     /**
@@ -340,6 +386,8 @@ public final class AbyssRooms {
                 for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) set(level, s.at(x, s.oy, z), st, changed);
                 s.sealed = seal;
             }
+            int cleared = clearColumn(level, s, changed);
+            if (cleared > 0) RoomsDebug.log("abyss refresh cleared {} solid blocks from the fall column", cleared);
         } finally { DropGuard.end("abyss refresh"); }
         if (changed.isEmpty() && signs.isEmpty()) return;
         Vec3 c = Vec3.atCenterOf(s.at(CX, s.segTop(1), CZ));
@@ -366,6 +414,10 @@ public final class AbyssRooms {
     private static final Map<UUID, Integer> LOOPS = new HashMap<>();
     private static final Map<UUID, Vec3> LAST = new HashMap<>();
     private static final java.util.Set<UUID> ACTIVE = new java.util.HashSet<>();
+    /** 縦穴の列の中で落ちていない（止まっている）tick 数。 */
+    private static final Map<UUID, Integer> STILL = new HashMap<>();
+    /** 見張り：この tick 数止まっていたら列を片付けて中心へ寄せる、さらにこの tick 数で強制的に 1 周。 */
+    static final int STALL_CLEAR_TICKS = 40, STALL_LOOP_TICKS = 100;
 
     /** サーバー → クライアント：縦穴の中にいるか（落下速度の上限）。 */
     public record AbyssPayload(boolean active) implements CustomPacketPayload {
@@ -407,7 +459,7 @@ public final class AbyssRooms {
         Vec3 pos = sp.position();
         if (s == null || !s.contains(pos) || sp.isSpectator()) {
             setActive(sp, false);
-            ROOM.remove(id); LAST.remove(id);
+            ROOM.remove(id); LAST.remove(id); STILL.remove(id);
             return;
         }
         setActive(sp, true);
@@ -421,8 +473,57 @@ public final class AbyssRooms {
             cur = pos.y >= s.oy ? s.entryRoom : Math.max(s.entryRoom, rs.currentRoom);
             ROOM.put(id, cur);
         }
+        if (watchStall(level, rs, s, sp, last, cur)) return;
         if (!s.inShaft(pos) || pos.y >= s.loopY() || LockerManager.getSpot(sp) != null) return;
         loop(level, rs, s, sp, cur);
+    }
+
+    /** 縦穴の落ちる列の中（横穴の中は含まない）か。 */
+    private static boolean inFallColumn(Shaft s, Vec3 p) {
+        double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5, r = IN + 0.5;
+        return s.inShaft(p) && Math.abs(p.x - cx) <= r && Math.abs(p.z - cz) <= r;
+    }
+
+    /**
+     * 見張り：縦穴の列の中で（横穴・ロッカー以外で）2 秒落ちていなければ、列の中の当たり判定のあるブロックを消して中心へ寄せる。
+     * それでも 5 秒止まったままなら強制的に 1 周させて層1の上端から落とし直す。処理したら true。
+     */
+    private static boolean watchStall(ServerLevel level, RoomsState rs, Shaft s, ServerPlayer sp, Vec3 last, int cur) {
+        UUID id = sp.getUUID();
+        Vec3 pos = sp.position();
+        boolean candidate = inFallColumn(s, pos) && LockerManager.getSpot(sp) == null && !sp.getAbilities().flying
+                && !sp.isPassenger() && !inAnyAlcove(s, sp);
+        boolean falling = last != null && pos.y < last.y - 0.02;
+        if (!candidate || falling) { STILL.remove(id); return false; }
+        int t = STILL.merge(id, 1, Integer::sum);
+        if (t == STALL_CLEAR_TICKS) {
+            List<BlockPos> changed = new ArrayList<>();
+            int n;
+            DropGuard.begin();
+            try { n = clearColumn(level, s, changed); } finally { DropGuard.end("abyss stall clear"); }
+            sendBlocks(level, s, changed);
+            double cx = s.ox + CX + 0.5, cz = s.oz + CZ + 0.5;
+            sp.connection.teleport(cx, pos.y, cz, sp.getYRot(), sp.getXRot());
+            sp.setDeltaMovement(0, -MAX_FALL, 0);
+            sp.fallDistance = 0;
+            LAST.put(id, sp.position());
+            RoomsDebug.log("abyss stall player={} room={} y={} onGround={} -> cleared {} blocks, centered",
+                    sp.getGameProfile().getName(), cur, String.format("%.1f", pos.y), sp.onGround(), n);
+            return true;
+        }
+        if (t >= STALL_LOOP_TICKS) {
+            STILL.remove(id);
+            RoomsDebug.log("abyss stall player={} room={} y={} still stuck -> forced loop", sp.getGameProfile().getName(), cur, String.format("%.1f", pos.y));
+            loop(level, rs, s, sp, cur);
+            if (sp.level() == level && s.contains(sp.position())) {
+                sp.connection.teleport(s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, sp.getYRot(), sp.getXRot());
+                sp.setDeltaMovement(0, -MAX_FALL, 0);
+                sp.fallDistance = 0;
+                LAST.put(id, sp.position());
+            }
+            return true;
+        }
+        return false;
     }
 
     private static void loop(ServerLevel level, RoomsState rs, Shaft s, ServerPlayer sp, int cur) {
@@ -477,7 +578,7 @@ public final class AbyssRooms {
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         UUID id = event.getEntity().getUUID();
-        ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id);
+        ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id); STILL.remove(id);
     }
 
     @SubscribeEvent

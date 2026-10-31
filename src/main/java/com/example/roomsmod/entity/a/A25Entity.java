@@ -35,6 +35,8 @@ public class A25Entity extends AbyssEnemy {
     public static final int GRACE = 40;
     private boolean passing = false;
     private double passUntilY = 0;
+    /** プレイヤー（胸の高さ）から見た縦のずれ（仮想座標、上が正）。プレイヤーと一緒に落ちながら、これを毎 tick close ずつ 0 へ。 */
+    private double rel = Double.NaN;
 
     public A25Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "A-25"; }
@@ -90,21 +92,17 @@ public class A25Entity extends AbyssEnemy {
             if (virtualPos().y < passUntilY) leave("passed");
             return;
         }
-        if (life < GRACE) return;
-        // 毎 tick 一定量だけ距離を詰める（プレイヤーの落ちる速さに合わせて一緒に落ちる）
-        double close = hardSpawn ? CLOSE_HARD : CLOSE;
-        Vec3 d = p.subtract(v);
-        double dist = d.length();
-        Vec3 next;
-        if (dist <= close) next = p; // 追いついた
-        else {
-            // 縦：残りの差を close だけ縮める（プレイヤーが落ちたぶんはそのまま付いていく）
-            double ny = p.y - Math.signum(p.y - v.y) * Math.max(0, Math.abs(p.y - v.y) - close);
-            double nx = v.x + Math.max(-SIDE_SPEED, Math.min(SIDE_SPEED, p.x - v.x));
-            double nz = v.z + Math.max(-SIDE_SPEED, Math.min(SIDE_SPEED, p.z - v.z));
-            next = new Vec3(nx, ny, nz);
+        // プレイヤーと一緒に落ちる（縦のずれ rel を保つ）。猶予の後は毎 tick 一定量だけ縦のずれを詰める。
+        // ずれは前の tick の自分の位置ではなく覚えておいた rel から求める（前の位置から求めると、プレイヤーが落ちたぶんだけ毎 tick 離れていく）
+        if (Double.isNaN(rel)) rel = v.y - p.y;
+        if (life >= GRACE) {
+            double close = hardSpawn ? CLOSE_HARD : CLOSE;
+            rel = Math.abs(rel) <= close ? 0 : rel - Math.signum(rel) * close;
         }
-        setVirtualPos(clampInner(rs.abyss, next, 0.3));
+        double nx = v.x + Math.max(-SIDE_SPEED, Math.min(SIDE_SPEED, p.x - v.x));
+        double nz = v.z + Math.max(-SIDE_SPEED, Math.min(SIDE_SPEED, p.z - v.z));
+        setVirtualPos(clampInner(rs.abyss, new Vec3(nx, p.y + rel, nz), 0.3));
+        if (life < GRACE) return;
         faceTowards(position().add(p.subtract(virtualPos())));
         if (virtualDistanceTo(t) <= HIT_RANGE) {
             boolean hit = RusherHits.tryHit(this, vName(), t, canSeeVirtual(t), hardDamage(14f, 20f));
@@ -118,7 +116,7 @@ public class A25Entity extends AbyssEnemy {
             level().addParticle(ParticleTypes.SOUL, getX() + (random.nextDouble() - 0.5) * 1.0, getY() + random.nextDouble() * 1.8, getZ() + (random.nextDouble() - 0.5) * 1.0, 0, 0.02, 0);
     }
 
-    @Override protected String debugState() { return "passing=" + passing + (hardSpawn ? " hard" : ""); }
-    @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putBoolean("Passing", passing); t.putDouble("PassUntil", passUntilY); }
-    @Override public void readAdditionalSaveData(CompoundTag t) { super.readAdditionalSaveData(t); passing = t.getBoolean("Passing"); passUntilY = t.getDouble("PassUntil"); }
+    @Override protected String debugState() { return "passing=" + passing + " rel=" + (Double.isNaN(rel) ? "?" : f(rel)) + (hardSpawn ? " hard" : ""); }
+    @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putBoolean("Passing", passing); t.putDouble("PassUntil", passUntilY); if (!Double.isNaN(rel)) t.putDouble("Rel", rel); }
+    @Override public void readAdditionalSaveData(CompoundTag t) { super.readAdditionalSaveData(t); passing = t.getBoolean("Passing"); passUntilY = t.getDouble("PassUntil"); rel = t.contains("Rel") ? t.getDouble("Rel") : Double.NaN; }
 }
