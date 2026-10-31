@@ -214,7 +214,7 @@ public class RoomsMod {
     public RoomsMod(IEventBus modEventBus, net.neoforged.fml.ModContainer container) {
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.SERVER, com.example.roomsmod.config.RoomsConfig.SPEC);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomsSpawnHandler.class);
-        LOGGER.info("Rooms Mod is loading!");
+        LOGGER.info("SRT's Rooms : Deep Corridors is loading!");
         BLOCKS.register(modEventBus);
         ITEMS.register(modEventBus);
         DATA_COMPONENTS.register(modEventBus);
