@@ -103,11 +103,12 @@ public class RoomGenerator {
             for (int y = 1; y < height; y++)
                 level.setBlockAndUpdate(origin.offset(x, y, z), post ? pillar : y == height - 1 ? bricks : quartz);
         }
-        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17、中央に 3x3（x=9..11, z=10..12）。上は空まで何もなし
+        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17、中央に 4x3（x=8..11, z=10..12）。上は空まで何もなし
         java.util.List<int[]> panes = new ArrayList<>();
         for (int cx : new int[]{5, 14}) for (int cz : new int[]{7, 15})
             for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) panes.add(new int[]{cx + dx, cz + dz});
-        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) panes.add(new int[]{10 + dx, 11 + dz});
+        // 中央は幅20（x=0..19、中心 9.5）に合わせて 4x3（x=8..11）＝左右対称（以前の 3x3 x=9..11 は右へ半マスずれていた）
+        for (int x = 8; x <= 11; x++) for (int dz = -1; dz <= 1; dz++) panes.add(new int[]{x, 11 + dz});
         for (int[] g : panes) {
             level.setBlockAndUpdate(origin.offset(g[0], height, g[1]), Blocks.GLASS.defaultBlockState());
             // 枠: 天窓の周囲の天井はクォーツレンガ
