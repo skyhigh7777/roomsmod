@@ -12,6 +12,8 @@ public final class RoomsLayout {
     /** ロビーの床の y（ロビーの origin の y）。 */
     public static final int LOBBY_Y = 50;
     /** ロビーの origin（床の角）。 */
+    /** ロビーの幅（x=0..20、奇数なので中心 x=10 に扉・天窓・スポーン）。パネルは +X 側の壁 x=LOBBY_WIDTH-1。 */
+    public static final int LOBBY_WIDTH = 21;
     public static final BlockPos LOBBY_ORIGIN = new BlockPos(0, LOBBY_Y, 0);
     /** ロビーで立つ位置（足元）。 */
     public static final double SPAWN_X = 10.5, SPAWN_Y = LOBBY_Y + 1, SPAWN_Z = 16.5;

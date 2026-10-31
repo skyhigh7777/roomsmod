@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * ロビーのパネル（ロビーを生成するたびに作り直す＝既存ワールドも次にロビーへ入れば付く）。
  * <ul>
- *   <li>左の壁（入口から出口扉を向いて左 = +X 側の壁 x=19）：スタート地点の選択。
+ *   <li>左の壁（入口から出口扉を向いて左 = +X 側の壁 x=LOBBY_WIDTH-1=20）：スタート地点の選択。
  *       [区画] [−] 表示 [＋] [GO]。区画は登録済みセクションを順に巡回（スニークで逆順）、番号は STEPS を巡回。
  *       GO で「/rooms section &lt;s&gt; 1」＋「/rooms to &lt;n&gt;」と同じ（ロビー再生成＝全員の進行がリセット）。
  *       選択はサーバーで共有（看板1枚に表示されるため）。</li>
@@ -44,7 +44,7 @@ public final class LobbyPanels {
     enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD }
 
     // 左の壁: ボタンは壁の中（x=19, y=2）、看板は壁の手前（x=18）
-    static final int LX = 19, BY = 2;
+    static final int LX = RoomsLayout.LOBBY_WIDTH - 1, BY = 2;
     static final int Z_SECTION = 11, Z_MINUS = 13, Z_DISPLAY = 15, Z_PLUS = 17, Z_GO = 19;
     /** ハードモードの切り替え（左の壁、スタート選択から少し離す）。 */
     static final int Z_HARD = 24;

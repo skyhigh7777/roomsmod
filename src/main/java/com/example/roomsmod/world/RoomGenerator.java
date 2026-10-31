@@ -34,9 +34,16 @@ public class RoomGenerator {
 
     private static BlockPos generateLobbyInner(ServerLevel level, BlockPos origin) {
         theme = com.example.roomsmod.world.section.Sections.forRoom(RoomsState.get(level), 0);
-        int width = 20;
+        // 幅は奇数（x=0..20、中心 x=10 = 出口扉・中央の天窓・スポーン 10.5）。2026-11-01 にパネル側（+X）の壁を 1 マス外へ（20 → 21）
+        int width = RoomsLayout.LOBBY_WIDTH;
         int depth = 32;
         int height = 5;
+
+        // 中を空にする（幅を変えた時の古い壁・パネル・看板や、置かれたブロックを残さない）
+        for (int x = 1; x < width - 1; x++) for (int z = 1; z < depth - 1; z++) for (int y = 1; y < height; y++) {
+            BlockPos q = origin.offset(x, y, z);
+            if (!level.getBlockState(q).isAir()) level.setBlock(q, Blocks.AIR.defaultBlockState(), 2);
+        }
 
         // 床・壁・天井
         for (int x = 0; x < width; x++) {
@@ -103,12 +110,11 @@ public class RoomGenerator {
             for (int y = 1; y < height; y++)
                 level.setBlockAndUpdate(origin.offset(x, y, z), post ? pillar : y == height - 1 ? bricks : quartz);
         }
-        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17、中央に 4x3（x=8..11, z=10..12）。上は空まで何もなし
+        // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17、中央に 3x3（x=9..11, z=10..12）。上は空まで何もなし
         java.util.List<int[]> panes = new ArrayList<>();
-        for (int cx : new int[]{5, 14}) for (int cz : new int[]{7, 15})
+        for (int cx : new int[]{5, width - 1 - 5}) for (int cz : new int[]{7, 15})
             for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) panes.add(new int[]{cx + dx, cz + dz});
-        // 中央は幅20（x=0..19、中心 9.5）に合わせて 4x3（x=8..11）＝左右対称（以前の 3x3 x=9..11 は右へ半マスずれていた）
-        for (int x = 8; x <= 11; x++) for (int dz = -1; dz <= 1; dz++) panes.add(new int[]{x, 11 + dz});
+        for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) panes.add(new int[]{10 + dx, 11 + dz});
         for (int[] g : panes) {
             level.setBlockAndUpdate(origin.offset(g[0], height, g[1]), Blocks.GLASS.defaultBlockState());
             // 枠: 天窓の周囲の天井はクォーツレンガ
@@ -118,7 +124,7 @@ public class RoomGenerator {
             }
         }
         // 扉側は天井埋め込みのシーランタン（以前のグロウストーン天窓と同程度の位置）
-        for (int cx : new int[]{5, 14}) for (int cz : new int[]{23, 27})
+        for (int cx : new int[]{5, width - 1 - 5}) for (int cz : new int[]{23, 27})
             level.setBlockAndUpdate(origin.offset(cx, height, cz), Blocks.SEA_LANTERN.defaultBlockState());
     }
 
