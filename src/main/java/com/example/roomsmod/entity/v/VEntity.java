@@ -300,7 +300,7 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
         Vec3 pe = target.getEyePosition();
         Vec3 pv = com.example.roomsmod.world.AbyssSpace.playerVirtual(rs, target, pe);
         Vec3 a = pe.add(vpos.add(0, getEyeHeight(), 0).subtract(pv));
-        double lo = s.bottomY + 1.2, hi = s.oy - 1.2;
+        double lo = s.bottomY + 1.2, hi = s.colTop() + 1 - 1.2;
         double cx = s.ox + com.example.roomsmod.world.AbyssRooms.CX + 0.5, cz = s.oz + com.example.roomsmod.world.AbyssRooms.CZ + 0.5, in = com.example.roomsmod.world.AbyssRooms.IN + 0.4;
         a = new Vec3(Math.max(cx - in, Math.min(cx + in, a.x)), Math.max(lo, Math.min(hi, a.y)), Math.max(cz - in, Math.min(cz + in, a.z)));
         BlockHitResult hit = level().clip(new ClipContext(a, pe, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));

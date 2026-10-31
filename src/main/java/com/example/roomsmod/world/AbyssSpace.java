@@ -55,7 +55,7 @@ public final class AbyssSpace {
     /** 仮想座標が縦穴の部分（小部屋の床より下）か。 */
     public static boolean isShaftVirtual(RoomsState rs, Vec3 v) {
         AbyssRooms.Shaft s = rs.abyss;
-        return s != null && inColumn(s, v.x, v.z) && v.y < s.oy;
+        return s != null && inColumn(s, v.x, v.z) && v.y < s.oy + AbyssRooms.EXTRA_ABOVE * AbyssRooms.L; // 最初の部屋より上（上へ足した層に見える範囲）も
     }
 
     /** 部屋 room の層1の y を仮想座標にするためのずれ（引く量）。 */
@@ -67,7 +67,7 @@ public final class AbyssSpace {
         AbyssRooms.Shaft s = rs.abyss;
         if (s == null || !isShaftVirtual(rs, v)) return v;
         double y = v.y + roomOffset(s, lead(rs));
-        if (y > s.oy - 1) { if (hidden != null) hidden[0] = true; y = s.oy + 1; }          // 上：ふさいだ小部屋の中
+        if (y > s.colTop()) { if (hidden != null) hidden[0] = true; y = s.sealed ? s.colTop() + 3 : s.oy + 1; } // 上：ふたの上／小部屋の中
         else if (y < s.bottomY + 1) { if (hidden != null) hidden[0] = true; y = s.bottomY - 4; } // 下：底の床の下
         return new Vec3(v.x, y, v.z);
     }
@@ -77,7 +77,7 @@ public final class AbyssSpace {
     /** 実際の位置（部屋 room の層1にいるもの）→ 仮想座標。 */
     public static Vec3 toVirtual(RoomsState rs, Vec3 p, int room) {
         AbyssRooms.Shaft s = rs.abyss;
-        if (s == null || !inColumn(s, p.x, p.z) || p.y >= s.oy) return p;
+        if (s == null || !inColumn(s, p.x, p.z) || p.y > s.colTop()) return p;
         return new Vec3(p.x, p.y - roomOffset(s, room), p.z);
     }
 
@@ -86,7 +86,7 @@ public final class AbyssSpace {
 
     public static Vec3 playerVirtual(RoomsState rs, Player p, Vec3 at) {
         AbyssRooms.Shaft s = rs.abyss;
-        if (s == null || !inColumn(s, at.x, at.z) || at.y >= s.oy) return at;
+        if (s == null || !inColumn(s, at.x, at.z) || at.y > s.colTop()) return at;
         return toVirtual(rs, at, AbyssRooms.roomOf(p, lead(rs)));
     }
 
@@ -232,7 +232,7 @@ public final class AbyssSpace {
         }
         int[] ia = new int[ids.size()]; float[] da = new float[ids.size()];
         for (int i = 0; i < ia.length; i++) { ia[i] = ids.get(i); da[i] = dys.get(i); }
-        ShiftPayload m = new ShiftPayload(ia, da, AbyssRooms.L, s.ox + AbyssRooms.X0, s.oz + AbyssRooms.Z0, s.ox + AbyssRooms.X1 + 1, s.oz + AbyssRooms.Z1 + 1, s.bottomY - 6, s.oy);
+        ShiftPayload m = new ShiftPayload(ia, da, AbyssRooms.L, s.ox + AbyssRooms.X0, s.oz + AbyssRooms.Z0, s.ox + AbyssRooms.X1 + 1, s.oz + AbyssRooms.Z1 + 1, s.bottomY - 6, s.colTop() + 1);
         Vec3 c = Vec3.atCenterOf(s.at(AbyssRooms.CX, s.segTop(1), AbyssRooms.CZ));
         for (ServerPlayer p : level.players())
             if (p.position().distanceToSqr(c) <= 96 * 96) PacketDistributor.sendToPlayer(p, m);

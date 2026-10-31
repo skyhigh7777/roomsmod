@@ -66,6 +66,13 @@ public final class AbyssRooms {
     public static final int L = 12;
     /** 縦穴の層の数（層0=上、層1=プレイヤーが落ちる層、層2・3=下に見える層）。 */
     public static final int SEGMENTS = 4;
+    /**
+     * 最初の部屋を過ぎた（小部屋をふさぐ）あと、小部屋の場所から上へ足す層の数（層 -1 .. -EXTRA_ABOVE、中身は「部屋 lead + (k - 1)」）。
+     * 上にも同じ縦穴が続いて見える（天井は層1の上端から {@value #EXTRA_ABOVE}+1 部屋ぶん上）。
+     */
+    public static final int EXTRA_ABOVE = 3;
+    /** 層の配列の大きさ（添字 = k + EXTRA_ABOVE）。 */
+    static final int TOTAL = EXTRA_ABOVE + SEGMENTS;
     /** 最下層の下の余白（ここは常に空、底は黒い床）。 */
     public static final int BOTTOM_GAP = 4;
     /** 落下速度の上限（ブロック/tick）。5 ブロック/秒（1 部屋 約 2.4 秒）。スニーク中はこの半分。 */
@@ -83,8 +90,8 @@ public final class AbyssRooms {
     /** 縦穴1本の位置（RoomsState に保存）。shown は今ブロックとして置いてある各層の中身（保存しない＝読み込み後は全部作り直す）。 */
     public static final class Shaft {
         public final int ox, oy, oz, entryRoom, bottomY;
-        final Alcove[] shown = new Alcove[SEGMENTS];
-        final int[] shownRoom = new int[SEGMENTS];
+        final Alcove[] shown = new Alcove[TOTAL];
+        final int[] shownRoom = new int[TOTAL];
         boolean built = false, sealed = false;
         /** 今ブロックで見えている層1の部屋（先頭）。保存しない（AbyssSpace.lead が補う）。 */
         int lead = Integer.MIN_VALUE;
@@ -113,12 +120,17 @@ public final class AbyssRooms {
         /** 足がこの y より下（層2）に入ったら 1 周。 */
         int loopY() { return segBottom(1); }
 
-        /** 縦穴（と小部屋）の水平範囲・高さの範囲に入っているか。 */
+        /** 落ちる列の空気のいちばん上の y（小部屋があれば床の下、ふさいだ後は上へ足した層の上端）。 */
+        public int colTop() { return sealed ? segTop(-EXTRA_ABOVE) : oy - 1; }
+        /** 上へ足した層のふた（天井）の y。 */
+        int capY() { return segTop(-EXTRA_ABOVE) + 1; }
+
+        /** 縦穴（と小部屋・上へ足した層）の水平範囲・高さの範囲に入っているか。 */
         public boolean contains(Vec3 p) {
-            return p.x >= ox + X0 && p.x < ox + X1 + 1 && p.z >= oz + Z0 && p.z < oz + Z1 + 1 && p.y >= bottomY && p.y < oy + 6;
+            return p.x >= ox + X0 && p.x < ox + X1 + 1 && p.z >= oz + Z0 && p.z < oz + Z1 + 1 && p.y >= bottomY && p.y < Math.max(oy + 6, colTop() + 2);
         }
-        /** 縦穴の中（小部屋の床より下）か。 */
-        boolean inShaft(Vec3 p) { return contains(p) && p.y < oy; }
+        /** 縦穴の中（小部屋の床より下、ふさいだ後は上へ足した層も）か。 */
+        boolean inShaft(Vec3 p) { return contains(p) && p.y < colTop() + 1; }
 
         @Override public String toString() { return "Shaft[o=(" + ox + "," + oy + "," + oz + ") entry=" + entryRoom + " bottom=" + bottomY + "]"; }
     }
@@ -179,18 +191,8 @@ public final class AbyssRooms {
     private static void buildStructure(ServerLevel level, Shaft s) {
         DropGuard.begin();
         try {
-            BlockState w = wall(), f = floor(), air = Blocks.AIR.defaultBlockState();
-            // 小部屋：床 y=oy（穴あき）、壁、天井 oy+5、入口 (10, oy+1..2, 0)
-            for (int x = X0; x <= X1; x++) for (int z = Z0; z <= Z1; z++) {
-                boolean hole = Math.abs(x - CX) <= IN && Math.abs(z - CZ) <= IN;
-                set(level, s.at(x, s.oy, z), hole ? air : f, null);
-                boolean edge = x == X0 || x == X1 || z == Z0 || z == Z1;
-                for (int y = 1; y <= 4; y++) set(level, s.at(x, s.oy + y, z), edge ? w : air, null);
-                set(level, s.at(x, s.oy + 5, z), w, null);
-            }
-            set(level, s.at(CX, s.oy + 1, 0), air, null);
-            set(level, s.at(CX, s.oy + 2, 0), air, null);
-            set(level, s.at(CX, s.oy + 4, CZ - IN - 1 + 1), Sections.A.palette().light().get(), null);
+            BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
+            entryOrTower(level, s, false, null);
             // 縦穴：壁と中の空気（底まで）、底は黒い床
             for (int y = s.oy - 1; y >= s.bottomY; y--)
                 for (int x = X0; x <= X1; x++) for (int z = Z0; z <= Z1; z++) {
@@ -202,6 +204,31 @@ public final class AbyssRooms {
         s.sealed = false;
         java.util.Arrays.fill(s.shown, null);
         java.util.Arrays.fill(s.shownRoom, Integer.MIN_VALUE);
+    }
+
+    /**
+     * 小部屋の場所（y = oy .. ふた）を作る。tower=false：小部屋（床 y=oy は穴あき、壁、天井 oy+5、入口 (10, oy+1..2, 0)）、その上は空気。
+     * tower=true：上へ足す層 -1..-EXTRA_ABOVE（壁と中の空気・照明。中身は refresh）と、てっぺんのふた。
+     */
+    private static void entryOrTower(ServerLevel level, Shaft s, boolean tower, List<BlockPos> changed) {
+        BlockState w = wall(), f = floor(), air = Blocks.AIR.defaultBlockState();
+        if (tower) {
+            for (int k = -1; k >= -EXTRA_ABOVE; k--) segmentShell(level, s, k, changed);
+            for (int x = X0; x <= X1; x++) for (int z = Z0; z <= Z1; z++) set(level, s.at(x, s.capY(), z), w, changed);
+            RoomsDebug.log("abyss tower built above the entry room: column top y={} cap y={}", s.colTop(), s.capY());
+            return;
+        }
+        for (int y = s.capY(); y > s.oy + 5; y--) for (int x = X0; x <= X1; x++) for (int z = Z0; z <= Z1; z++) set(level, s.at(x, y, z), air, changed);
+        for (int x = X0; x <= X1; x++) for (int z = Z0; z <= Z1; z++) {
+            boolean hole = Math.abs(x - CX) <= IN && Math.abs(z - CZ) <= IN;
+            set(level, s.at(x, s.oy, z), hole ? air : f, changed);
+            boolean edge = x == X0 || x == X1 || z == Z0 || z == Z1;
+            for (int y = 1; y <= 4; y++) set(level, s.at(x, s.oy + y, z), edge ? w : air, changed);
+            set(level, s.at(x, s.oy + 5, z), w, changed);
+        }
+        set(level, s.at(CX, s.oy + 1, 0), air, changed);
+        set(level, s.at(CX, s.oy + 2, 0), air, changed);
+        set(level, s.at(CX, s.oy + 4, CZ - IN - 1 + 1), Sections.A.palette().light().get(), changed);
     }
 
     /** ローカルの横穴座標（north の向きで dx, dz）を side の向きへ回して、縦穴の中心からのワールド座標に。 */
@@ -318,7 +345,7 @@ public final class AbyssRooms {
     /** プレイヤーの体が今見えているどれかの横穴の中にかかっているか（横穴に立っている・入りかけ）。見た目だけの横穴も含む。 */
     public static boolean inAnyAlcove(Shaft s, net.minecraft.world.entity.player.Player p) {
         net.minecraft.world.phys.AABB bb = p.getBoundingBox().inflate(0.05);
-        for (int k = 0; k < SEGMENTS; k++) if (s.shown[k] != null && alcoveInterior(s, k, s.shown[k]).intersects(bb)) return true;
+        for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++) if (s.shown[k + EXTRA_ABOVE] != null && alcoveInterior(s, k, s.shown[k + EXTRA_ABOVE]).intersects(bb)) return true;
         return false;
     }
 
@@ -344,7 +371,7 @@ public final class AbyssRooms {
     private static int clearColumn(ServerLevel level, Shaft s, List<BlockPos> changed) {
         int n = 0;
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
-        for (int y = s.oy - 1; y > s.bottomY; y--)
+        for (int y = s.colTop(); y > s.bottomY; y--)
             for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) {
                 m.set(s.ox + x, y, s.oz + z);
                 if (s.squeeze && s.squeezeCells.contains(m)) continue; // 狭めている間の壁は残す
@@ -369,14 +396,14 @@ public final class AbyssRooms {
 
     /** 層 k を部屋 room の中身にする（横穴に人がいれば作り直さない）。作り直したら true。 */
     private static boolean updateSegment(ServerLevel level, RoomsState rs, Shaft s, int k, int room, boolean force, List<BlockPos> changed, List<BlockPos> signs) {
-        Alcove want = shownFor(level, s, room), have = s.shown[k];
-        if (!force && occupied(level, s, k, have)) { RoomsDebug.log("abyss segment {} kept (alcove occupied) room={}", k, s.shownRoom[k]); return false; }
+        Alcove want = shownFor(level, s, room), have = s.shown[k + EXTRA_ABOVE];
+        if (!force && occupied(level, s, k, have)) { RoomsDebug.log("abyss segment {} kept (alcove occupied) room={}", k, s.shownRoom[k + EXTRA_ABOVE]); return false; }
         if (force) segmentShell(level, s, k, changed);
         else if (have != null && !have.equals(want)) alcove(level, s, k, have, true, changed);
         if (want != null && (force || !want.equals(have))) alcove(level, s, k, want, false, changed);
-        if (force || s.shownRoom[k] != room) sign(level, rs, s, k, room, changed, signs);
-        s.shown[k] = want;
-        s.shownRoom[k] = room;
+        if (force || s.shownRoom[k + EXTRA_ABOVE] != room) sign(level, rs, s, k, room, changed, signs);
+        s.shown[k + EXTRA_ABOVE] = want;
+        s.shownRoom[k + EXTRA_ABOVE] = room;
         return true;
     }
 
@@ -392,20 +419,21 @@ public final class AbyssRooms {
         try {
             boolean force = !s.built;
             if (force) { java.util.Arrays.fill(s.shown, null); java.util.Arrays.fill(s.shownRoom, Integer.MIN_VALUE); }
-            for (int k = 0; k < SEGMENTS; k++) {
+            // 最初の部屋より先へ進んだら、小部屋をなくして上にも層を足す（上へは戻れない：てっぺんはふた。すぐ上がふさがって見えないように）
+            boolean seal = lead > s.entryRoom;
+            if (seal != s.sealed || force) {
+                entryOrTower(level, s, seal, changed);
+                s.sealed = seal;
+                for (int k = -EXTRA_ABOVE; k < 0; k++) { s.shown[k + EXTRA_ABOVE] = null; s.shownRoom[k + EXTRA_ABOVE] = Integer.MIN_VALUE; }
+            }
+            for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++) {
+                if (k < 0 && !s.sealed) continue;
                 int room = lead + k - 1;
-                if (!force && s.shownRoom[k] == room && java.util.Objects.equals(s.shown[k], shownFor(level, s, room))) continue;
+                if (!force && s.shownRoom[k + EXTRA_ABOVE] == room && java.util.Objects.equals(s.shown[k + EXTRA_ABOVE], shownFor(level, s, room))) continue;
                 updateSegment(level, rs, s, k, room, force, changed, signs);
             }
             s.built = true;
             s.lead = lead;
-            // 最初の部屋より先へ進んだら、小部屋の穴をふさぐ（上へは戻れない）
-            boolean seal = lead > s.entryRoom;
-            if (seal != s.sealed || force) {
-                BlockState st = seal ? wall() : Blocks.AIR.defaultBlockState();
-                for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) set(level, s.at(x, s.oy, z), st, changed);
-                s.sealed = seal;
-            }
             int cleared = clearColumn(level, s, changed);
             if (cleared > 0) RoomsDebug.log("abyss refresh cleared {} solid blocks from the fall column", cleared);
             if (s.squeeze) reconcileSqueeze(level, s, changed);
@@ -424,7 +452,7 @@ public final class AbyssRooms {
     public static Vec3 spotFor(RoomsState rs, int room) {
         Shaft s = rs.abyss;
         if (s == null || Sections.forRoom(rs, room) != Sections.A || room < s.entryRoom) return null;
-        if (room == s.entryRoom) return new Vec3(s.ox + CX + 0.5, s.oy + 1, s.oz + 1.5);
+        if (room == s.entryRoom && !s.sealed) return new Vec3(s.ox + CX + 0.5, s.oy + 1, s.oz + 1.5);
         return safeColumnPoint(s, s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, 0.35);
     }
 
@@ -436,8 +464,8 @@ public final class AbyssRooms {
         List<BlockPos> changed = new ArrayList<>(), signs = new ArrayList<>();
         DropGuard.begin();
         try {
-            for (int k = 0; k < SEGMENTS; k++)
-                if (s.built && s.shownRoom[k] == room && !java.util.Objects.equals(s.shown[k], shownFor(level, s, room)))
+            for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++)
+                if (s.built && s.shownRoom[k + EXTRA_ABOVE] == room && !java.util.Objects.equals(s.shown[k + EXTRA_ABOVE], shownFor(level, s, room)))
                     updateSegment(level, rs, s, k, room, false, changed, signs);
             if (s.squeeze) reconcileSqueeze(level, s, changed);
         } finally { DropGuard.end("abyss fake alcove"); }
@@ -475,15 +503,15 @@ public final class AbyssRooms {
     public static net.minecraft.world.phys.AABB fakeInterior(RoomsState rs, int room) {
         Shaft s = rs.abyss;
         if (s == null) return null;
-        for (int k = 0; k < SEGMENTS; k++)
-            if (s.shownRoom[k] == room && s.shown[k] != null && s.shown[k].fake()) return alcoveInterior(s, k, s.shown[k]);
+        for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++)
+            if (s.shownRoom[k + EXTRA_ABOVE] == room && s.shown[k + EXTRA_ABOVE] != null && s.shown[k + EXTRA_ABOVE].fake()) return alcoveInterior(s, k, s.shown[k + EXTRA_ABOVE]);
         return null;
     }
 
     /** プレイヤーの体の中心（足元から胸まで）が見えているどれかの横穴の中（inflate だけ縦穴側へ甘く）にあるか。見た目だけの横穴も含む。 */
     public static boolean centerInAlcove(Shaft s, net.minecraft.world.entity.player.Player p, double inflate) {
         Vec3 c = p.position().add(0, 0.5, 0);
-        for (int k = 0; k < SEGMENTS; k++) if (s.shown[k] != null && alcoveInterior(s, k, s.shown[k]).inflate(inflate).contains(c)) return true;
+        for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++) if (s.shown[k + EXTRA_ABOVE] != null && alcoveInterior(s, k, s.shown[k + EXTRA_ABOVE]).inflate(inflate).contains(c)) return true;
         return false;
     }
 
@@ -491,8 +519,8 @@ public final class AbyssRooms {
     /** 見えている横穴の入口（外周の列のうち、横穴の床〜天井の高さ）。狭めてもふさがない。 */
     private static java.util.Set<BlockPos> alcoveMouths(Shaft s) {
         java.util.Set<BlockPos> out = new java.util.HashSet<>();
-        for (int k = 0; k < SEGMENTS; k++) {
-            Alcove a = s.shown[k];
+        for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++) {
+            Alcove a = s.shown[k + EXTRA_ABOVE];
             if (a == null) continue;
             int fy = s.segBottom(k) + a.off();
             for (int dx = -1; dx <= 1; dx++) for (int y = 0; y <= 3; y++) out.add(rot(s, a.side(), dx, fy + y, -IN));
@@ -515,7 +543,7 @@ public final class AbyssRooms {
         for (ServerPlayer p : level.players()) if (!p.isSpectator() && s.contains(p.position())) bodies.add(p.getBoundingBox().inflate(0.1));
         BlockState w = wall(), air = Blocks.AIR.defaultBlockState();
         BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
-        for (int y = s.oy - 1; y > s.bottomY; y--)
+        for (int y = s.colTop(); y > s.bottomY; y--)
             for (int x = CX - IN; x <= CX + IN; x++) for (int z = CZ - IN; z <= CZ + IN; z++) {
                 m.set(s.ox + x, y, s.oz + z);
                 boolean placed = s.squeezeCells.contains(m);
@@ -653,7 +681,7 @@ public final class AbyssRooms {
     public static boolean isHeld(net.minecraft.world.entity.player.Player p) { return HELD.containsKey(p.getUUID()); }
 
     /** 引き止めで上がってよい足の高さの上限（実際の座標。小部屋の床・天井に頭をぶつけない）。 */
-    public static double holdCeiling(RoomsState rs) { return rs.abyss == null ? Double.MAX_VALUE : rs.abyss.oy - 4.0; }
+    public static double holdCeiling(RoomsState rs) { return rs.abyss == null ? Double.MAX_VALUE : Math.min(rs.abyss.colTop() - 3.0, rs.abyss.oy - 4.0); }
 
     // ===================== 落下・1周 =====================
 
@@ -723,7 +751,7 @@ public final class AbyssRooms {
         Vec3 last = LAST.put(id, pos);
         Integer cur = ROOM.get(id);
         if (cur == null || last == null || last.distanceToSqr(pos) > 8 * 8) {
-            cur = pos.y >= s.oy ? s.entryRoom : Math.max(s.entryRoom, rs.currentRoom);
+            cur = pos.y >= s.oy && !s.sealed ? s.entryRoom : Math.max(s.entryRoom, rs.currentRoom);
             ROOM.put(id, cur);
         }
         if (watchStall(level, rs, s, sp, last, cur)) return;
