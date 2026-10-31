@@ -66,12 +66,16 @@ public class RoomGenerator {
         // 重なり防止レジストリに登録
         // 状態をロビーから開始し、重なり防止レジストリと経路を登録
         RoomsState state = RoomsState.get(level);
+        // 古い部屋は作り直しの後に片付ける（RoomsCleanup）。範囲は reset で消える前に取っておく
+        List<BoundingBox> oldRegions = RoomsCleanup.snapshot(state);
         state.reset();
         List<BlockPos> path = List.of(origin.offset(10, 1, 2), origin.offset(10, 1, depth - 2), doorPos);
         state.addRoom(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
                 origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)), path);
         state.setExpectedExitDoor(doorPos);
         if (origin.equals(LobbyPanels.ORIGIN)) LobbyPanels.build(level);
+        RoomsCleanup.schedule(level, state, oldRegions, List.of(state.boxes(0).get(0),
+                new BoundingBox(doorPos.getX(), doorPos.getY(), doorPos.getZ() + 1, doorPos.getX(), doorPos.getY() + 1, doorPos.getZ() + 1)));
 
         return doorPos;
     }
@@ -173,6 +177,7 @@ public class RoomGenerator {
 
     public static BlockPos generateNextRoom(ServerLevel level, BlockPos origin, int roomNumber) {
         BlockPos exit;
+        RoomsCleanup.flush(level); // 古い部屋の片付けが残っていたら先に（新しい部屋を壊さないように）
         DropGuard.begin();
         try { exit = generateNextRoomInner(level, origin, roomNumber); } finally { DropGuard.end("room " + roomNumber + " generation"); }
         // A（縦穴）には床がないので電池・包帯は置かない

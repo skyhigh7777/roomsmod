@@ -44,6 +44,13 @@ public class RoomsState extends SavedData {
     /** A（Abyss）区画の縦穴（AbyssRooms）。まだ作っていなければ null。ロビー生成（reset）で消える。 */
     public com.example.roomsmod.world.AbyssRooms.Shaft abyss = null;
 
+    /** 片付け待ちの古い部屋の範囲（余白込み）。RoomsCleanup が数 tick に分けて空気に戻す。途中で止まっても続きから（保存する）。 */
+    public final List<BoundingBox> pendingClear = new ArrayList<>();
+    /** 片付けで壊してはいけない範囲（作り直したロビーと出口のふた）。 */
+    public final List<BoundingBox> pendingProtect = new ArrayList<>();
+    /** y=1 時代（5a089f2 より前）のロビーの跡を片付けたか（1回だけ）。 */
+    public boolean legacyLobbyCleared = false;
+
     /** セクションを追加（startRoom 昇順に並べる）。 */
     public void addSection(String themeId, int startRoom) {
         sections.removeIf(s -> s.startRoom() == startRoom);
@@ -157,15 +164,34 @@ public class RoomsState extends SavedData {
         }
         tag.put("sections", secs);
         if (abyss != null) tag.put("abyss", abyss.save());
+        tag.put("pendingClear", boxesTag(pendingClear));
+        tag.put("pendingProtect", boxesTag(pendingProtect));
+        tag.putBoolean("legacyLobbyCleared", legacyLobbyCleared);
         tag.putBoolean("sectionsFixed", true);
         tag.putInt("sectionsVersion", SECTIONS_VERSION);
         RoomsDebug.log("state saved: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", currentRoom, generatedRooms.size(), generatedDoors.size(), expectedExitDoor);
         return tag;
     }
 
+    private static ListTag boxesTag(List<BoundingBox> list) {
+        ListTag l = new ListTag();
+        for (BoundingBox b : list) l.add(new net.minecraft.nbt.IntArrayTag(new int[]{b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ()}));
+        return l;
+    }
+
+    private static void readBoxes(CompoundTag tag, String key, List<BoundingBox> out) {
+        for (Tag t : tag.getList(key, Tag.TAG_INT_ARRAY)) {
+            int[] a = ((net.minecraft.nbt.IntArrayTag) t).getAsIntArray();
+            if (a.length == 6) out.add(new BoundingBox(a[0], a[1], a[2], a[3], a[4], a[5]));
+        }
+    }
+
     public static RoomsState load(CompoundTag tag, HolderLookup.Provider registries) {
         RoomsState s = new RoomsState();
         try {
+        readBoxes(tag, "pendingClear", s.pendingClear);
+        readBoxes(tag, "pendingProtect", s.pendingProtect);
+        s.legacyLobbyCleared = tag.getBoolean("legacyLobbyCleared");
         RoomsDebug.setEnabled(tag.getBoolean("debug"));
         s.currentRoom = tag.getInt("currentRoom");
         s.epoch = tag.getInt("epoch");

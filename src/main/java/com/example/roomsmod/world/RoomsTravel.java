@@ -49,6 +49,12 @@ public final class RoomsTravel {
 
     private static void step() {
         RoomsState state = RoomsState.get(level);
+        // ロビーを作り直した直後は古い部屋の片付け（RoomsCleanup）が終わるまで待つ（1 tick に全部やると止まる）
+        if (RoomsCleanup.busy(level)) {
+            ServerPlayer w = level.getServer().getPlayerList().getPlayer(player);
+            if (w != null && level.getGameTime() % 10 == 0) w.displayClientMessage(Component.literal("古い部屋を片付け中…"), true);
+            return;
+        }
         // 保険：生成中に別の処理で進行表がリセットされたら（部屋数 < 生成済み番号）、番号がずれるので中止して最初から
         if (state.generatedRooms.size() < next) {
             RoomsDebug.warn("rooms to {}: state was reset during generation (rooms={} expected={}) -> restart", target, state.generatedRooms.size(), next);
