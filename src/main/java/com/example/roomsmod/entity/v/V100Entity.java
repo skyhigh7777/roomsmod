@@ -99,6 +99,7 @@ public class V100Entity extends VEntity {
 
     /** 本物の窓か：板ガラス、外がこの部屋の外の空気ポケット、その奥が黒コンクリート、内側がこの部屋の中の通れる空間。 */
     static boolean isValidWindow(ServerLevel level, RoomsState rs, int room, BlockPos q, Direction out) {
+        if (!rs.hasRoom(room)) return false; // 進行表が作り直された後の古い部屋番号
         if (!level.getBlockState(q).is(Blocks.GLASS_PANE)) return false;
         BlockPos pocket = q.relative(out), in = q.relative(out.getOpposite());
         if (!level.getBlockState(pocket).isAir() || !level.getBlockState(q.relative(out, 2)).is(Blocks.BLACK_CONCRETE)) return false;
@@ -160,6 +161,7 @@ public class V100Entity extends VEntity {
     @Override
     protected void serverTick(ServerLevel level) {
         RoomsState rs = RoomsState.get(level);
+        if (!rs.hasRoom(startRoom)) { RoomsDebug.log("V-100 discarded: start room {} no longer exists (rooms={})", startRoom, rs.generatedRooms.size()); discard(); return; }
         // 部屋の追従はしない：出現した部屋（startRoom）の窓に留まり、その部屋の中のプレイヤーだけを見張る。
         // 窓が壊れた・無効になった
         if (window != null && !isValidWindow(level, rs, startRoom, window, windowOut)) {
