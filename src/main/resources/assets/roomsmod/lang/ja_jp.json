@@ -74,6 +74,8 @@
   "message.roomsmod.gk_pa_safe": "放送：移動済み 残り %s 秒",
   "death.attack.roomsmod.entity": "%1$s は %2$s に捕まった",
   "death.attack.roomsmod.entity.player": "%1$s は %2$s に捕まった",
+  "death.attack.roomsmod.wither": "%1$s は %2$s の毒で朽ち果てた",
+  "death.attack.roomsmod.wither.player": "%1$s は %2$s の毒で朽ち果てた",
   "entity.roomsmod.gk_mimic": "S-165",
   "entity.roomsmod.gk_quiz": "S-85",
   "entity.roomsmod.gk_rewind": "S-145",
@@ -128,5 +130,12 @@
   "entity.roomsmod.a350": "A-350",
   "entity.roomsmod.a200": "A-200",
   "entity.roomsmod.a300": "A-300",
-  "entity.roomsmod.a450": "A-450"
+  "entity.roomsmod.a450": "A-450",
+  "entity.roomsmod.a20": "B-20",
+  "entity.roomsmod.a40": "B-40",
+  "entity.roomsmod.v10": "V-10",
+  "entity.roomsmod.v25t": "V-25-T",
+  "entity.roomsmod.v25l": "V-25-L",
+  "entity.roomsmod.v100": "V-100",
+  "entity.roomsmod.v50": "V-50"
 }

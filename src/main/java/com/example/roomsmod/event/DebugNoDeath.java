@@ -56,6 +56,7 @@ public final class DebugNoDeath {
     }
 
     static String causeName(DamageSource src) {
+        if (src instanceof com.example.roomsmod.util.NamedDamageSource n) return n.enemyName().getString();
         if (src.getEntity() != null) return src.getEntity().getName().getString();
         if (src.getDirectEntity() != null) return src.getDirectEntity().getName().getString();
         return src.getMsgId();

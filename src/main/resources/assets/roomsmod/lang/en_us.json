@@ -96,6 +96,8 @@
   "message.roomsmod.gk_pa_safe": "PA: You moved on. %s s",
   "death.attack.roomsmod.entity": "%1$s was caught by %2$s",
   "death.attack.roomsmod.entity.player": "%1$s was caught by %2$s",
+  "death.attack.roomsmod.wither": "%1$s withered away in the poison of %2$s",
+  "death.attack.roomsmod.wither.player": "%1$s withered away in the poison of %2$s",
   "entity.roomsmod.gk_mimic": "S-165",
   "entity.roomsmod.gk_quiz": "S-85",
   "entity.roomsmod.gk_rewind": "S-145",

@@ -154,6 +154,7 @@ public class A180Entity extends AbyssEnemy {
                 if (last != null && now - last < 10) continue;
                 lastHurt.put(p.getUUID(), now);
                 p.addEffect(new MobEffectInstance(MobEffects.WITHER, 60, hardSpawn ? 1 : 0));
+                RoomsDamage.witherFrom(this, p, 60); // ウィザーで倒れても死因に A-180 の名前
                 RoomsDamage.hurt(this, p, hardDamage(3f, 4f));
             }
         }
