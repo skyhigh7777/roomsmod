@@ -48,11 +48,12 @@ public class GKSubstituteEntity extends VEntity {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
         if (playerRoom < 1 || playerRoom >= rs.generatedRooms.size()) return null;
-        List<BlockPos> path = rs.roomPaths.get(playerRoom);
+        List<BlockPos> path = rs.path(playerRoom);
+        if (path.isEmpty()) return null;
         int y = path.get(0).getY();
         BlockPos entrance = path.get(0), exit = path.get(path.size() - 1);
         List<Object[]> cand = new ArrayList<>();
-        for (BoundingBox b : rs.generatedRooms.get(playerRoom))
+        for (BoundingBox b : rs.boxes(playerRoom))
             for (int side = 0; side < 2; side++) {
                 int x = side == 0 ? b.minX() : b.maxX();
                 Direction in = side == 0 ? Direction.EAST : Direction.WEST;

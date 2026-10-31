@@ -19,7 +19,7 @@ public final class SafeSpot {
     private SafeSpot() {}
 
     public static boolean inInterior(RoomsState rs, int room, BlockPos p) {
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             if (p.getX() > b.minX() && p.getX() < b.maxX() && p.getZ() > b.minZ() && p.getZ() < b.maxZ()
                     && p.getY() > b.minY() && p.getY() + 1 < b.maxY()) return true;
         return false;
@@ -43,7 +43,7 @@ public final class SafeSpot {
     public static Vec3 findRandom(ServerLevel l, RoomsState rs, int room, net.minecraft.util.RandomSource r) {
         if (room < 0 || room >= rs.generatedRooms.size()) return null;
         List<BlockPos> ok = new ArrayList<>();
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX() + 1, b.minY() + 1, b.minZ() + 1, b.maxX() - 1, b.maxY() - 2, b.maxZ() - 1))
                 if (isSafe(l, rs, room, q)) ok.add(q.immutable());
         return ok.isEmpty() ? null : Vec3.atBottomCenterOf(ok.get(r.nextInt(ok.size())));
@@ -53,7 +53,7 @@ public final class SafeSpot {
         // A（縦穴）：床がないので決まった位置（AbyssRooms）
         Vec3 abyss = AbyssRooms.spotFor(rs, room);
         if (abyss != null) return abyss;
-        List<BlockPos> path = room >= 0 && room < rs.roomPaths.size() ? rs.roomPaths.get(room) : List.of();
+        List<BlockPos> path = room >= 0 && room < rs.roomPaths.size() ? rs.path(room) : List.of();
         List<BlockPos> cand = new ArrayList<>();
         // 経路の各区間の点（中央→外側の順）
         List<BlockPos> line = new ArrayList<>();
@@ -76,7 +76,7 @@ public final class SafeSpot {
         }
         // 部屋の箱を走査
         if (room >= 0 && room < rs.generatedRooms.size())
-            for (BoundingBox b : rs.generatedRooms.get(room))
+            for (BoundingBox b : rs.boxes(room))
                 for (BlockPos q : BlockPos.betweenClosed(b.minX() + 1, b.minY() + 1, b.minZ() + 1, b.maxX() - 1, b.maxY() - 2, b.maxZ() - 1))
                     if (isSafe(l, rs, room, q)) return Vec3.atBottomCenterOf(q);
         com.example.roomsmod.util.RoomsDebug.warn("SafeSpot: no safe spot in room {}, falling back to entrance", room);

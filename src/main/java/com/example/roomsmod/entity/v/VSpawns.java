@@ -150,6 +150,6 @@ public final class VSpawns {
     }
 
     static List<BlockPos> path(RoomsState rs, int room) {
-        return room >= 0 && room < rs.roomPaths.size() ? rs.roomPaths.get(room) : List.of();
+        return room >= 0 && room < rs.roomPaths.size() ? rs.path(room) : List.of();
     }
 }

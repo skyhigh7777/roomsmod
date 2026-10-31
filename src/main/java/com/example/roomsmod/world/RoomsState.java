@@ -21,6 +21,8 @@ public class RoomsState extends SavedData {
     private static final String NAME = "roomsmod_state";
 
     public int currentRoom = 0;
+    /** 進行表を作り直した回数（reset ごとに +1、保存する）。出現した時と違えば、その敵の部屋番号はもう別の部屋（VEntity が消える）。 */
+    public int epoch = 0;
     /** 現在の部屋の出口扉（下半分）。これを開けたときだけ次の部屋を生成する。 */
     public BlockPos expectedExitDoor = null;
     public final Set<BlockPos> generatedDoors = new HashSet<>();
@@ -80,8 +82,18 @@ public class RoomsState extends SavedData {
         generatedRooms.clear();
         roomPaths.clear();
         abyss = null;
+        epoch++;
         setDirty();
     }
+
+    /** 部屋 room の範囲（なければ空。進行表のリセット後に古い番号で呼ばれても落ちない）。 */
+    public List<BoundingBox> boxes(int room) { return room >= 0 && room < generatedRooms.size() ? generatedRooms.get(room) : List.of(); }
+
+    /** 部屋 room の経路（なければ空）。 */
+    public List<BlockPos> path(int room) { return room >= 0 && room < roomPaths.size() ? roomPaths.get(room) : List.of(); }
+
+    /** 部屋 room が今の進行表にあるか。 */
+    public boolean hasRoom(int room) { return room >= 0 && room < generatedRooms.size(); }
 
     public void addRoom(List<BoundingBox> boxes, List<BlockPos> path) {
         generatedRooms.add(new ArrayList<>(boxes));
@@ -115,6 +127,7 @@ public class RoomsState extends SavedData {
         tag.putBoolean("debug", RoomsDebug.isEnabled());
         tag.putBoolean("hardMode", hardMode);
         tag.putInt("currentRoom", currentRoom);
+        tag.putInt("epoch", epoch);
         if (expectedExitDoor != null) tag.putLong("expectedExitDoor", expectedExitDoor.asLong());
         ListTag doors = new ListTag();
         for (BlockPos p : generatedDoors) doors.add(LongTag.valueOf(p.asLong()));
@@ -155,6 +168,7 @@ public class RoomsState extends SavedData {
         try {
         RoomsDebug.setEnabled(tag.getBoolean("debug"));
         s.currentRoom = tag.getInt("currentRoom");
+        s.epoch = tag.getInt("epoch");
         if (tag.contains("expectedExitDoor")) s.expectedExitDoor = BlockPos.of(tag.getLong("expectedExitDoor"));
         for (Tag t : tag.getList("generatedDoors", Tag.TAG_LONG)) s.generatedDoors.add(BlockPos.of(((LongTag) t).getAsLong()));
         for (Tag t : tag.getList("generatedRooms", Tag.TAG_LIST)) {

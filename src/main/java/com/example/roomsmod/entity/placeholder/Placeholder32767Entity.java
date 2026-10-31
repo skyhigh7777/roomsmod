@@ -65,8 +65,8 @@ public class Placeholder32767Entity extends PlaceholderEntity {
     /** 部屋の真ん中（部屋の範囲を全部合わせた中心がその部屋の中ならそこ、外なら経路の真ん中の点）。床の上。 */
     static BlockPos roomCenter(RoomsState rs, int room) {
         if (room < 0 || room >= rs.roomPaths.size()) return null;
-        List<BlockPos> path = rs.roomPaths.get(room);
-        List<BoundingBox> boxes = room < rs.generatedRooms.size() ? rs.generatedRooms.get(room) : List.of();
+        List<BlockPos> path = rs.path(room);
+        List<BoundingBox> boxes = room < rs.generatedRooms.size() ? rs.boxes(room) : List.of();
         if (!boxes.isEmpty()) {
             int x0 = Integer.MAX_VALUE, z0 = Integer.MAX_VALUE, x1 = Integer.MIN_VALUE, z1 = Integer.MIN_VALUE;
             for (BoundingBox b : boxes) { x0 = Math.min(x0, b.minX()); z0 = Math.min(z0, b.minZ()); x1 = Math.max(x1, b.maxX()); z1 = Math.max(z1, b.maxZ()); }

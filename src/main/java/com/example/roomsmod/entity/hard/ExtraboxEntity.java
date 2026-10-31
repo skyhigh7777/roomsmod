@@ -57,7 +57,7 @@ public class ExtraboxEntity extends VEntity {
     /** 位置は意味を持たない（姿なし）。プレイヤーのいる部屋の経路の先頭に置くだけ。 */
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
-        List<BlockPos> p = playerRoom >= 0 && playerRoom < rs.roomPaths.size() ? rs.roomPaths.get(playerRoom) : List.of();
+        List<BlockPos> p = playerRoom >= 0 && playerRoom < rs.roomPaths.size() ? rs.path(playerRoom) : List.of();
         if (p.isEmpty()) return null;
         BlockPos at = p.get(0);
         setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);

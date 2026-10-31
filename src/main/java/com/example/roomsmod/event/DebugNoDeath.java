@@ -84,7 +84,7 @@ public final class DebugNoDeath {
     static int nearestRoomXZ(RoomsState rs, double x, double z) {
         int best = -1; double bd = Double.MAX_VALUE;
         for (int r = 0; r < rs.generatedRooms.size(); r++)
-            for (var b : rs.generatedRooms.get(r)) {
+            for (var b : rs.boxes(r)) {
                 double dx = Math.max(0, Math.max(b.minX() - x, x - b.maxX() - 1)), dz = Math.max(0, Math.max(b.minZ() - z, z - b.maxZ() - 1));
                 double d = dx * dx + dz * dz;
                 if (d < bd) { bd = d; best = r; }

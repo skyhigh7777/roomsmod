@@ -33,6 +33,8 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
 
     protected int life = 0;
     protected int startRoom = 0;
+    /** 出現した時の RoomsState.epoch（進行表が作り直されたら消える）。MIN_VALUE = まだ（追加された時に今の値）。 */
+    private int roomsEpoch = Integer.MIN_VALUE;
     /** 出現時にハードモードだったか（猶予・速度・折り返しの強化。出現後に切り替えても変わらない）。 */
     protected boolean hardSpawn = false;
     /** 出現した部屋が、このエンティティ本来のセクションの外か（ハードの合同抽選で別セクションに出た）。 */
@@ -102,6 +104,13 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
         boolean glow = dbg || wantsGlow();
         if (hasGlowingTag() != glow) setGlowingTag(glow); // 輪郭はデバッグ時のみ（wantsGlow で個別に光らせる）
         if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
+        if (sl.dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)) {
+            // 進行表が作り直された（ロビーへ戻った：リスポーン・/rooms enter・/rooms to）：覚えている部屋番号はもう別の部屋か存在しない
+            RoomsState st = RoomsState.get(sl);
+            if (roomsEpoch == Integer.MIN_VALUE) roomsEpoch = st.epoch;
+            else if (roomsEpoch != st.epoch) { leave("rooms were reset (epoch " + roomsEpoch + " -> " + st.epoch + ")"); return; }
+            if (startRoom > 0 && startRoom >= st.generatedRooms.size()) { leave("start room " + startRoom + " no longer exists (rooms=" + st.generatedRooms.size() + ")"); return; }
+        }
         if (vpos != null) abyssResync(sl, RoomsState.get(sl));
         serverTick(sl);
         // 1 tick で遠くへ動いた（ワープ・高速移動）なら、その場でチケットを移して読み込む。
@@ -218,6 +227,7 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
         super.addAdditionalSaveData(tag);
         tag.putInt("VLife", life);
         tag.putInt("StartRoom", startRoom);
+        if (roomsEpoch != Integer.MIN_VALUE) tag.putInt("RoomsEpoch", roomsEpoch);
         tag.putBoolean("HardSpawn", hardSpawn);
         tag.putBoolean("OffSection", offSection);
         if (vpos != null) { tag.putDouble("AbyssVX", vpos.x); tag.putDouble("AbyssVY", vpos.y); tag.putDouble("AbyssVZ", vpos.z); }
@@ -228,6 +238,7 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
         super.readAdditionalSaveData(tag);
         life = tag.getInt("VLife");
         startRoom = tag.getInt("StartRoom");
+        roomsEpoch = tag.contains("RoomsEpoch") ? tag.getInt("RoomsEpoch") : Integer.MIN_VALUE;
         hardSpawn = tag.getBoolean("HardSpawn");
         offSection = tag.getBoolean("OffSection");
         vpos = tag.contains("AbyssVY") ? new Vec3(tag.getDouble("AbyssVX"), tag.getDouble("AbyssVY"), tag.getDouble("AbyssVZ")) : null;
@@ -320,7 +331,7 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
     public static List<BlockPos> pathOf(RoomsState rs, int from, int to) {
         List<BlockPos> w = new ArrayList<>();
         for (int i = Math.max(0, from); i <= Math.min(to, rs.roomPaths.size() - 1); i++)
-            for (BlockPos p : rs.roomPaths.get(i))
+            for (BlockPos p : rs.path(i))
                 if (w.isEmpty() || !w.get(w.size() - 1).equals(p)) w.add(p);
         return w;
     }

@@ -35,9 +35,9 @@ public class V10Entity extends VPathWalker {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         int from = Math.max(0, playerRoom - ROOMS_BEHIND);
         BlockPos start = placeAtStart(rs, from, Math.min(rs.roomPaths.size() - 1, playerRoom + ROOMS_AHEAD));
-        if (start != null && playerRoom < rs.roomPaths.size() && !rs.roomPaths.get(playerRoom).isEmpty())
+        if (start != null && playerRoom < rs.roomPaths.size() && !rs.path(playerRoom).isEmpty())
             com.example.roomsmod.util.RoomsDebug.log("V-10 start room={} ({} behind player room {}) straight dist to player room entrance={}",
-                    from, playerRoom - from, playerRoom, String.format("%.1f", Math.sqrt(start.distSqr(rs.roomPaths.get(playerRoom).get(0)))));
+                    from, playerRoom - from, playerRoom, String.format("%.1f", Math.sqrt(start.distSqr(rs.path(playerRoom).get(0)))));
         return start;
     }
 

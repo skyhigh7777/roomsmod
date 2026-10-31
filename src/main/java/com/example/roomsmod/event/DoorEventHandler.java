@@ -328,7 +328,7 @@ public class DoorEventHandler {
         if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-40")) return false;
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
-        List<BlockPos> startPath = rs.roomPaths.get(startIndex);
+        List<BlockPos> startPath = rs.path(startIndex);
         if (startPath.isEmpty()) { RoomsDebug.warn("B-40 spawn skipped: empty path at room index {}", startIndex); return false; }
         com.example.roomsmod.entity.A40Entity a40 = RoomsMod.A40.get().create(level);
         if (a40 == null) { RoomsDebug.warn("B-40 spawn failed: entity create returned null"); return false; }
@@ -353,7 +353,7 @@ public class DoorEventHandler {
         // プレイヤーがいるのは直前の部屋（index = room - 1）。そこから約N部屋後ろ。
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
-        List<BlockPos> startPath = rs.roomPaths.get(startIndex);
+        List<BlockPos> startPath = rs.path(startIndex);
         if (startPath.isEmpty()) { RoomsDebug.warn("B-20 spawn skipped: empty path at room index {}", startIndex); return; }
         A20Entity a20 = RoomsMod.A20.get().create(level);
         if (a20 == null) { RoomsDebug.warn("B-20 spawn failed: entity create returned null"); return; }
@@ -367,7 +367,7 @@ public class DoorEventHandler {
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));
         if (!level.addFreshEntity(a20)) { RoomsDebug.warn("B-20 spawn failed: addFreshEntity returned false"); return; }
         int pathLen = 0;
-        for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.roomPaths.get(i).size();
+        for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.path(i).size();
         RoomsDebug.log(player,
             "B-20が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
             "B-20 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);

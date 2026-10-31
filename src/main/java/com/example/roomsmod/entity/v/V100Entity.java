@@ -80,7 +80,7 @@ public class V100Entity extends VEntity {
         if (room < 0 || room >= rs.generatedRooms.size()) return out;
         List<BlockPos> path = VSpawns.path(rs, room);
         BlockPos exit = path.isEmpty() ? null : path.get(path.size() - 1);
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ())) {
                 if (!level.getBlockState(q).is(Blocks.GLASS_PANE)) continue;
                 for (Direction d : Direction.Plane.HORIZONTAL) {
@@ -104,7 +104,7 @@ public class V100Entity extends VEntity {
         if (!level.getBlockState(pocket).isAir() || !level.getBlockState(q.relative(out, 2)).is(Blocks.BLACK_CONCRETE)) return false;
         if (!level.getBlockState(in).getCollisionShape(level, in).isEmpty()) return false;
         boolean inInside = false;
-        for (BoundingBox b : rs.generatedRooms.get(room)) {
+        for (BoundingBox b : rs.boxes(room)) {
             if (b.isInside(in)) inInside = true;
         }
         if (!inInside) return false;

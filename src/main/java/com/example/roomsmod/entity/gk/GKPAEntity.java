@@ -30,7 +30,7 @@ public class GKPAEntity extends VEntity {
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
-        List<BlockPos> path = playerRoom < rs.roomPaths.size() ? rs.roomPaths.get(playerRoom) : List.of();
+        List<BlockPos> path = playerRoom < rs.roomPaths.size() ? rs.path(playerRoom) : List.of();
         if (path.size() < 2) return null;
         BlockPos s = path.get(1).above(2);
         setPos(s.getX() + 0.5, s.getY(), s.getZ() + 0.5);
@@ -43,8 +43,8 @@ public class GKPAEntity extends VEntity {
         int i = RoomTracker.roomIndexAt(rs, p.blockPosition());
         if (i >= 0) return i == target;
         // 部屋の外（扉の敷居の上など）：次の教室の入口のすぐそばなら入ったとみなす
-        if (target >= rs.roomPaths.size() || rs.roomPaths.get(target).isEmpty()) return false;
-        return rs.roomPaths.get(target).get(0).distSqr(p.blockPosition()) <= 9;
+        if (target >= rs.roomPaths.size() || rs.path(target).isEmpty()) return false;
+        return rs.path(target).get(0).distSqr(p.blockPosition()) <= 9;
     }
 
     @Override

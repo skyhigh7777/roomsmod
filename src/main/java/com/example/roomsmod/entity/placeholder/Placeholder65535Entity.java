@@ -127,7 +127,7 @@ public class Placeholder65535Entity extends PlaceholderEntity {
         for (int room = lo; room <= d && room < rs.generatedRooms.size(); room++) {
             List<Mark> inRoom = new ArrayList<>();
             java.util.Set<BlockPos> seen = new java.util.HashSet<>();
-            for (BoundingBox b : rs.generatedRooms.get(room))
+            for (BoundingBox b : rs.boxes(room))
                 for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ())) {
                     Boolean locker = spotKind(level.getBlockState(q));
                     if (locker == null || !seen.add(q.immutable())) continue;

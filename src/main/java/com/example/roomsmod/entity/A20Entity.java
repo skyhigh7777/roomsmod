@@ -47,6 +47,8 @@ public class A20Entity extends Mob {
     private int graceTicks = 0;
 
     private int startRoom = 0;
+    /** 出現した時の RoomsState.epoch（MIN_VALUE = 最初の tick で今の値）。 */
+    private int roomsEpoch = Integer.MIN_VALUE;
     /** 出現時にハードモードだったか（猶予 -20%・速度 +10%）。 */
     private boolean hard = false;
     public void setHard(boolean h) { this.hard = h; }
@@ -66,7 +68,7 @@ public class A20Entity extends Mob {
         if (!(this.level() instanceof ServerLevel sl)) return;
         RoomsState rs = RoomsState.get(sl);
         for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) {
-            for (BlockPos p : rs.roomPaths.get(i)) {
+            for (BlockPos p : rs.path(i)) {
                 if (waypoints.isEmpty() || !waypoints.get(waypoints.size() - 1).equals(p)) waypoints.add(p);
             }
         }
@@ -104,7 +106,7 @@ public class A20Entity extends Mob {
         if (!(this.level() instanceof ServerLevel sl)) return;
         RoomsState rs = RoomsState.get(sl);
         int expected = 0;
-        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) expected += rs.roomPaths.get(i).size();
+        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) expected += rs.path(i).size();
         if (expected > lastPathPointCount) {
             lastPathPointCount = expected;
             List<BlockPos> old = new ArrayList<>(waypoints);
@@ -127,6 +129,7 @@ public class A20Entity extends Mob {
         tag.putInt("GraceTicks", graceTicks);
         com.example.roomsmod.util.RoomsDebug.log("B-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
+        if (roomsEpoch != Integer.MIN_VALUE) tag.putInt("RoomsEpoch", roomsEpoch);
         tag.putBoolean("HardSpawn", hard);
         tag.putInt("WaypointIndex", waypointIndex);
         tag.putBoolean("OpenedExit", openedExit);
@@ -138,6 +141,7 @@ public class A20Entity extends Mob {
         graceTicks = tag.contains("GraceTicks") ? tag.getInt("GraceTicks") : GRACE_TICKS;
         com.example.roomsmod.util.RoomsDebug.log("B-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
+        roomsEpoch = tag.contains("RoomsEpoch") ? tag.getInt("RoomsEpoch") : Integer.MIN_VALUE;
         hard = tag.getBoolean("HardSpawn");
         waypointIndex = tag.getInt("WaypointIndex");
         openedExit = tag.getBoolean("OpenedExit");
@@ -193,6 +197,16 @@ public class A20Entity extends Mob {
     @Override
     public void tick() {
         super.tick();
+
+        if (!level().isClientSide() && level() instanceof net.minecraft.server.level.ServerLevel sl0 && sl0.dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)) {
+            // 進行表が作り直された（ロビーへ戻った）：覚えている部屋番号はもう使えないので消える
+            com.example.roomsmod.world.RoomsState st0 = com.example.roomsmod.world.RoomsState.get(sl0);
+            if (roomsEpoch == Integer.MIN_VALUE) roomsEpoch = st0.epoch;
+            else if (roomsEpoch != st0.epoch || (startRoom > 0 && startRoom >= st0.generatedRooms.size())) {
+                com.example.roomsmod.util.RoomsDebug.log("{} despawn: rooms were reset (epoch {} -> {}, startRoom={} rooms={})", "B-20", roomsEpoch, st0.epoch, startRoom, st0.generatedRooms.size());
+                discard(); return;
+            }
+        }
         // 輪郭（壁越しに見える）はデバッグ時のみ。OFF にしたら既存の個体も消える
         if (!level().isClientSide() && hasGlowingTag() != com.example.roomsmod.util.RoomsDebug.isEnabled()) setGlowingTag(com.example.roomsmod.util.RoomsDebug.isEnabled());
         this.noPhysics = true; // 毎tick強制

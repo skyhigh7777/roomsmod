@@ -105,7 +105,7 @@ public abstract class VSearcherEntity extends VEntity {
     protected int countSpots(ServerLevel level, RoomsState rs) {
         int n = 0;
         for (int i = startRoom; i < Math.min(startRoom + ROOMS_TO_SEARCH, rs.generatedRooms.size()); i++)
-            for (BoundingBox b : rs.generatedRooms.get(i))
+            for (BoundingBox b : rs.boxes(i))
                 for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ()))
                     if (isSpot(level.getBlockState(q))) n++;
         return n;
@@ -120,7 +120,7 @@ public abstract class VSearcherEntity extends VEntity {
         List<BlockPos> path = VSpawns.path(rs, room);
         if (path.isEmpty()) return;
         List<BlockPos> spots = new ArrayList<>();
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ()))
                 if (isSpot(level.getBlockState(q))) spots.add(q.immutable());
         BlockPos first = path.get(0);

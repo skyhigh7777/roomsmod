@@ -31,11 +31,11 @@ public class PlaceholderEntity extends VEntity {
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         BlockPos at = null;
-        if (playerRoom >= 0 && playerRoom < rs.generatedRooms.size() && !rs.generatedRooms.get(playerRoom).isEmpty()) {
-            BoundingBox b = rs.generatedRooms.get(playerRoom).get(0);
+        if (playerRoom >= 0 && playerRoom < rs.generatedRooms.size() && !rs.boxes(playerRoom).isEmpty()) {
+            BoundingBox b = rs.boxes(playerRoom).get(0);
             at = new BlockPos((b.minX() + b.maxX()) / 2, b.minY() + 1, (b.minZ() + b.maxZ()) / 2);
         } else {
-            List<BlockPos> p = playerRoom >= 0 && playerRoom < rs.roomPaths.size() ? rs.roomPaths.get(playerRoom) : List.of();
+            List<BlockPos> p = playerRoom >= 0 && playerRoom < rs.roomPaths.size() ? rs.path(playerRoom) : List.of();
             if (!p.isEmpty()) at = p.get(0);
         }
         if (at == null) return null;

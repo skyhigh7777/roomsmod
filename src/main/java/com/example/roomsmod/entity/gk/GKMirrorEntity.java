@@ -36,7 +36,7 @@ public class GKMirrorEntity extends com.example.roomsmod.entity.v.VEntity {
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
-        List<BlockPos> path = playerRoom < rs.roomPaths.size() ? rs.roomPaths.get(playerRoom) : List.of();
+        List<BlockPos> path = playerRoom < rs.roomPaths.size() ? rs.path(playerRoom) : List.of();
         if (path.isEmpty()) return null;
         Player p = null; double best = 64;
         BlockPos e = path.get(0);

@@ -36,7 +36,7 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         if (playerRoom < 1) return null;
-        List<BlockPos> prev = rs.roomPaths.get(playerRoom - 1);
+        List<BlockPos> prev = rs.path(playerRoom - 1);
         if (prev.isEmpty()) return null;
         BlockPos d = prev.get(prev.size() - 1);
         BlockState s = level.getBlockState(d);

@@ -24,7 +24,7 @@ public final class RoomTracker {
     /** pos を含む部屋の index（＝部屋番号）。どこにも無ければ -1。 */
     public static int roomIndexAt(RoomsState rs, net.minecraft.core.BlockPos pos) {
         for (int i = rs.generatedRooms.size() - 1; i >= 0; i--) {
-            for (BoundingBox b : rs.generatedRooms.get(i)) if (b.isInside(pos)) return i;
+            for (BoundingBox b : rs.boxes(i)) if (b.isInside(pos)) return i;
         }
         return -1;
     }

@@ -112,7 +112,7 @@ public final class AbyssSpace {
         for (int i = Math.max(0, from); i <= to; i++) {
             boolean a = Sections.forRoom(rs, i) == Sections.A && i >= s.entryRoom;
             List<BlockPos> src;
-            if (i < rs.roomPaths.size()) src = rs.roomPaths.get(i);
+            if (i < rs.roomPaths.size()) src = rs.path(i);
             else if (a) src = List.of(roomTop(s, i), roomBottom(s, i));
             else break;
             int off = a ? roomOffset(s, i) : 0;

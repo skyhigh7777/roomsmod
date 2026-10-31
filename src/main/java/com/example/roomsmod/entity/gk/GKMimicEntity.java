@@ -34,7 +34,7 @@ public class GKMimicEntity extends com.example.roomsmod.entity.v.VEntity {
     static List<BlockPos> lockers(ServerLevel l, RoomsState rs, int room) {
         List<BlockPos> out = new ArrayList<>();
         if (room < 0 || room >= rs.generatedRooms.size()) return out;
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ())) {
                 BlockState s = l.getBlockState(q);
                 if (s.getBlock() instanceof LockerBlock && s.getValue(LockerBlock.HALF) == DoubleBlockHalf.LOWER) out.add(q.immutable());

@@ -60,6 +60,8 @@ public class A40Entity extends Mob {
     }
     private int phaseTicks = 0;
     private int startRoom = 0;
+    /** 出現した時の RoomsState.epoch（MIN_VALUE = 最初の tick で今の値）。 */
+    private int roomsEpoch = Integer.MIN_VALUE;
     private int roomsBack = DEFAULT_ROOMS_BACK;
     /** 出現時にハードモードだったか（猶予 -20%・速度 +10%・折り返し +1 回）。 */
     private boolean hard = false;
@@ -99,7 +101,7 @@ public class A40Entity extends Mob {
 
     private int expectedPointCount(RoomsState rs) {
         int n = 0;
-        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) n += rs.roomPaths.get(i).size();
+        for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) n += rs.path(i).size();
         return n;
     }
 
@@ -111,7 +113,7 @@ public class A40Entity extends Mob {
         RoomsState rs = RoomsState.get(sl);
         for (int i = Math.max(0, startRoom); i < rs.roomPaths.size(); i++) {
             roomStartIdx.add(waypoints.size());
-            for (BlockPos p : rs.roomPaths.get(i)) {
+            for (BlockPos p : rs.path(i)) {
                 if (waypoints.isEmpty() || !waypoints.get(waypoints.size() - 1).equals(p)) waypoints.add(p);
             }
         }
@@ -162,6 +164,16 @@ public class A40Entity extends Mob {
     @Override
     public void tick() {
         super.tick();
+
+        if (!level().isClientSide() && level() instanceof net.minecraft.server.level.ServerLevel sl0 && sl0.dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)) {
+            // 進行表が作り直された（ロビーへ戻った）：覚えている部屋番号はもう使えないので消える
+            com.example.roomsmod.world.RoomsState st0 = com.example.roomsmod.world.RoomsState.get(sl0);
+            if (roomsEpoch == Integer.MIN_VALUE) roomsEpoch = st0.epoch;
+            else if (roomsEpoch != st0.epoch || (startRoom > 0 && startRoom >= st0.generatedRooms.size())) {
+                com.example.roomsmod.util.RoomsDebug.log("{} despawn: rooms were reset (epoch {} -> {}, startRoom={} rooms={})", "B-40", roomsEpoch, st0.epoch, startRoom, st0.generatedRooms.size());
+                discard(); return;
+            }
+        }
         // 輪郭（壁越しに見える）はデバッグ時のみ。OFF にしたら既存の個体も消える
         if (!level().isClientSide() && hasGlowingTag() != com.example.roomsmod.util.RoomsDebug.isEnabled()) setGlowingTag(com.example.roomsmod.util.RoomsDebug.isEnabled());
         this.noPhysics = true;
@@ -304,6 +316,7 @@ public class A40Entity extends Mob {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         tag.putInt("StartRoom", startRoom);
+        if (roomsEpoch != Integer.MIN_VALUE) tag.putInt("RoomsEpoch", roomsEpoch);
         tag.putInt("WaypointIndex", waypointIndex);
         tag.putInt("Phase", phase);
         tag.putInt("PhaseTicks", phaseTicks);
@@ -318,6 +331,7 @@ public class A40Entity extends Mob {
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         startRoom = tag.getInt("StartRoom");
+        roomsEpoch = tag.contains("RoomsEpoch") ? tag.getInt("RoomsEpoch") : Integer.MIN_VALUE;
         waypointIndex = tag.getInt("WaypointIndex");
         phase = tag.getInt("Phase");
         phaseTicks = tag.getInt("PhaseTicks");
