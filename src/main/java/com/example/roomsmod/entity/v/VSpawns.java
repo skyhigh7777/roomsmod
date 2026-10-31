@@ -25,22 +25,22 @@ public final class VSpawns {
         V25T("V-25-T", "v25t", "searcher", RoomsMod.V25T), V25L("V-25-L", "v25l", "searcher", RoomsMod.V25L),
         V25_BUFFED("V25-BUFFED", "v25buffed", "searcher,buffed_v100", RoomsMod.V25_BUFFED),
         V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", "err_v50", RoomsMod.V50),
-        // GK（学校）区画
-        GK_CHIME("GK-25", "gkchime", null, RoomsMod.GK_CHIME),
-        GK_MIMIC("GK-165", "gkmimic", "searcher", RoomsMod.GK_MIMIC),
-        GK_MOTH("GK-10", "gkmoth", null, RoomsMod.GK_MOTH),
-        GK_STARE("GK-205", "gk12", "gk_sense", RoomsMod.GK_STARE),
-        GK_WHISPER("GK-45", "gkwhisper", "gk_place", RoomsMod.GK_WHISPER),
-        GK_DETENTION("GK-65", "gkdetention", "gk_door", RoomsMod.GK_DETENTION),
-        GK_SUBSTITUTE("GK-105", "gksubstitute", "gk_door", RoomsMod.GK_SUBSTITUTE),
-        GK_ERASER("GK-245", "gkeraser", "gk_rush", RoomsMod.GK_ERASER),
-        GK_QUIZ("GK-85", "gkquiz", "gk_place", RoomsMod.GK_QUIZ),
-        GK_PA("GK-185", "gkpa", "gk_place,gk_door", RoomsMod.GK_PA),
-        GK_JANITOR("GK-225", "gkjanitor", "gk_rush", RoomsMod.GK_JANITOR),
-        GK_MIRROR("GK-270", "gkmirror", "gk_place,gk_rush", RoomsMod.GK_MIRROR),
-        GK_07("GK-125", "gk07", "gk_back", RoomsMod.GK_07),
-        GK_BELL2("GK-300", "gkbell2", "gk_rush", RoomsMod.GK_BELL2),
-        GK_REWIND("GK-145", "gkrewind", "gk_place,gk_back", RoomsMod.GK_REWIND),
+        // S（School、旧 GK）区画
+        GK_CHIME("S-25", "schime", null, RoomsMod.GK_CHIME),
+        GK_MIMIC("S-165", "smimic", "searcher", RoomsMod.GK_MIMIC),
+        GK_MOTH("S-10", "smoth", null, RoomsMod.GK_MOTH),
+        GK_STARE("S-205", "sstare", "gk_sense", RoomsMod.GK_STARE),
+        GK_WHISPER("S-45", "swhisper", "gk_place", RoomsMod.GK_WHISPER),
+        GK_DETENTION("S-65", "sdetention", "gk_door", RoomsMod.GK_DETENTION),
+        GK_SUBSTITUTE("S-105", "ssubstitute", "gk_door", RoomsMod.GK_SUBSTITUTE),
+        GK_ERASER("S-245", "seraser", "gk_rush", RoomsMod.GK_ERASER),
+        GK_QUIZ("S-85", "squiz", "gk_place", RoomsMod.GK_QUIZ),
+        GK_PA("S-185", "spa", "gk_place,gk_door", RoomsMod.GK_PA),
+        GK_JANITOR("S-225", "sjanitor", "gk_rush", RoomsMod.GK_JANITOR),
+        GK_MIRROR("S-270", "smirror", "gk_place,gk_rush", RoomsMod.GK_MIRROR),
+        GK_07("S-125", "s07", "gk_back", RoomsMod.GK_07),
+        GK_BELL2("S-300", "sbell2", "gk_rush", RoomsMod.GK_BELL2),
+        GK_REWIND("S-145", "srewind", "gk_place,gk_back", RoomsMod.GK_REWIND),
         // B 区画
         B_GRIN("B-130", "bgrin", "b_rush", RoomsMod.B_GRIN),
         B_MASK("B-30", "bmask", null, RoomsMod.B_MASK),
@@ -54,7 +54,25 @@ public final class VSpawns {
         B_REACH("B-50", "breach", "b_rush", RoomsMod.B_REACH),
         B_SMILE("B-90", "bsmile", "b_rush", RoomsMod.B_SMILE),
         B_VOID("B-260", "bvoid", "b_rush", RoomsMod.B_VOID),
-        B_17("B-290", "b17", null, RoomsMod.B_17);
+        B_17("B-290", "b17", null, RoomsMod.B_17),
+        // U（廊下）区画
+        U20("U-20", "u20", null, RoomsMod.U20),
+        U60("U-60", "u60", null, RoomsMod.U60),
+        U120("U-120", "u120", null, RoomsMod.U120),
+        U200("U-200", "u200", null, RoomsMod.U200),
+        U300("U-300", "u300", null, RoomsMod.U300),
+        // A（Abyss）専用（縦穴でだけ出る）
+        A25("A-25", "a25", null, RoomsMod.A25),
+        A90("A-90", "a90", null, RoomsMod.A90),
+        A180("A-180", "a180", null, RoomsMod.A180),
+        // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
+        E332("3!3!2", "mimic", null, RoomsMod.E332),
+        // PLACEHOLDER（テスト用）区画：区画の表は空。32767 / 65535 はハードの抽選表（Sections.HARD_ONLY）にだけ入る。2147483648 は /rooms spawn と 3!3!2 のみ
+        PLACEHOLDER_32767("PLACEHOLDER-32767", "placeholder32767", null, RoomsMod.PLACEHOLDER_32767),
+        PLACEHOLDER_65535("PLACEHOLDER-65535", "placeholder65535", null, RoomsMod.PLACEHOLDER_65535),
+        PLACEHOLDER_2147483648("PLACEHOLDER-2147483648", "placeholder2147483648", null, RoomsMod.PLACEHOLDER_2147483648),
+        // コマンド専用（どの抽選表にも 3!3!2 の候補にも入らない）。表示名は ExtraboxEntity.NAME、別名 EXTRABOX
+        EXTRABOX(com.example.roomsmod.entity.hard.ExtraboxEntity.NAME, "extrabox", null, RoomsMod.EXTRABOX);
         public final String display, id;
         /**
          * 排他グループ（null=なし）。同じグループの種類は同時に1体まで（例：V-25-T と V-25-L は一緒に出ない）。
@@ -66,12 +84,15 @@ public final class VSpawns {
         Kind(String display, String id, String group, Supplier<? extends EntityType<? extends VEntity>> type) { this.display = display; this.id = id; this.exclusionGroup = group; this.type = type; }
         /** 同種、または同じ排他グループの種類が生存中か。 */
         public boolean alive(ServerLevel level) {
+            // 3!3!2 は同時に何体いてもよい（抽選・/rooms spawn とも生存チェックなし。ボスバーは1体ごと）
+            if (this == E332 || this == EXTRABOX) return false; // EXTRABOX も同時に何体でも
             // B-110 は B-20 / B-40（Kind ではない）とも同時に出さない
             if (this == B_ERROR && (com.example.roomsmod.event.DoorEventHandler.isA20Alive(level) || com.example.roomsmod.event.DoorEventHandler.isA40Alive(level))) return true;
             for (Kind k : values())
                 if ((k == this || sharesGroup(exclusionGroup, k.exclusionGroup)) && isAlive(level, k.type.get())) return true;
             return false;
         }
+        public static Kind byDisplay(String name) { for (Kind k : values()) if (k.display.equals(name)) return k; return null; }
         public static Kind byId(String id) { for (Kind k : values()) if (k.id.equals(id)) return k; return null; }
         public boolean spawn(ServerLevel level, RoomsState rs, Player player) { return VSpawns.spawn(this, level, rs, player); }
     }
@@ -84,7 +105,7 @@ public final class VSpawns {
     }
 
     public static boolean isAlive(ServerLevel level, EntityType<?> type) {
-        for (Entity e : level.getAllEntities()) if (e.getType() == type && e.isAlive()) return true;
+        for (Entity e : level.getAllEntities()) if (e.getType() == type && VEntity.isActive(e)) return true; // 止まった古い個体は数えない
         return false;
     }
 
@@ -99,11 +120,17 @@ public final class VSpawns {
 
     static boolean spawn(Kind k, ServerLevel level, RoomsState rs, Player player) {
         if (rs.roomPaths.isEmpty()) { RoomsDebug.warn("{} spawn skipped: no rooms", k.display); return false; }
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("{} spawn blocked: PLACEHOLDER-2147483648 alive", k.display); return false; }
         int room = playerRoom(rs, player);
+        // A の縦穴：通常は A 専用の敵だけ、ハードは縦に追ってこられる種類だけ（コマンドは制限なし）
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, room, k.display)) return false;
         VEntity e = k.type.get().create(level);
         if (e == null) { RoomsDebug.warn("{} spawn failed: create returned null", k.display); return false; }
         if (e.targetsOpenedRoom()) room = Math.min(room + 1, rs.roomPaths.size() - 1);
-        BlockPos at = e.prepare(level, rs, room);
+        String home = e.homeSection();
+        boolean off = home != null && !home.equals(com.example.roomsmod.world.section.Sections.forRoom(rs, room).id());
+        e.setSpawnContext(rs.hardMode, off);
+        BlockPos at = e.prepareFor(level, rs, player, room);
         if (at == null) { RoomsDebug.log("{} spawn skipped: no valid position near room {}", k.display, room); return false; }
         RusherChunks.prepareSpawn(level, e, new ChunkPos(at));
         if (!level.addFreshEntity(e)) { RoomsDebug.warn("{} spawn failed: addFreshEntity returned false", k.display); return false; }

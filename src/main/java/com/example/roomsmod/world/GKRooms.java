@@ -141,7 +141,7 @@ final class GKRooms {
         state.setExpectedExitDoor(exitDoor);
         state.setCurrentRoom(roomNumber);
         if (RoomsDebug.isEnabled())
-            RoomsDebug.log("room generated #{} ({}) section=GK origin={} gk layout={} boxes={} exitDoor={} hiding={} decor={}", roomNumber,
+            RoomsDebug.log("room generated #{} ({}) section=S origin={} s layout={} boxes={} exitDoor={} hiding={} decor={}", roomNumber,
                     Sections.formatRoom(state, roomNumber), origin, p.layout, boxes(origin, p), exitDoor, hides, decor);
         return exitDoor;
     }
@@ -236,7 +236,7 @@ final class GKRooms {
             if (!ok && (t == SectionTheme.HidingType.LOCKER ? lockers : tables) == 0) ok = forcePlace(l, o, p, blocked, used, t);
             if (ok) { if (t == SectionTheme.HidingType.LOCKER) lockers++; else tables++; }
         }
-        if (lockers == 0 || tables == 0) RoomsDebug.warn("GK room missing hiding spot lockers={} tables={} layout={} origin={}", lockers, tables, p.layout, o);
+        if (lockers == 0 || tables == 0) RoomsDebug.warn("S room missing hiding spot lockers={} tables={} layout={} origin={}", lockers, tables, p.layout, o);
 
         // 黒板（入口から見て左右どちらかの側壁、y=2..3、壁の中なので通路に影響なし）
         Rect main = p.rects.get(0);

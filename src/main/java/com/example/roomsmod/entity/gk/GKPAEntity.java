@@ -18,13 +18,13 @@ import net.minecraft.world.level.Level;
 
 import java.util.List;
 
-/** GK-185：校内放送。 */
+/** S-185：校内放送。 */
 public class GKPAEntity extends VEntity {
     public static final int TELEGRAPH = 40, COUNTDOWN = 20 * 25;
     public static final float DAMAGE = 20f;
     private int phase = 0;
     public GKPAEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-185"; }
+    @Override public String vName() { return "S-185"; }
     @Override protected int maxLifeTicks() { return GKEntity.MAX_LIFE_TICKS; }
 
     @Override
@@ -53,7 +53,7 @@ public class GKPAEntity extends VEntity {
         RoomsState rs = RoomsState.get(level);
         if (phase == 1) {
             level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_PA_CHIME.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
-            for (Player p : playersNear(64)) RoomsDebug.log(p, "GK-185 の放送チャイム（" + COUNTDOWN / 20 + "秒）", "GK-185 telegraph room={} countdown={}", startRoom, COUNTDOWN);
+            for (Player p : playersNear(64)) RoomsDebug.log(p, "S-185 の放送チャイム（" + COUNTDOWN / 20 + "秒）", "S-185 telegraph room={} countdown={}", startRoom, COUNTDOWN);
         }
         if (phase <= TELEGRAPH) return;
         int left = TELEGRAPH + COUNTDOWN - phase;
@@ -67,7 +67,7 @@ public class GKPAEntity extends VEntity {
         for (Player p : playersNear(96)) {
             if (p.isSpectator()) continue;
             boolean ok = safe(rs, p);
-            RoomsDebug.log(p, "GK-185: " + (ok ? "移動済み、セーフ" : "移動していない、攻撃"), "GK-185 end player={} room={} safe={} creative={}", p.getGameProfile().getName(), RoomTracker.roomIndexAt(rs, p.blockPosition()), ok, p.isCreative());
+            RoomsDebug.log(p, "S-185: " + (ok ? "移動済み、セーフ" : "移動していない、攻撃"), "S-185 end player={} room={} safe={} creative={}", p.getGameProfile().getName(), RoomTracker.roomIndexAt(rs, p.blockPosition()), ok, p.isCreative());
             if (!ok) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
         }
         leave("countdown over");

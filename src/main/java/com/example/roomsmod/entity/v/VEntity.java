@@ -27,13 +27,31 @@ import java.util.List;
  * V（Village）区画のエンティティ共通部分：物理なし・重力なし・自然消滅なし、チャンクチケット、
  * デバッグ時のみ発光、寿命（MAX_LIFE_TICKS 経過で必ず消える）、視線判定、保存。
  */
-public abstract class VEntity extends Mob {
+public abstract class VEntity extends Mob implements com.example.roomsmod.world.AbyssSpace.Tracked {
     /** どの V エンティティも最終的にこの tick 数で消える（取り残し防止）。 */
     public static final int MAX_LIFE_TICKS = 20 * 120;
 
     protected int life = 0;
     protected int startRoom = 0;
+    /** 出現時にハードモードだったか（猶予・速度・折り返しの強化。出現後に切り替えても変わらない）。 */
+    protected boolean hardSpawn = false;
+    /** 出現した部屋が、このエンティティ本来のセクションの外か（ハードの合同抽選で別セクションに出た）。 */
+    protected boolean offSection = false;
     private ChunkPos lastForcedChunk = null;
+    /** 最後に tick した時刻（ゲーム時間）。止まっている個体の検出用。保存しない。 */
+    private long lastTickTime = Long.MIN_VALUE;
+    /** A の縦穴の仮想座標（AbyssSpace）。null なら実際の位置そのもの。 */
+    protected Vec3 vpos = null;
+    /** 仮想座標が縦穴の見えている範囲の外で、隠れた位置に置いているか。 */
+    protected final boolean[] abyssHidden = new boolean[1];
+
+    /** この tick 数以上 tick していない個体は「生存中」として扱わない（排他・出現ブロックが古い個体で詰まらないように）。 */
+    public static final int STALE_ALIVE_TICKS = 100;
+    /** 見張り：この tick 数止まっていたらチャンクを読み込み直す。 */
+    public static final int STALL_RELOAD_TICKS = 40;
+    /** 見張り：読み込み直しても、この tick 数止まったままなら消す（取り残し防止）。 */
+    public static final int STALL_DISCARD_TICKS = 20 * 30;
+    private static final int WATCHDOG_INTERVAL = 20;
 
     protected VEntity(EntityType<? extends Mob> type, Level level) {
         super(type, level);
@@ -49,6 +67,12 @@ public abstract class VEntity extends Mob {
     public abstract String vName();
 
     public void setStartRoom(int index) { this.startRoom = index; }
+
+    /** 出現処理（VSpawns.spawn）から prepare の前に呼ぶ。 */
+    public void setSpawnContext(boolean hard, boolean offSection) { this.hardSpawn = hard; this.offSection = offSection; }
+
+    /** このエンティティ本来のセクション id（null = 区別しない）。offSection の判定に使う。 */
+    public String homeSection() { return null; }
 
     public static AttributeSupplier.Builder createAttributes() {
         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 100.0).add(Attributes.MOVEMENT_SPEED, 0.3).add(Attributes.FOLLOW_RANGE, 64.0);
@@ -70,13 +94,19 @@ public abstract class VEntity extends Mob {
         this.noPhysics = true;
         if (level().isClientSide()) { clientTick(); return; }
         ServerLevel sl = (ServerLevel) level();
+        lastTickTime = sl.getGameTime();
         ChunkPos c = new ChunkPos(blockPosition());
         RusherChunks.move(sl, this, lastForcedChunk, c);
         lastForcedChunk = c;
         boolean dbg = RoomsDebug.isEnabled();
-        if (hasGlowingTag() != dbg) setGlowingTag(dbg); // 輪郭はデバッグ時のみ
+        boolean glow = dbg || wantsGlow();
+        if (hasGlowingTag() != glow) setGlowingTag(glow); // 輪郭はデバッグ時のみ（wantsGlow で個別に光らせる）
         if (++life > maxLifeTicks()) { leave("max lifetime " + maxLifeTicks() + " ticks"); return; }
+        if (vpos != null) abyssResync(sl, RoomsState.get(sl));
         serverTick(sl);
+        // 1 tick で遠くへ動いた（ワープ・高速移動）なら、その場でチケットを移して読み込む。
+        // 次の tick の先頭まで待つと、チケットのないチャンクに入って tick されなくなり、二度と追従できない
+        if (!isRemoved()) preload(getX(), getZ());
         setDeltaMovement(Vec3.ZERO);
         if (dbg && life % 100 == 0)
             RoomsDebug.log("{} status life={} {} pos=({}, {}, {})", vName(), life, debugState(),
@@ -86,18 +116,88 @@ public abstract class VEntity extends Mob {
     /** 出現前に位置と内部状態を決める。返り値は出現位置（null なら出現しない）。playerRoom はプレイヤーのいる部屋 index。 */
     protected abstract BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom);
 
+    /** プレイヤーも使う出現準備（既定は prepare）。A 専用の敵が上書きする。 */
+    public BlockPos prepareFor(ServerLevel level, RoomsState rs, Player player, int playerRoom) { return prepare(level, rs, playerRoom); }
+
     /** true なら prepare には「いま開けた部屋」（扉の先＝最新の部屋。V-100 と同じ）を渡す。プレイヤーがすでに最新の部屋ならそこ。 */
     public boolean targetsOpenedRoom() { return false; }
+
+    /** デバッグ以外でも輪郭を光らせたいとき true（毎 tick 評価）。 */
+    protected boolean wantsGlow() { return false; }
 
     protected void clientTick() {}
     protected abstract void serverTick(ServerLevel level);
     protected String debugState() { return ""; }
+
+    /**
+     * (x, z) のチャンクへチケットを移して同期的に読み込む（移動の前に呼ぶ）。
+     * チケットのないチャンクへ飛ぶと、そこが entity-ticking でない限りこの個体は tick されなくなる。
+     */
+    protected void preload(double x, double z) {
+        if (!(level() instanceof ServerLevel sl)) return;
+        ChunkPos c = new ChunkPos(BlockPos.containing(x, 0, z));
+        if (c.equals(lastForcedChunk)) return;
+        RusherChunks.move(sl, this, lastForcedChunk, c);
+        lastForcedChunk = c;
+        sl.getChunk(c.x, c.z);
+    }
+
+    /** 生存中で、最近 tick している（止まった古い個体ではない）。 */
+    public boolean isActive() {
+        if (!isAlive()) return false;
+        if (lastTickTime == Long.MIN_VALUE) return true; // 追加・ロード直後
+        // プレイヤーのいないディメンションはしばらくするとエンティティを tick しなくなるので、そのときは止まっていても生存扱い
+        if (level() instanceof ServerLevel sl && sl.players().isEmpty()) return true;
+        return level().getGameTime() - lastTickTime <= STALE_ALIVE_TICKS;
+    }
+
+    /** 生存確認用：VEntity なら isActive、それ以外は isAlive。 */
+    public static boolean isActive(Entity e) { return e instanceof VEntity v ? v.isActive() : e.isAlive(); }
+
+    /**
+     * サーバーのレベル tick から呼ぶ見張り。tick されなくなった V 系（チケットのないチャンクに入った等）を見つけたら
+     * チャンクを読み込み直し、それでも STALL_DISCARD_TICKS 止まったままなら消す。
+     */
+    public static void watchdog(ServerLevel level) {
+        long now = level.getGameTime();
+        if (now % WATCHDOG_INTERVAL != 0) return;
+        if (level.players().isEmpty()) { // 誰もいない間は止まるのが正常：戻ってきたときに即消さないよう数え直す
+            for (Entity e : level.getAllEntities()) if (e instanceof VEntity v) v.lastTickTime = Long.MIN_VALUE;
+            return;
+        }
+        List<VEntity> stalled = new ArrayList<>();
+        for (Entity e : level.getAllEntities())
+            if (e instanceof VEntity v && v.isAlive()) {
+                if (v.lastTickTime == Long.MIN_VALUE) v.lastTickTime = now; // ロード直後：ここから数える
+                else if (now - v.lastTickTime >= STALL_RELOAD_TICKS) stalled.add(v);
+            }
+        for (VEntity v : stalled) {
+            long t = now - v.lastTickTime;
+            if (t >= STALL_DISCARD_TICKS) {
+                RoomsDebug.warn("{} stalled {} ticks at ({}, {}, {}), discarding", v.vName(), t, f(v.getX()), f(v.getY()), f(v.getZ()));
+                v.discard();
+                continue;
+            }
+            ChunkPos c = new ChunkPos(v.blockPosition());
+            RoomsDebug.log("{} stalled {} ticks at chunk {}, reloading", v.vName(), t, c);
+            RusherChunks.move(level, v, c.equals(v.lastForcedChunk) ? null : v.lastForcedChunk, c);
+            RusherChunks.force(level, v, c, true);
+            v.lastForcedChunk = c;
+            level.getChunk(c.x, c.z);
+        }
+    }
 
     /** 正常な退場。 */
     protected void leave(String why) {
         RoomsDebug.log("{} despawn: {} life={} pos=({}, {}, {})", vName(), why, life,
                 String.format("%.1f", getX()), String.format("%.1f", getY()), String.format("%.1f", getZ()));
         discard();
+    }
+
+    @Override
+    public void onAddedToLevel() {
+        super.onAddedToLevel();
+        if (level() instanceof ServerLevel sl) lastTickTime = sl.getGameTime();
     }
 
     @Override
@@ -118,6 +218,9 @@ public abstract class VEntity extends Mob {
         super.addAdditionalSaveData(tag);
         tag.putInt("VLife", life);
         tag.putInt("StartRoom", startRoom);
+        tag.putBoolean("HardSpawn", hardSpawn);
+        tag.putBoolean("OffSection", offSection);
+        if (vpos != null) { tag.putDouble("AbyssVX", vpos.x); tag.putDouble("AbyssVY", vpos.y); tag.putDouble("AbyssVZ", vpos.z); }
     }
 
     @Override
@@ -125,6 +228,83 @@ public abstract class VEntity extends Mob {
         super.readAdditionalSaveData(tag);
         life = tag.getInt("VLife");
         startRoom = tag.getInt("StartRoom");
+        hardSpawn = tag.getBoolean("HardSpawn");
+        offSection = tag.getBoolean("OffSection");
+        vpos = tag.contains("AbyssVY") ? new Vec3(tag.getDouble("AbyssVX"), tag.getDouble("AbyssVY"), tag.getDouble("AbyssVZ")) : null;
+    }
+
+    // ---- A の縦穴（仮想座標） ----
+
+    /** A 専用の種類か（A に出てよいのはこれだけ。コマンドは除く）。 */
+    public boolean isAbyssNative() { return false; }
+
+    /** 移動の計算に使う位置（縦穴の中なら仮想座標）。 */
+    public final Vec3 virtualPos() { return vpos != null ? vpos : position(); }
+
+    /** 仮想座標で動かす（縦穴がなければ普通に setPos）。実際の位置は AbyssSpace.toPhysical。 */
+    protected final void setVirtualPos(Vec3 v) {
+        if (level() instanceof ServerLevel sl) {
+            RoomsState rs = RoomsState.get(sl);
+            if (rs.abyss != null) {
+                vpos = v;
+                Vec3 p = com.example.roomsmod.world.AbyssSpace.toPhysical(rs, v, abyssHidden);
+                setPos(p.x, p.y, p.z);
+                return;
+            }
+        }
+        vpos = null;
+        abyssHidden[0] = false;
+        setPos(v.x, v.y, v.z);
+    }
+
+    /** 縦穴の仮想座標で動いているか。 */
+    public final boolean inAbyss() {
+        return vpos != null && level() instanceof ServerLevel sl && com.example.roomsmod.world.AbyssSpace.isShaftVirtual(RoomsState.get(sl), vpos);
+    }
+
+    @Override
+    public double abyssResync(ServerLevel level, RoomsState rs) {
+        if (vpos == null || !com.example.roomsmod.world.AbyssSpace.isShaftVirtual(rs, vpos)) return 0;
+        Vec3 p = com.example.roomsmod.world.AbyssSpace.toPhysical(rs, vpos, abyssHidden);
+        double dy = p.y - getY();
+        if (Math.abs(dy) < 1.0E-6 && Math.abs(p.x - getX()) < 1.0E-6 && Math.abs(p.z - getZ()) < 1.0E-6) return 0;
+        setPos(p.x, p.y, p.z);
+        return dy;
+    }
+
+    /** 半径内の生存プレイヤー（縦穴の中なら仮想座標どうしの距離）。 */
+    protected List<Player> playersNearVirtual(double r) {
+        if (vpos == null || !(level() instanceof ServerLevel sl)) return playersNear(r);
+        RoomsState rs = RoomsState.get(sl);
+        List<Player> out = new ArrayList<>();
+        for (Player p : sl.players())
+            if (!p.isSpectator() && p.isAlive() && com.example.roomsmod.world.AbyssSpace.playerVirtual(rs, p).distanceTo(vpos) <= r) out.add(p);
+        return out;
+    }
+
+    /** 仮想座標でのプレイヤーとの距離。 */
+    protected double virtualDistanceTo(Player p) {
+        if (vpos == null || !(level() instanceof ServerLevel sl)) return distanceTo(p);
+        return com.example.roomsmod.world.AbyssSpace.playerVirtual(RoomsState.get(sl), p).distanceTo(vpos);
+    }
+
+    /**
+     * 縦穴の中の視線：プレイヤーから見た仮想の位置関係のまま、縦穴の中（見えている範囲）に置き直した目の位置から判定する
+     * （縦穴は同じ層の繰り返しなので、どの層で調べても同じ）。縦穴の外なら canSee。
+     */
+    public boolean canSeeVirtual(Player target) {
+        if (vpos == null || !(level() instanceof ServerLevel sl)) return canSee(target);
+        RoomsState rs = RoomsState.get(sl);
+        var s = rs.abyss;
+        if (s == null) return canSee(target);
+        Vec3 pe = target.getEyePosition();
+        Vec3 pv = com.example.roomsmod.world.AbyssSpace.playerVirtual(rs, target, pe);
+        Vec3 a = pe.add(vpos.add(0, getEyeHeight(), 0).subtract(pv));
+        double lo = s.bottomY + 1.2, hi = s.oy - 1.2;
+        double cx = s.ox + com.example.roomsmod.world.AbyssRooms.CX + 0.5, cz = s.oz + com.example.roomsmod.world.AbyssRooms.CZ + 0.5, in = com.example.roomsmod.world.AbyssRooms.IN + 0.4;
+        a = new Vec3(Math.max(cx - in, Math.min(cx + in, a.x)), Math.max(lo, Math.min(hi, a.y)), Math.max(cz - in, Math.min(cz + in, a.z)));
+        BlockHitResult hit = level().clip(new ClipContext(a, pe, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        return hit.getType() == HitResult.Type.MISS || a.distanceTo(hit.getLocation()) >= a.distanceTo(pe) - 0.5;
     }
 
     // ---- helpers ----

@@ -61,6 +61,11 @@ public class A40Entity extends Mob {
     private int phaseTicks = 0;
     private int startRoom = 0;
     private int roomsBack = DEFAULT_ROOMS_BACK;
+    /** 出現時にハードモードだったか（猶予 -20%・速度 +10%・折り返し +1 回）。 */
+    private boolean hard = false;
+    /** ハードで追加した折り返しの回数。 */
+    private int extraCycles = 0;
+    public void setHard(boolean h) { this.hard = h; }
     private int waypointIndex = 0;
     private int backTargetIndex = 0;
     private final List<BlockPos> waypoints = new ArrayList<>();
@@ -138,7 +143,7 @@ public class A40Entity extends Mob {
 
     /** 目標インデックスへ1tick分移動。到達したら true。 */
     private boolean stepToward(int targetIdx) {
-        waypointIndex = mover.step(this, "B-40", waypoints, waypointIndex, targetIdx, SPEED, reachedBuf);
+        waypointIndex = mover.step(this, "B-40", waypoints, waypointIndex, targetIdx, com.example.roomsmod.world.HardMode.speed(SPEED, hard), reachedBuf);
         return reachedBuf[0];
     }
 
@@ -177,7 +182,7 @@ public class A40Entity extends Mob {
         switch (phase) {
             case 0 -> {
                 this.setDeltaMovement(Vec3.ZERO);
-                if (phaseTicks >= GRACE_TICKS) setPhase(1);
+                if (phaseTicks >= com.example.roomsmod.world.HardMode.grace(GRACE_TICKS, hard)) setPhase(1);
             }
             case 1, 5 -> {
                 if (this.tickCount % 20 == 0) { refreshIfGrown(); end = Math.max(0, waypoints.size() - 1); }
@@ -185,9 +190,15 @@ public class A40Entity extends Mob {
                     if (phase == 1) {
                         setPhase(2);
                         playCue(sl);
+                    } else if (hard && extraCycles < com.example.roomsmod.world.HardMode.EXTRA_TURNS) {
+                        extraCycles++;
+                        RoomsDebug.log("B-40 hard extra turnaround {}/{}", extraCycles, com.example.roomsmod.world.HardMode.EXTRA_TURNS);
+                        setPhase(2);
+                        playCue(sl);
                     } else {
                         RoomsDebug.log("B-40 despawn: finished second rush at waypoint {}/{}", waypointIndex, waypoints.size());
                         this.discard();
+                        com.example.roomsmod.world.HardMode.chainReroll(sl, "B-40");
                         return;
                     }
                 }
@@ -298,6 +309,8 @@ public class A40Entity extends Mob {
         tag.putInt("PhaseTicks", phaseTicks);
         tag.putInt("RoomsBack", roomsBack);
         tag.putInt("BackTarget", backTargetIndex);
+        tag.putBoolean("HardSpawn", hard);
+        tag.putInt("ExtraCycles", extraCycles);
         RoomsDebug.log("B-40 saved phase={} phaseTicks={} waypoint={}/{}", phase, phaseTicks, waypointIndex, waypoints.size());
     }
 
@@ -310,6 +323,8 @@ public class A40Entity extends Mob {
         phaseTicks = tag.getInt("PhaseTicks");
         roomsBack = tag.contains("RoomsBack") ? tag.getInt("RoomsBack") : DEFAULT_ROOMS_BACK;
         backTargetIndex = tag.getInt("BackTarget");
+        hard = tag.getBoolean("HardSpawn");
+        extraCycles = tag.getInt("ExtraCycles");
         // 猶予は phaseTicks（保存される）で数えるので、ロードしても残り時間から再開する
         RoomsDebug.log("B-40 loaded phase={} phaseTicks={} waypoint={}", phase, phaseTicks, waypointIndex);
         waypointsBuilt = false;

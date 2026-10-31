@@ -52,7 +52,7 @@ public final class LobbyPanels {
     static final int FZ = 31, FX = 14;
 
     /** 共有の選択。 */
-    static String section = "b";
+    static String section = Sections.firstId();
     static int stepIndex = 0;
 
     public static String selectedSection() { return section; }
@@ -133,7 +133,7 @@ public final class LobbyPanels {
 
     static String label() {
         SectionTheme t = Sections.find(section);
-        return (t == null ? "B" : t.prefix()) + "-" + String.format("%03d", selectedRoom());
+        return (t == null ? Sections.first().prefix() : t.prefix()) + "-" + String.format("%03d", selectedRoom());
     }
 
     static String deepestLabel(RoomsState rs) {
@@ -176,7 +176,7 @@ public final class LobbyPanels {
     public static void click(ServerLevel level, ServerPlayer player, BlockPos pos) {
         Kind k = kindAt(pos.subtract(ORIGIN));
         if (k == null) return;
-        List<String> ids = new ArrayList<>(Sections.ids());
+        List<String> ids = new ArrayList<>(Sections.lobbyIds()); // テスト用（PLACEHOLDER）は出さない
         switch (k) {
             case SECTION -> {
                 int i = Math.max(0, ids.indexOf(section));
@@ -208,10 +208,7 @@ public final class LobbyPanels {
         if (RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
-        rs.sections.clear();
-        rs.sections.add(new RoomsState.SectionStart("b", 0));
-        if (!"b".equals(s)) rs.addSection(s, 1);
-        rs.setDirty();
+        rs.setChain(s); // 選んだセクションから、500部屋ごとに次のセクションへ
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         RoomsCommands.goToRoom(player, n);

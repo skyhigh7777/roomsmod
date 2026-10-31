@@ -1,4 +1,7 @@
-> Section A was renamed to **B** (id `b`, rooms `B-001`, entities B-20/B-40). `a`, `a20`, `a40` remain as deprecated aliases; saved worlds with `a` load as `b`. Entity registry ids stay `roomsmod:a20` / `roomsmod:a40` for save compatibility.
+> The old section A was renamed to **B** (id `b`, rooms `B-001`, entities B-20/B-40). Entity registry ids stay `roomsmod:a20` / `roomsmod:a40` for save compatibility.
+> The id `a` now belongs to the new section **A (Abyss)**; the old `a` → `b` alias was removed (saves older than section-table version 2 still map `a` to `b` on load).
+> Section **GK** was renamed to **S** (id `s`, rooms `S-001`, entities S-10 … S-300, spawn ids `s10` … `s300`). `gk` is still accepted as a hidden alias (old saves / commands).
+> Java class / constant names (`GKRooms`, `Sections.GK`, `entity/gk/*`, `RoomsMod.GK_*`) and entity registry ids (`roomsmod:gk_*`) stay unchanged for save compatibility.
 
 # Sections (themes)
 
@@ -25,14 +28,24 @@ Moving to data-driven JSON later just means adding a codec and loading themes in
 | `lightFadeStart/Step` | progressive darkness: tier = (localRoom - start) / step, see `RoomLighting` (lanterns → fewer lanterns → soul lanterns → candles) |
 
 ## Section switching
-`RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world, default `[(b, 0)]`).
+`RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world).
+
+### Fixed length (500 rooms)
+Every section is `Sections.SECTION_LENGTH` = 500 rooms, in the order `Sections.ORDER` = `v, b, u, s, a`.
+The default table is `Sections.fixedChain("v")` = `[(v,0), (b,501), (u,1001), (s,1501), (a,2001)]`, so `V-500` is followed by `B-001`, and so on.
+`fixedChain(id)` starts `id` at global room 1 (the first section of `ORDER` at 0, the lobby) and chains the rest of `ORDER` every 500 rooms;
+`chainFrom(id, start)` does the same from an arbitrary global room (used by `/rooms section`).
+After `A-500` the last section simply continues (`A-501`, `A-502`, …).
+Saves with `sectionsVersion` < 2 (the old B → V → GK → U order) are rebuilt on load the same way as below.
+Saves without the `sectionsFixed` flag are migrated on load: the section that starts at global room ≤ 1 becomes the start of a fixed chain
+(manual mid-run switches from older saves are dropped; a debug log line shows old → new table).
 `Sections.forRoom(state, room)` picks the last entry with `startRoom <= room`; room numbers on signs and in
 debug use that section's prefix.
 
 ### Section-local numbering
 Room numbers restart at 1 in every section: `Sections.localRoom(state, room) = room - max(startRoom, 1) + 1`.
-Section B starts at 0 where room 0 is the lobby, so its first numbered room (global 1) is `B-001` — unchanged
-from before. A section added with `addSection("v", 100)` shows global room 100 as `V-001`, 101 as `V-002`, ...
+The first section of `ORDER` (V) starts at 0 where room 0 is the lobby, so its first numbered room (global 1) is `V-001`.
+Room 0 (the lobby) uses that section's door/sign style; any other start section starts at global room 1. A section added with `addSection("v", 100)` shows global room 100 as `V-001`, 101 as `V-002`, ...
 `Sections.formatRoom` (door number signs, `RoomTracker`, debug logs, `/rooms debug section`) uses the local
 number; `/rooms debug section` prints both `global` and `local`. Internals (`currentRoom`, seeds, light fade,
 rusher `startRoom` waypoint indices, `/rooms test gen N`) still use global indices.
@@ -43,10 +56,11 @@ For B this is identical to before (local == global). Add a switch with `state.ad
 Debug: `/rooms debug section` prints the current section and table; generation logs `section change at room N`.
 
 ## Commands (op)
-- `/rooms section <id>` or `/rooms section <id> now`: the next room to be generated (`currentRoom + 1`) starts section `<id>`;
-  the already placed number sign over the next exit door is rewritten (e.g. `V-001`).
-- `/rooms section <id> <startRoom>`: section `<id>` starts at global room `startRoom`.
-- `/rooms section reset`: back to B only. The table is saved with the world and is **not** cleared by `/rooms enter`.
+- `/rooms section <id>` or `/rooms section <id> now`: the next room to be generated (`currentRoom + 1`) starts section `<id>`,
+  followed by the next sections of `ORDER` every 500 rooms (`RoomsState.chainFrom`); entries from that room on are replaced.
+  The already placed number sign over the next exit door is rewritten (e.g. `V-001`).
+- `/rooms section <id> <startRoom>`: same, starting at global room `startRoom`.
+- `/rooms section reset`: back to the default fixed chain (V → B → U → S → A). The table is saved with the world and is **not** cleared by `/rooms enter`.
 - Try V from scratch: `/rooms enter`, `/rooms section v now`, open the lobby door.
 
 Light fade (`lightFadeStart/Step`) uses the section-local number (identical for B).
@@ -98,18 +112,81 @@ The lobby is rebuilt on every lobby entry (`/rooms enter`, first join, respawn, 
 
 ### Lobby panels (`world/LobbyPanels.java`)
 - Left wall (+X wall, x=19, facing the exit door): SECTION / − / ＋ / GO buttons set into the wall at y=2 with waxed glowing signs above;
-  the selection sign shows e.g. `GK-150`. Sections cycle over `Sections.ids()` (new sections appear automatically);
-  room steps 1, 50 … 300, 400, 500. Selection is shared server-wide (in memory). GO = section table `[(b,0),(s,1)]` + `/rooms to n`.
+  the selection sign shows e.g. `S-150`. Sections cycle over `Sections.lobbyIds()` (`ORDER` first, then other registered non-test sections);
+  room steps 1, 50 … 300, 400, 500. Selection is shared server-wide (in memory). GO = `RoomsState.setChain(s)` (s from room 1, then the following sections every 500 rooms) + `/rooms to n`.
 - Door wall (x=14, z=31): deepest generated room (`roomPaths.size()-1`), refreshed by `RoomGenerator.generateNextRoom`; right-click teleports (no reset).
 - Panels are exempt from the rooms-dimension block-use rule and cannot be broken (`DoorEventHandler`).
 - `/rooms to` and GO generate rooms over several ticks (`world/RoomsTravel.java`, 4 rooms/tick, max 500), one job at a time.
 
-## GK (Gakkou / school) rooms
-GK uses its own generator (`world/GKRooms.java`): interiors between B and V (closer to B), height 5.
+## S (School, formerly GK) rooms
+S uses its own generator (`world/GKRooms.java`): interiors between B and V (closer to B), height 5.
 Layouts: CLASSROOM (11-15 x 11-17, desk grid, blackboard), HALLWAY (5-7 x 15-21, locker-heavy),
 PREP_ROOM (9-12 classroom + 5-7 side room through an inner door; exit in the side room).
-Every GK room gets at least one locker and one hiding table (forced placement as a fallback; a WARN is logged if
+Every S room gets at least one locker and one hiding table (forced placement as a fallback; a WARN is logged if
 that ever fails). Paths are kept 3 wide; the exit is always on the max-Z wall; overlapping plans fall back to a 9x9 classroom.
-Progression: after V. Start it with `/rooms section gk now` (or `/rooms section gk <globalRoom>`), rooms read `GK-001`...
-GK has 15 entities in `entity/gk`; at most 2 GK entities spawn per door roll (`DoorEventHandler.GK_MAX_PER_ROLL`).
-GK entities live in `entity/gk` and despawn after at most 100 s (`GKEntity.MAX_LIFE_TICKS`, below the 120 s hard cap).
+Progression: after U. Start it with `/rooms section s now` (or `/rooms section s <globalRoom>`), rooms read `S-001`...
+S has 15 entities in `entity/gk`; at most 2 entities spawn per door roll in S / B / U / A (`DoorEventHandler.GK_MAX_PER_ROLL`).
+S entities live in `entity/gk` and despawn after at most 100 s (`GKEntity.MAX_LIFE_TICKS`, below the 120 s hard cap).
+
+## A (Abyss) rooms
+A uses `world/AbyssRooms.java`. There are no doors: the player falls down a single vertical shaft and is looped.
+- The first A room builds, past the previous exit door, a small vestibule (11x11, floor hole) over a shaft with a 5x5 inner area
+  and 3-block walls. The shaft is `AbyssRooms.SEGMENTS` = 4 layers of `L` = 12 blocks plus a 4-block gap and a black floor
+  (fits below y=1 in the -64 world floor). The shaft position is saved in `RoomsState.abyss` (cleared by a lobby rebuild).
+- Loop: when a player's feet enter layer 2, the server teleports them `L` blocks up with a fully relative teleport
+  (position, rotation and velocity kept) and the player advances one room. If that room is new, `RoomGenerator.generateNextRoom`
+  appends an A room (same shaft box, path = straight down through layer 1) and the normal spawn roll runs
+  (`DoorEventHandler.onRoomAdvanced`, also hard-mode notice). Each layer k shows the content of room `lead + k - 1`, so on every
+  loop the content shifts up by one layer; only the changed blocks are rewritten and they are sent to nearby clients before the teleport.
+- Alcoves: every 2-3 rooms (seeded), on a random wall at a random height inside the layer: 3 wide, 2 deep, 3 high, a 1-block ledge
+  into the shaft, two lockers and a lantern. Each layer has a room number sign (`A-002`, …) and four soul torches.
+- One way: after the first loop the vestibule hole is sealed.
+- No fall damage inside the shaft footprint (`LivingFallEvent` cancelled, fall distance reset every tick).
+  Fall speed is capped client-side (`client/AbyssClient`, 0.6 blocks/tick ≈ 12 blocks/s, 0.3 while sneaking); the server tells the
+  client when it is inside the shaft with `AbyssRooms.AbyssPayload`.
+- Spawn table: only path-walking entities that do not need doors or floors (B-15, U-20, B-50, U-60, B-90, U-120). Hard mode in A uses
+  A's own table (with the hard-mode buffs), not the combined table.
+- No batteries / bandages are placed in A rooms. `SafeSpot.find` returns the vestibule (first room) or the top of layer 1 (others),
+  so `/rooms to`, lobby GO and the deepest-room panel work.
+- If the section table is changed so that the room after an A room is not A (`/rooms section <id> now` while falling),
+  the next loop builds that room beside the shaft and moves the player into it.
+- Debug: every loop logs `abyss loop player=… loops=… room=… depth=…` (chat every 10 loops); layer refreshes log `abyss refresh`.
+- Multiplayer: the shaft layout follows the deepest player; players behind still loop and count their own rooms, but see the leader's layout.
+
+## U (corridor) rooms
+U uses its own generator (`world/CorridorRooms.java`): straight corridors only, inner width 5 (7 with walls), height 5,
+entrance and exit always on the centre line x=10 (exit on the max-Z wall), so rooms never overlap.
+- Lengths (inner depth): SHORT 24 (25%), STD 36 (45%), LONG 52 (25%), VLONG 72 (5%, only from `U-250`; earlier it becomes LONG).
+- Variants: PLAIN, PILLARED (pillars on both sides every 8 blocks, cover pockets), ALCOVE (hiding every 8 blocks), DIM (half the lights).
+- Hiding: lockers set into the wall (niche) or tables against the wall; the centre 3 lanes (x=9..11) stay clear.
+  Spacing ≤ 16 blocks (`MAX_HIDE_GAP`, also to the exit), at least 2 per room (`MIN_HIDES`), at least one locker.
+- Light fade: from U-001, one tier every 10 rooms.
+U has 5 entities in `entity/u` (U-20, U-60, U-120, U-200, U-300). They are movement types (no gimmicks) built on `URusher`
+(`VPathWalker` with acceleration/deceleration). When one spawns outside U (hard mode's combined table) it is softened
+(speed x0.85, grace x1.25, higher minimum speed so it never crawls through corners).
+
+## Movement: acceleration / deceleration
+`VPathWalker` supports optional `accel()` / `decel()` (blocks/tick²; default 0 = constant speed as before).
+With `accel() > 0` the walker ramps up from `minMoveSpeed()` to `maxSpeed()`; with `decel() > 0` and `brakeAtPathEnd()`
+it brakes before the path end (a turnaround point) so it can stop there. Corners are never braked for.
+`setPath(level, from, to)` re-targets the path without teleporting (used for turnarounds of N rooms).
+
+## Hard mode (all sections)
+Constants in `world/HardMode.java`: max 3 per door roll, spawn chance x1.5 (capped at 1), path walkers' grace x0.8 and speed x1.1
+(B-20/B-40 too), entities that turn around get one more turnaround (B-40, BRusher rebounds, S-300, U-60, U-300), and when a rusher
+finishes its run there is a 25% chance of another roll on the next tick (`HardMode.chainReroll`). The buffs are fixed at spawn time
+(`hardSpawn`, saved). Category/exclusion rules (`SpawnCategories`, e.g. S-270 KEEP_MOVING) are unchanged.
+
+## PLACEHOLDER (test only)
+`Sections.PLACEHOLDER` (id `placeholder`, rooms `PLACEHOLDER-001`) is listed in `Sections.TEST_ONLY`: it is not in `ORDER`
+(no fixed chain), not shown on the lobby panel (`Sections.lobbyIds()`), and its spawn table is empty, so it never
+contributes to normal or hard-mode rolls. Start it with `/rooms section placeholder now`; it then continues forever.
+Rooms (`world/PlaceholderRooms.java`): an 11x11 floor with no walls and no ceiling, one hiding table and two lockers.
+Progression still uses the normal exit door: a free-standing door frame (two pillars + lintel, for the number sign) stands just past the +Z edge.
+Fall protection: invisible barriers (3 high) around the floor edge, skipping cells occupied by the previous room's door/wall
+and the door frame. Light comes from invisible `minecraft:light` blocks.
+Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`entity/placeholder/PlaceholderEntity`) only spawn via
+`/rooms spawn placeholder32767|placeholder65535|placeholder2147483648`; `PLACEHOLDER-65535` and `PLACEHOLDER-2147483648` stand still in the middle of the player's room
+(no AI, no damage, no sound) and despawn after the usual 2-minute cap. `PLACEHOLDER-32767` has its own behaviour
+(`Placeholder32767Entity`, see the class javadoc; state is saved in NBT, positions snap without client interpolation). Graphics: single-colour squares (red / green / blue).
+

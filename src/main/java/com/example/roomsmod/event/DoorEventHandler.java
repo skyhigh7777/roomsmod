@@ -28,7 +28,7 @@ public class DoorEventHandler {
     /** GK 区画で1回の抽選で出る最大数。 */
     public static final int GK_MAX_PER_ROLL = 2;
     /** ハードモードの1回の抽選（扉1枚）で出る最大数。 */
-    public static final int HARD_MAX_PER_ROLL = 2;
+    public static final int HARD_MAX_PER_ROLL = com.example.roomsmod.world.HardMode.MAX_PER_ROLL;
 
     // ラッシャー出現率（調整用）
     // 出現する部屋・確率は SectionTheme.rushers()（Sections.B）
@@ -49,7 +49,7 @@ public class DoorEventHandler {
             if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
                 BlockPos dp = s0.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? event.getPos().below() : event.getPos();
                 if (com.example.roomsmod.entity.gk.GKDoorTricks.closableOpenDoor(event.getLevel(), dp)) {
-                    // GK-125 が見張る扉だけは閉められる（サーバーで閉める）
+                    // S-125 が見張る扉だけは閉められる（サーバーで閉める）
                     event.setCanceled(true);
                     if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl)
                         com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(sl, RoomsState.get(sl), event.getEntity(), dp);
@@ -147,7 +147,7 @@ public class DoorEventHandler {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
                 || b instanceof com.example.roomsmod.block.HidingTableBlock
-                || b instanceof net.minecraft.world.level.block.BellBlock // GK-25 のベル
+                || b instanceof net.minecraft.world.level.block.BellBlock // S-25 のベル
                 || b instanceof DoorBlock;
     }
 
@@ -200,6 +200,19 @@ public class DoorEventHandler {
     }
 
     /**
+     * 扉以外で次の部屋へ進んだとき（A の縦穴の1周）：扉を通ったときと同じく、ハードの告知と出現抽選をする。
+     * 部屋の生成（RoomGenerator.generateNextRoom）は呼び出し側で済ませておく。
+     */
+    public static void onRoomAdvanced(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        if (rs.hardMode) com.example.roomsmod.world.HardMode.announceRoom(level, rs, room);
+        try {
+            rollRushers(level, rs, player, room);
+        } catch (RuntimeException e) {
+            RoomsDebug.error("rusher spawn failed", e);
+        }
+    }
+
+    /**
      * ラッシャー抽選。B-20 と B-40 はそれぞれ独立に抽選し、同じ部屋で両方出ることもある。
      * 同じ種類は同時に1体まで（既に生存中ならその種類だけスキップ）。
      */
@@ -209,15 +222,29 @@ public class DoorEventHandler {
 
     /** forceAll=true は全種類を当たり扱い（minRoom は無視しない）。テスト用。 */
     public static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room, boolean forceAll) {
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("rusher roll room={} skipped: PLACEHOLDER-2147483648 alive", room); return; }
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         boolean hard = rs.hardMode;
-        var table = hard ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        // A（Abyss）は床・扉のない縦穴：ハードでも A の表（A 専用の敵）だけ。確率の倍率・1回の上限・連鎖などハードの強化はそのまま
+        var table = hard && theme != com.example.roomsmod.world.section.Sections.A ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        if (theme == com.example.roomsmod.world.section.Sections.A) {
+            var t2 = new java.util.ArrayList<com.example.roomsmod.world.section.SectionTheme.RusherSpawn>();
+            for (var r : table) if (com.example.roomsmod.world.AbyssSpace.allowedInAbyss(level, r.name())) t2.add(r);
+            table = t2;
+        } else if (hard) { // A 専用の敵は縦穴でしか動けないので、ほかのセクションのハード抽選には入れない
+            var t2 = new java.util.ArrayList<com.example.roomsmod.world.section.SectionTheme.RusherSpawn>();
+            for (var r : table) if (!com.example.roomsmod.world.AbyssSpace.allowedInAbyss(level, r.name())) t2.add(r);
+            table = t2;
+        }
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
-            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < r.chance() || forceAll);
+            float chance = hard ? Math.min(1f, r.chance() * com.example.roomsmod.world.HardMode.CHANCE_MUL) : r.chance(); // ハード：確率 x HardMode.CHANCE_MUL
+            if (hard && com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.NAME.equals(r.name()))
+                chance *= com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.HARD_CHANCE_MUL; // ハード：この敵だけ大きく下げる
+            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < chance || forceAll);
         }
         StringBuilder sb = new StringBuilder();
         for (int k = 0; k < table.size(); k++) {
@@ -261,8 +288,8 @@ public class DoorEventHandler {
                 }
             }
         }
-        // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
+        // S / B / U / A は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
+        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U || theme == com.example.roomsmod.world.section.Sections.A) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
@@ -296,6 +323,8 @@ public class DoorEventHandler {
 
     public static boolean spawnA40(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return false;
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-40 spawn blocked: PLACEHOLDER-2147483648 alive"); return false; }
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-40")) return false;
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
         List<BlockPos> startPath = rs.roomPaths.get(startIndex);
@@ -307,6 +336,7 @@ public class DoorEventHandler {
         a40.setPos(x, y, z);
         a40.setStartRoom(startIndex);
         a40.setRoomsBack(com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
+        a40.setHard(rs.hardMode);
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
         if (!level.addFreshEntity(a40)) { RoomsDebug.warn("B-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
@@ -317,6 +347,8 @@ public class DoorEventHandler {
 
     public static void spawnA20(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return;
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-20 spawn blocked: PLACEHOLDER-2147483648 alive"); return; }
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-20")) return;
         // プレイヤーがいるのは直前の部屋（index = room - 1）。そこから約N部屋後ろ。
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
@@ -328,6 +360,7 @@ public class DoorEventHandler {
         double spawnX = start.getX() + 0.5, spawnY = start.getY(), spawnZ = start.getZ() + 0.5;
         a20.setPos(spawnX, spawnY, spawnZ);
         a20.setStartRoom(startIndex);
+        a20.setHard(rs.hardMode);
 
         // 出現位置のチャンクを（このB-20のチケットで）読み込んでから追加する
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));

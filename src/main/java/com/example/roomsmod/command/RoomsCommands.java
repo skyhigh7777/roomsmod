@@ -38,6 +38,7 @@ public class RoomsCommands {
         if (roomsLevel == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(roomsLevel);
         if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(roomsLevel)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
         boolean sameAlive = a40 ? com.example.roomsmod.event.DoorEventHandler.isA40Alive(roomsLevel)
                                 : com.example.roomsmod.event.DoorEventHandler.isA20Alive(roomsLevel);
         if (sameAlive) {
@@ -48,9 +49,9 @@ public class RoomsCommands {
         }
         var player = src.getPlayer();
         if (a40) {
-            if (!com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player)) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
+            if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player))) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
         } else {
-            com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player);
+            com.example.roomsmod.world.AbyssSpace.asCommand(() -> { com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player); return true; });
         }
         src.sendSuccess(() -> Component.literal((a40 ? "B-40" : "B-20") + "を出現させたわ"), true);
         return 1;
@@ -68,9 +69,10 @@ public class RoomsCommands {
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
         var k = com.example.roomsmod.entity.v.VSpawns.Kind.byId(id);
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(lv)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
         if (k.alive(lv)) { src.sendFailure(Component.literal(k.display + "（または同じ排他グループ）はすでに生存中よ")); return 0; }
         com.example.roomsmod.util.RoomsDebug.log("force spawn {} by {}", k.display, src.getTextName());
-        if (!k.spawn(lv, rs, src.getPlayer())) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
+        if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> k.spawn(lv, rs, src.getPlayer()))) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
         src.sendSuccess(() -> Component.literal(k.display + "を出現させたわ"), true);
         return 1;
     }
@@ -83,7 +85,7 @@ public class RoomsCommands {
         if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         int start = startRoom != null ? startRoom : rs.currentRoom + 1;
-        rs.addSection(id, start);
+        rs.chainFrom(id, start); // 以降は固定長（500部屋ごと）で次のセクションへ
         boolean relabeled = start == rs.currentRoom + 1 && com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
         String label = com.example.roomsmod.world.section.Sections.formatRoom(rs, start);
         com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] section {} added at global room {} ({}) by {} table={}", id, start, label, src.getTextName(), rs.sections);
@@ -98,11 +100,9 @@ public class RoomsCommands {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
-        rs.sections.clear();
-        rs.sections.add(new com.example.roomsmod.world.RoomsState.SectionStart("b", 0));
-        rs.setDirty();
+        rs.setChain(com.example.roomsmod.world.section.Sections.firstId());
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を B のみに戻したわ"), true);
+        src.sendSuccess(() -> Component.literal("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、各 " + com.example.roomsmod.world.section.Sections.SECTION_LENGTH + " 部屋）に戻したわ"), true);
         return 1;
     }
 
@@ -211,27 +211,40 @@ public class RoomsCommands {
                     .then(Commands.literal("table").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.TABLE)))
                     .then(Commands.literal("locker").executes(ctx -> spawnBuffed(ctx.getSource(), com.example.roomsmod.hiding.LockerManager.Spot.LOCKER))))
                 .then(Commands.literal("v100").executes(ctx -> spawnV(ctx.getSource(), "v100")))
-                // 番号名（B-15 / GK-10 / B-110 など）
+                // 番号名（B-15 / S-10 / B-110 など）
                 .then(Commands.literal("b15").executes(ctx -> spawnV(ctx.getSource(), "bstatic")))
                 .then(Commands.literal("b30").executes(ctx -> spawnV(ctx.getSource(), "bmask")))
                 .then(Commands.literal("b50").executes(ctx -> spawnV(ctx.getSource(), "breach")))
                 .then(Commands.literal("b70").executes(ctx -> spawnV(ctx.getSource(), "beye")))
                 .then(Commands.literal("b90").executes(ctx -> spawnV(ctx.getSource(), "bsmile")))
-                .then(Commands.literal("gk10").executes(ctx -> spawnV(ctx.getSource(), "gkmoth")))
-                .then(Commands.literal("gk25").executes(ctx -> spawnV(ctx.getSource(), "gkchime")))
-                .then(Commands.literal("gk45").executes(ctx -> spawnV(ctx.getSource(), "gkwhisper")))
-                .then(Commands.literal("gk65").executes(ctx -> spawnV(ctx.getSource(), "gkdetention")))
-                .then(Commands.literal("gk85").executes(ctx -> spawnV(ctx.getSource(), "gkquiz")))
-                .then(Commands.literal("gk105").executes(ctx -> spawnV(ctx.getSource(), "gksubstitute")))
-                .then(Commands.literal("gk125").executes(ctx -> spawnV(ctx.getSource(), "gk07")))
-                .then(Commands.literal("gk145").executes(ctx -> spawnV(ctx.getSource(), "gkrewind")))
-                .then(Commands.literal("gk165").executes(ctx -> spawnV(ctx.getSource(), "gkmimic")))
-                .then(Commands.literal("gk185").executes(ctx -> spawnV(ctx.getSource(), "gkpa")))
-                .then(Commands.literal("gk205").executes(ctx -> spawnV(ctx.getSource(), "gk12")))
-                .then(Commands.literal("gk225").executes(ctx -> spawnV(ctx.getSource(), "gkjanitor")))
-                .then(Commands.literal("gk245").executes(ctx -> spawnV(ctx.getSource(), "gkeraser")))
-                .then(Commands.literal("gk270").executes(ctx -> spawnV(ctx.getSource(), "gkmirror")))
-                .then(Commands.literal("gk300").executes(ctx -> spawnV(ctx.getSource(), "gkbell2")))
+                .then(Commands.literal("s10").executes(ctx -> spawnV(ctx.getSource(), "smoth")))
+                .then(Commands.literal("s25").executes(ctx -> spawnV(ctx.getSource(), "schime")))
+                .then(Commands.literal("s45").executes(ctx -> spawnV(ctx.getSource(), "swhisper")))
+                .then(Commands.literal("s65").executes(ctx -> spawnV(ctx.getSource(), "sdetention")))
+                .then(Commands.literal("s85").executes(ctx -> spawnV(ctx.getSource(), "squiz")))
+                .then(Commands.literal("s105").executes(ctx -> spawnV(ctx.getSource(), "ssubstitute")))
+                .then(Commands.literal("s125").executes(ctx -> spawnV(ctx.getSource(), "s07")))
+                .then(Commands.literal("s145").executes(ctx -> spawnV(ctx.getSource(), "srewind")))
+                .then(Commands.literal("s165").executes(ctx -> spawnV(ctx.getSource(), "smimic")))
+                .then(Commands.literal("s185").executes(ctx -> spawnV(ctx.getSource(), "spa")))
+                .then(Commands.literal("s205").executes(ctx -> spawnV(ctx.getSource(), "sstare")))
+                .then(Commands.literal("s225").executes(ctx -> spawnV(ctx.getSource(), "sjanitor")))
+                .then(Commands.literal("s245").executes(ctx -> spawnV(ctx.getSource(), "seraser")))
+                .then(Commands.literal("s270").executes(ctx -> spawnV(ctx.getSource(), "smirror")))
+                .then(Commands.literal("s300").executes(ctx -> spawnV(ctx.getSource(), "sbell2")))
+                .then(Commands.literal("u20").executes(ctx -> spawnV(ctx.getSource(), "u20")))
+                .then(Commands.literal("a25").executes(ctx -> spawnV(ctx.getSource(), "a25")))
+                .then(Commands.literal("a90").executes(ctx -> spawnV(ctx.getSource(), "a90")))
+                .then(Commands.literal("a180").executes(ctx -> spawnV(ctx.getSource(), "a180")))
+                .then(Commands.literal("u60").executes(ctx -> spawnV(ctx.getSource(), "u60")))
+                .then(Commands.literal("u120").executes(ctx -> spawnV(ctx.getSource(), "u120")))
+                .then(Commands.literal("u200").executes(ctx -> spawnV(ctx.getSource(), "u200")))
+                .then(Commands.literal("u300").executes(ctx -> spawnV(ctx.getSource(), "u300")))
+                .then(Commands.literal("mimic").executes(ctx -> spawnV(ctx.getSource(), "mimic")))
+                .then(Commands.literal("placeholder32767").executes(ctx -> spawnV(ctx.getSource(), "placeholder32767")))
+                .then(Commands.literal("placeholder65535").executes(ctx -> spawnV(ctx.getSource(), "placeholder65535")))
+                .then(Commands.literal("placeholder2147483648").executes(ctx -> spawnV(ctx.getSource(), "placeholder2147483648")))
+                .then(Commands.literal("extrabox").executes(ctx -> spawnV(ctx.getSource(), "extrabox")))
                 .then(Commands.literal("b110").executes(ctx -> spawnV(ctx.getSource(), "berror")))
                 .then(Commands.literal("b130").executes(ctx -> spawnV(ctx.getSource(), "bgrin")))
                 .then(Commands.literal("b155").executes(ctx -> spawnV(ctx.getSource(), "bmaw")))

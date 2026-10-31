@@ -31,6 +31,8 @@ public abstract class BRusher extends VPathWalker {
     protected int roomsAhead() { return 1; }
     /** 折り返す回数。 */
     protected int maxRebounds() { return 0; }
+    /** 実際の折り返し回数（ハードで出現したら折り返す種類だけ +HardMode.EXTRA_TURNS）。 */
+    protected final int rebounds() { int n = maxRebounds(); return n > 0 && hardSpawn ? n + com.example.roomsmod.world.HardMode.EXTRA_TURNS : n; }
     /** 終点で先頭に戻ってもう一度通る回数。 */
     protected int extraPasses() { return 0; }
     /** 折り返し・再通過の前の待ち。 */
@@ -52,9 +54,9 @@ public abstract class BRusher extends VPathWalker {
     @Override
     protected boolean holdTick(ServerLevel level) {
         // 予告：折り返し回数＋1 回のチャイム（10 tick 間隔）
-        if (chimes <= maxRebounds() && tickCount % 10 == 1) {
+        if (chimes <= rebounds() && tickCount % 10 == 1) {
             level.playSound(null, getX(), getY(), getZ(), turnSound(), SoundSource.HOSTILE, 3.0f, 0.6f);
-            if (chimes == 0) RoomsDebug.announce(playersNear(160), vName() + " が来るわ（チャイム " + (maxRebounds() + 1) + " 回）", "{} telegraph rebounds={} passes={} rooms {}->{}", vName(), maxRebounds(), extraPasses() + 1, startRoom, endRoom);
+            if (chimes == 0) RoomsDebug.announce(playersNear(160), vName() + " が来るわ（チャイム " + (rebounds() + 1) + " 回）", "{} telegraph rebounds={} passes={} rooms {}->{}", vName(), rebounds(), extraPasses() + 1, startRoom, endRoom);
             chimes++;
         }
         if (super.holdTick(level)) return true;
@@ -71,11 +73,11 @@ public abstract class BRusher extends VPathWalker {
 
     @Override
     protected boolean onPathEnd(ServerLevel level) {
-        if (rebounds < maxRebounds()) {
+        if (rebounds < rebounds()) {
             rebounds++; pause = turnPause(); stopped = false;
             reversePath();
             level.playSound(null, getX(), getY(), getZ(), turnSound(), SoundSource.HOSTILE, 3.0f, 0.7f);
-            RoomsDebug.log("{} rebound {}/{} pause={}", vName(), rebounds, maxRebounds(), pause);
+            RoomsDebug.log("{} rebound {}/{} pause={}", vName(), rebounds, rebounds(), pause);
             return true;
         }
         if (passes < extraPasses()) {
@@ -96,7 +98,7 @@ public abstract class BRusher extends VPathWalker {
         }
     }
 
-    @Override protected String debugState() { return super.debugState() + " rebounds=" + rebounds + "/" + maxRebounds() + " passes=" + passes + " pause=" + pause + " stopped=" + stopped; }
+    @Override protected String debugState() { return super.debugState() + " rebounds=" + rebounds + "/" + rebounds() + " passes=" + passes + " pause=" + pause + " stopped=" + stopped; }
     @Override public void addAdditionalSaveData(CompoundTag t) { super.addAdditionalSaveData(t); t.putInt("Rebounds", rebounds); t.putInt("Passes", passes); t.putInt("Pause", pause); t.putBoolean("Stopped", stopped); t.putInt("Chimes", chimes); }
     @Override public void readAdditionalSaveData(CompoundTag t) { super.readAdditionalSaveData(t); rebounds = t.getInt("Rebounds"); passes = t.getInt("Passes"); pause = t.getInt("Pause"); stopped = t.getBoolean("Stopped"); chimes = t.getInt("Chimes"); }
 }

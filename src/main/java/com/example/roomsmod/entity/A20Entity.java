@@ -47,6 +47,10 @@ public class A20Entity extends Mob {
     private int graceTicks = 0;
 
     private int startRoom = 0;
+    /** 出現時にハードモードだったか（猶予 -20%・速度 +10%）。 */
+    private boolean hard = false;
+    public void setHard(boolean h) { this.hard = h; }
+    private double speed() { return com.example.roomsmod.world.HardMode.speed(SPEED, hard); }
     private boolean waypointsBuilt = false;
     /** 経路終端後に進む方向（最後の区間の水平方向、既定は+Z）。 */
     private Vec3 exitDirection = new Vec3(0, 0, 1);
@@ -123,6 +127,7 @@ public class A20Entity extends Mob {
         tag.putInt("GraceTicks", graceTicks);
         com.example.roomsmod.util.RoomsDebug.log("B-20 saved grace={} waypoint={}/{}", graceTicks, waypointIndex, waypoints.size());
         tag.putInt("StartRoom", startRoom);
+        tag.putBoolean("HardSpawn", hard);
         tag.putInt("WaypointIndex", waypointIndex);
         tag.putBoolean("OpenedExit", openedExit);
     }
@@ -133,6 +138,7 @@ public class A20Entity extends Mob {
         graceTicks = tag.contains("GraceTicks") ? tag.getInt("GraceTicks") : GRACE_TICKS;
         com.example.roomsmod.util.RoomsDebug.log("B-20 loaded grace={} waypoint={}", graceTicks, tag.getInt("WaypointIndex"));
         startRoom = tag.getInt("StartRoom");
+        hard = tag.getBoolean("HardSpawn");
         waypointIndex = tag.getInt("WaypointIndex");
         openedExit = tag.getBoolean("OpenedExit");
         waypointsBuilt = false; // 次tickでRoomsStateから再構築
@@ -207,7 +213,7 @@ public class A20Entity extends Mob {
         }
 
         // 前方に高速移動。猶予中は動かない。扉を経由点として通る
-        if (graceTicks++ < GRACE_TICKS) {
+        if (graceTicks++ < com.example.roomsmod.world.HardMode.grace(GRACE_TICKS, hard)) {
             this.setDeltaMovement(Vec3.ZERO);
             if (!waypointsBuilt) {
                 buildWaypoints();
@@ -222,12 +228,12 @@ public class A20Entity extends Mob {
             if (waypointIndex < waypoints.size()) {
                 // 終端（size-1）まで進み、到達したら index=size（経路終端後モード）
                 int last = waypoints.size() - 1;
-                int idx = mover.step(this, "B-20", waypoints, waypointIndex, last, SPEED, reachedBuf);
+                int idx = mover.step(this, "B-20", waypoints, waypointIndex, last, speed(), reachedBuf);
                 waypointIndex = reachedBuf[0] ? waypoints.size() : idx;
                 if (reachedBuf[0]) openDeepestExitDoor();
             } else {
                 // 生成済み経路の終端：出口方向へ進み続ける
-                Vec3 n = this.position().add(exitDirection.scale(SPEED));
+                Vec3 n = this.position().add(exitDirection.scale(speed()));
                 this.setPos(n.x, n.y, n.z);
             }
         }
@@ -252,6 +258,7 @@ public class A20Entity extends Mob {
             if (ahead > 120.0) {
                 com.example.roomsmod.util.RoomsDebug.log("B-20 despawn: passed player by {} blocks (Z={})", String.format("%.1f", ahead), String.format("%.1f", this.getZ()));
                 this.discard();
+                com.example.roomsmod.world.HardMode.chainReroll(sl2, "B-20");
                 return;
             }
         } else if (this.tickCount > 1200) {
