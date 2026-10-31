@@ -116,6 +116,9 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
     /** 出現前に位置と内部状態を決める。返り値は出現位置（null なら出現しない）。playerRoom はプレイヤーのいる部屋 index。 */
     protected abstract BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom);
 
+    /** プレイヤーも使う出現準備（既定は prepare）。A 専用の敵が上書きする。 */
+    public BlockPos prepareFor(ServerLevel level, RoomsState rs, Player player, int playerRoom) { return prepare(level, rs, playerRoom); }
+
     /** true なら prepare には「いま開けた部屋」（扉の先＝最新の部屋。V-100 と同じ）を渡す。プレイヤーがすでに最新の部屋ならそこ。 */
     public boolean targetsOpenedRoom() { return false; }
 
@@ -232,10 +235,7 @@ public abstract class VEntity extends Mob implements com.example.roomsmod.world.
 
     // ---- A の縦穴（仮想座標） ----
 
-    /** ハードモードで A の縦穴に出てよい（上から縦に追ってくる動きにできる）ほかのセクションの種類か。 */
-    public boolean canChaseInAbyss() { return false; }
-
-    /** A 専用の種類か（通常モードの A に出てよいのはこれだけ）。 */
+    /** A 専用の種類か（A に出てよいのはこれだけ。コマンドは除く）。 */
     public boolean isAbyssNative() { return false; }
 
     /** 移動の計算に使う位置（縦穴の中なら仮想座標）。 */

@@ -290,12 +290,23 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.b.B17Entity::new, MobCategory.MONSTER)
                     .sized(0.8f, 1.2f).clientTrackingRange(12).updateInterval(1).build("b_17"));
 
+    // A（Abyss）専用
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A25Entity>> A25 = ENTITIES.register("a25",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A25Entity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.8f).clientTrackingRange(12).updateInterval(1).build("a25"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A90Entity>> A90 = ENTITIES.register("a90",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A90Entity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.8f).clientTrackingRange(12).updateInterval(1).build("a90"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A180Entity>> A180 = ENTITIES.register("a180",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A180Entity::new, MobCategory.MONSTER)
+                    .sized(0.9f, 1.6f).clientTrackingRange(12).updateInterval(1).build("a180"));
+
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
                 B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
-                U20, U60, U120, U200, U300, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
+                U20, U60, U120, U200, U300, A25, A90, A180, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

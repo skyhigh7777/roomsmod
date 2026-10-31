@@ -118,5 +118,8 @@
   "entity.roomsmod.placeholder_32767": "PLACEHOLDER-32767",
   "entity.roomsmod.placeholder_65535": "PLACEHOLDER-65535",
   "entity.roomsmod.placeholder_2147483648": "PLACEHOLDER-2147483648",
-  "subtitles.roomsmod.placeholder_beep": "ビープ音"
+  "subtitles.roomsmod.placeholder_beep": "ビープ音",
+  "entity.roomsmod.a25": "A-25",
+  "entity.roomsmod.a90": "A-90",
+  "entity.roomsmod.a180": "A-180"
 }

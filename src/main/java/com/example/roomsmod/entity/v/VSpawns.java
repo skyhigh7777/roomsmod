@@ -61,6 +61,10 @@ public final class VSpawns {
         U120("U-120", "u120", null, RoomsMod.U120),
         U200("U-200", "u200", null, RoomsMod.U200),
         U300("U-300", "u300", null, RoomsMod.U300),
+        // A（Abyss）専用（縦穴でだけ出る）
+        A25("A-25", "a25", null, RoomsMod.A25),
+        A90("A-90", "a90", null, RoomsMod.A90),
+        A180("A-180", "a180", null, RoomsMod.A180),
         // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
         E332("3!3!2", "mimic", null, RoomsMod.E332),
         // PLACEHOLDER（テスト用）区画：区画の表は空。32767 / 65535 はハードの抽選表（Sections.HARD_ONLY）にだけ入る。2147483648 は /rooms spawn と 3!3!2 のみ
@@ -126,7 +130,7 @@ public final class VSpawns {
         String home = e.homeSection();
         boolean off = home != null && !home.equals(com.example.roomsmod.world.section.Sections.forRoom(rs, room).id());
         e.setSpawnContext(rs.hardMode, off);
-        BlockPos at = e.prepare(level, rs, room);
+        BlockPos at = e.prepareFor(level, rs, player, room);
         if (at == null) { RoomsDebug.log("{} spawn skipped: no valid position near room {}", k.display, room); return false; }
         RusherChunks.prepareSpawn(level, e, new ChunkPos(at));
         if (!level.addFreshEntity(e)) { RoomsDebug.warn("{} spawn failed: addFreshEntity returned false", k.display); return false; }

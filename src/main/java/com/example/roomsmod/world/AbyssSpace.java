@@ -129,6 +129,21 @@ public final class AbyssSpace {
         return rs.abyss != null && room >= rs.abyss.entryRoom && Sections.forRoom(rs, room) == Sections.A;
     }
 
+    /** 横穴は最初の部屋から 2〜3 部屋ごと（AbyssRooms.alcoveFor）。この部屋数以内に必ず次の横穴がある。 */
+    public static final int MAX_ALCOVE_GAP = 3;
+
+    /**
+     * 部屋 from 以降（from を含む）で、maxRooms 部屋以内の横穴の部屋（exclude は除く）。なければ -1。
+     * 敵の出現条件（たどり着けるロッカーがあるか）に使う。
+     */
+    public static int alcoveWithin(ServerLevel level, RoomsState rs, int from, int maxRooms, java.util.Set<Integer> exclude) {
+        AbyssRooms.Shaft s = rs.abyss;
+        if (s == null) return -1;
+        for (int r = Math.max(from, s.entryRoom); r <= from + maxRooms; r++)
+            if (isAbyssRoom(rs, r) && (exclude == null || !exclude.contains(r)) && AbyssRooms.alcoveSpot(level, s, r) != null) return r;
+        return -1;
+    }
+
     // ===================== A に出てよい敵 =====================
 
     /** コマンド（/rooms spawn など明示のデバッグ操作）から出すときは制限しない。 */
@@ -141,28 +156,22 @@ public final class AbyssSpace {
 
     public static boolean commandSpawn() { return commandDepth > 0; }
 
-    private static final java.util.Map<String, boolean[]> CAPS = new java.util.HashMap<>();
+    private static final java.util.Map<String, Boolean> NATIVE = new java.util.HashMap<>();
 
     /**
-     * name の敵が A の縦穴に出てよいか：A 専用の種類（isAbyssNative）は常に、ほかのセクションの種類はハードモードで、
-     * 上から縦に追ってくる動きにできるもの（canChaseInAbyss：B/U の突進型。U-200 は除く）だけ。
-     * VEntity でないもの（B-20/B-40）・場所や扉・テーブルに頼るもの（V-25-T/L・V25-BUFFED などの searcher 群を含む）は出さない。
+     * name の敵が A の縦穴に出てよいか：A 専用の種類（VEntity.isAbyssNative）だけ。ハードモードでも同じ
+     * （ほかのセクションの敵・B-20/B-40・3!3!2・PLACEHOLDER などは出さない。コマンドは除く）。
      */
-    public static boolean allowedInAbyss(ServerLevel level, String name, boolean hard) {
-        boolean[] c = CAPS.computeIfAbsent(name, n -> {
+    public static boolean allowedInAbyss(ServerLevel level, String name) {
+        return NATIVE.computeIfAbsent(name, n -> {
             var k = com.example.roomsmod.entity.v.VSpawns.Kind.byDisplay(n);
-            if (k == null) return new boolean[]{false, false};
+            if (k == null) return false;
             VEntity e = k.type.get().create(level);
-            if (e == null) return new boolean[]{false, false};
-            boolean[] r = {e.isAbyssNative(), e.canChaseInAbyss() && !sharesSearcher(k)};
+            if (e == null) return false;
+            boolean r = e.isAbyssNative();
             e.discard();
             return r;
         });
-        return c[0] || (hard && c[1]);
-    }
-
-    private static boolean sharesSearcher(com.example.roomsmod.entity.v.VSpawns.Kind k) {
-        return com.example.roomsmod.entity.v.VSpawns.sharesGroup(k.exclusionGroup, "searcher");
     }
 
     /** 出現の基準（プレイヤー or 部屋）が A の縦穴か。 */
@@ -175,7 +184,7 @@ public final class AbyssSpace {
     /** 出現処理の入口で使う：A の縦穴で出してはいけない（コマンド以外）なら true。 */
     public static boolean blockSpawn(ServerLevel level, RoomsState rs, Player player, int room, String name) {
         if (commandSpawn() || !inAbyssContext(rs, player, room)) return false;
-        if (allowedInAbyss(level, name, rs.hardMode)) return false;
+        if (allowedInAbyss(level, name)) return false;
         RoomsDebug.log("{} spawn blocked in abyss (room={}, hard={})", name, room, rs.hardMode);
         return true;
     }

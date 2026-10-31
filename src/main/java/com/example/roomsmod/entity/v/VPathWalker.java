@@ -119,14 +119,6 @@ public abstract class VPathWalker extends VEntity {
         return w;
     }
 
-    /** A の縦穴の中での出現：プレイヤーの部屋の above 部屋上（縦穴の上）から、プレイヤーの部屋へ向かって縦に追ってくる。 */
-    protected BlockPos prepareAbyss(RoomsState rs, int playerRoom, int above) {
-        int from = Math.max(rs.abyss.entryRoom, playerRoom - Math.max(1, above));
-        BlockPos at = placeAtStart(rs, from, playerRoom);
-        RoomsDebug.log("{} prepare (abyss, from above) playerRoom={} rooms {}->{} (+{} deeper)", vName(), playerRoom, from, playerRoom, com.example.roomsmod.world.AbyssSpace.AHEAD_ROOMS);
-        return at;
-    }
-
     /**
      * 経路を部屋 from → to に張り替える（from > to なら逆向き）。今の位置から走り出す（ワープしない）。
      * 前向き（to >= from）なら、以後も新しい部屋ができると延長する。

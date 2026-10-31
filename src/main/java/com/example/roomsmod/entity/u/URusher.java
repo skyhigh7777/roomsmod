@@ -63,7 +63,7 @@ public abstract class URusher extends VPathWalker {
     @Override protected float damage() { return 40f; }
 
     /** 実際の折り返し回数。 */
-    protected final int turns() { if (inAbyss()) return 0; int n = maxTurns(); return n > 0 && hardSpawn ? n + HardMode.EXTRA_TURNS : n; }
+    protected final int turns() { int n = maxTurns(); return n > 0 && hardSpawn ? n + HardMode.EXTRA_TURNS : n; }
 
     @Override protected double accel() { double a = baseAccel(); return offSection ? a * OFF_SECTION_ACCEL_MUL : a; }
     @Override protected double decel() { return baseDecel(); }
@@ -72,12 +72,8 @@ public abstract class URusher extends VPathWalker {
     @Override protected double speedMul() { return super.speedMul() * (offSection ? OFF_SECTION_SPEED_MUL : 1.0); }
     @Override protected double graceMul() { return super.graceMul() * (offSection ? OFF_SECTION_GRACE_MUL : 1.0); }
 
-    @Override public boolean canChaseInAbyss() { return true; }
-
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
-        // A の縦穴：上から縦に追ってきて、追い越したら数部屋奥へ消える（折り返しなし）
-        if (com.example.roomsmod.world.AbyssSpace.isAbyssRoom(rs, playerRoom)) return prepareAbyss(rs, playerRoom, Math.max(3, roomsBehind()));
         int last = rs.roomPaths.size() - 1;
         int from = Math.max(0, Math.min(last, playerRoom - roomsBehind()));
         int to = Math.max(0, Math.min(last, playerRoom + roomsAhead()));
@@ -108,7 +104,6 @@ public abstract class URusher extends VPathWalker {
 
     @Override
     protected boolean onPathEnd(ServerLevel level) {
-        if (inAbyss()) return false; // 縦穴では折り返さない
         if (turnsDone >= turns()) return false;
         turnsDone++;
         pause = turnPause();

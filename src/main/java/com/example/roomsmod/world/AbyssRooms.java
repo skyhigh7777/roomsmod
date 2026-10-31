@@ -274,6 +274,19 @@ public final class AbyssRooms {
         return new Alcove(SIDES[r.nextInt(4)], ALCOVE_OFF_MIN + r.nextInt(ALCOVE_OFF_MAX - ALCOVE_OFF_MIN + 1));
     }
 
+    /** 部屋 room の横穴（仮想座標）：奥（ロッカーの間）・入口（張り出し）の立ち位置と、横穴の床の y。なければ null。 */
+    public record AlcoveSpot(Vec3 back, Vec3 mouth, double floorY) {}
+
+    public static AlcoveSpot alcoveSpot(ServerLevel level, Shaft s, int room) {
+        Alcove a = alcoveFor(level, s, room);
+        if (a == null) return null;
+        int fy = s.segBottom(1) + a.off();
+        int off = AbyssSpace.roomOffset(s, room);
+        Vec3 back = Vec3.atBottomCenterOf(rot(s, a.side(), 0, fy + 1, -IN - 2)).subtract(0, off, 0);
+        Vec3 mouth = Vec3.atBottomCenterOf(rot(s, a.side(), 0, fy + 1, -IN)).subtract(0, off, 0);
+        return new AlcoveSpot(back, mouth, fy + 1 - off);
+    }
+
     private static long mix(long seed, long v) {
         long z = seed ^ (v * 0x9E3779B97F4A7C15L);
         z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;

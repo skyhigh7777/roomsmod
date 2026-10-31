@@ -26,7 +26,7 @@ public final class SpawnCategories {
         for (String n : new String[]{"V-25-T", "V-25-L", "V25-BUFFED", "S-165"}) BY_NAME.put(n, Category.SEARCHER);
         for (String n : new String[]{"B-20", "B-40", "B-15", "B-50", "B-90", "B-130", "B-180", "B-230", "B-260", "B-290",
                 "V-10", "V-50", "S-225", "S-245", "S-300",
-                "U-20", "U-60", "U-120", "U-200", "U-300"}) BY_NAME.put(n, Category.HIDE_REQUIRED);
+                "U-20", "U-60", "U-120", "U-200", "U-300", "A-25"}) BY_NAME.put(n, Category.HIDE_REQUIRED);
     }
 
     /** 分類（なしは null）。 */

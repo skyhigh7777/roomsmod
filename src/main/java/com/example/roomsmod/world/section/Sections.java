@@ -153,7 +153,7 @@ public final class Sections {
     /**
      * A（Abyss）区画。縦穴を落ち続ける（world/AbyssRooms.java）。1 周（縦穴の同じ見た目の上の層へ戻される）ごとに 1 部屋進む。
      * palette（壁・床）・sign・hidingMix（ロッカーのみ）を使う（shapeWeights/furniture/cover は未使用）。
-     * 出現表は床・扉に依存しない経路型の敵だけ（minRoom はセクション内番号）。
+     * 出現表は A 専用の敵（A-25 / A-90 / A-180、entity/a）だけ（minRoom はセクション内番号）。
      */
     public static final SectionTheme A = register(new SectionTheme(
             "a", "A",
@@ -166,12 +166,10 @@ public final class Sections {
             List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 1.0f)),
             2, 1,
             List.of(
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_STATIC, 15, 0.08f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U20, 30, 0.12f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_REACH, 60, 0.07f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U60, 100, 0.08f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SMILE, 150, 0.06f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U120, 220, 0.06f)),
+                    // A 専用の敵だけ（ハードでもほかのセクションの敵は出さない）。1 部屋 約 2.4 秒なので確率は控えめ
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A25, 25, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A90, 90, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A180, 180, 0.04f)),
             new SectionTheme.SignStyle(() -> Blocks.DARK_OAK_WALL_SIGN, DyeColor.LIGHT_BLUE, true),
             0, 0));
 
