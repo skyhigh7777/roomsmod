@@ -48,6 +48,12 @@ public final class LockerClient {
         if (isLocalPlayerUnderTable()) {
             p.setForcedPose(net.minecraft.world.entity.Pose.SWIMMING);
             forcedByUs = true;
+            // 水の中（F）だと浮力で上下に動き、サーバーの位置固定と引っ張り合って震える。クライアントでも机の中央に固定する。
+            if (p.isInWater()) {
+                net.minecraft.core.BlockPos b = p.blockPosition();
+                p.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+                p.setPos(b.getX() + 0.5, b.getY(), b.getZ() + 0.5);
+            }
         } else if (forcedByUs) {
             p.setForcedPose(null);
             forcedByUs = false;
