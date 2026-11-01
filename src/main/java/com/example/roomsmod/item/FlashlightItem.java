@@ -33,8 +33,13 @@ public class FlashlightItem extends Item {
 
     public static String time(int ticks) { int sec = (ticks + 19) / 20; return (sec / 60) + ":" + String.format("%02d", sec % 60); }
 
-    /** 持ち物の電池を1本消費して満タンに。成功したら true。 */
+    /** 電池（所持数 Wallet、なければ持ち物）を1本消費して満タンに。成功したら true。 */
     public static boolean loadBattery(Player p, ItemStack flashlight) {
+        if (p instanceof ServerPlayer sp && com.example.roomsmod.economy.Wallet.takeBattery(sp)) {
+            setData(flashlight, data(flashlight).withCharge(BATTERY_TICKS));
+            p.level().playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.6f, 1.6f);
+            return true;
+        }
         var inv = p.getInventory();
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack b = inv.getItem(i);

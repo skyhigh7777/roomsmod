@@ -53,6 +53,8 @@ public class RoomsMod {
     public static final net.neoforged.neoforge.registries.DeferredItem<com.example.roomsmod.item.FlashlightItem> FLASHLIGHT = ITEMS.registerItem("flashlight",
             com.example.roomsmod.item.FlashlightItem::new, new net.minecraft.world.item.Item.Properties().stacksTo(1));
     public static final net.neoforged.neoforge.registries.DeferredItem<com.example.roomsmod.item.BandageItem> BANDAGE = ITEMS.registerItem("bandage", com.example.roomsmod.item.BandageItem::new, new net.minecraft.world.item.Item.Properties().stacksTo(8));
+    /** ホットバー9番の「ロビーへ帰る」（economy.RoomsRun が置く・消す）。 */
+    public static final net.neoforged.neoforge.registries.DeferredItem<com.example.roomsmod.item.LobbyReturnItem> LOBBY_RETURN = ITEMS.registerItem("lobby_return", com.example.roomsmod.item.LobbyReturnItem::new, new net.minecraft.world.item.Item.Properties().stacksTo(1).rarity(net.minecraft.world.item.Rarity.UNCOMMON));
     public static final net.neoforged.neoforge.registries.DeferredItem<net.minecraft.world.item.Item> BATTERY = ITEMS.registerSimpleItem("battery", new net.minecraft.world.item.Item.Properties().stacksTo(16));
     public static final DeferredRegister<SoundEvent> SOUND_EVENTS = DeferredRegister.create(Registries.SOUND_EVENT, MOD_ID);
     public static final DeferredHolder<SoundEvent, SoundEvent> A20_APPROACH = SOUND_EVENTS.register("a20_approach", () -> SoundEvent.createVariableRangeEvent(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(MOD_ID, "a20_approach")));
@@ -223,6 +225,10 @@ public class RoomsMod {
         com.example.roomsmod.stamina.Stamina.init(modEventBus);
         com.example.roomsmod.world.AbyssRooms.init(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.stamina.Stamina.class);
+        com.example.roomsmod.economy.Wallet.init(modEventBus);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Wallet.class);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Bandaging.class);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.RoomsRun.class);
         ENTITIES.register(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.hiding.LockerManager.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomTracker.class);

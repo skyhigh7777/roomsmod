@@ -30,6 +30,7 @@ import java.util.List;
  *       [区画] [−] 表示 [＋] [GO]。区画は登録済みセクションを順に巡回（スニークで逆順）、番号は STEPS を巡回。
  *       GO で「/rooms section &lt;s&gt; 1」＋「/rooms to &lt;n&gt;」と同じ（ロビー再生成＝全員の進行がリセット）。
  *       選択はサーバーで共有（看板1枚に表示されるため）。</li>
+ *   <li>右の壁（x=0）：売店（economy.Shop）。電池・包帯・懐中電灯をコインで買う。</li>
  *   <li>出口扉側の壁（z=31, x=14）：いちばん奥の生成済み部屋の番号を表示し、右クリックでそこへワープ（進行はリセットしない）。</li>
  * </ul>
  * パネルのブロックと看板は壊せず、部屋ディメンションのブロック操作禁止の例外（DoorEventHandler）。
@@ -41,13 +42,15 @@ public final class LobbyPanels {
     public static final int[] STEPS = {1, 50, 100, 150, 200, 250, 300, 400, 500};
     static final BlockPos ORIGIN = RoomsLayout.LOBBY_ORIGIN;
 
-    enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD }
+    enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD, SHOP_BATTERY, SHOP_BANDAGE, SHOP_FLASHLIGHT }
 
     // 左の壁: ボタンは壁の中（x=19, y=2）、看板は壁の手前（x=18）
     static final int LX = RoomsLayout.LOBBY_WIDTH - 1, BY = 2;
     static final int Z_SECTION = 11, Z_MINUS = 13, Z_DISPLAY = 15, Z_PLUS = 17, Z_GO = 19;
     /** ハードモードの切り替え（左の壁、スタート選択から少し離す）。 */
     static final int Z_HARD = 24;
+    /** 売店（右の壁 x=0、柱 z=7/13/19 を避ける）。ボタンは壁の中、看板は x=1。値段は economy.Shop。 */
+    static final int SX = 0, Z_SHOP_BATTERY = 14, Z_SHOP_BANDAGE = 16, Z_SHOP_FLASHLIGHT = 18;
     // 正面（扉側）: 扉は x=10 なので x=14（扉の両脇 x=9..11 から離す）
     static final int FZ = 31, FX = 14;
 
@@ -67,7 +70,8 @@ public final class LobbyPanels {
     private static BlockPos at(int x, int y, int z) { return ORIGIN.offset(x, y, z); }
 
     static List<BlockPos> buttons() {
-        return List.of(at(LX, BY, Z_SECTION), at(LX, BY, Z_MINUS), at(LX, BY, Z_PLUS), at(LX, BY, Z_GO), at(FX, BY, FZ), at(LX, BY, Z_HARD));
+        return List.of(at(LX, BY, Z_SECTION), at(LX, BY, Z_MINUS), at(LX, BY, Z_PLUS), at(LX, BY, Z_GO), at(FX, BY, FZ), at(LX, BY, Z_HARD),
+                at(SX, BY, Z_SHOP_BATTERY), at(SX, BY, Z_SHOP_BANDAGE), at(SX, BY, Z_SHOP_FLASHLIGHT));
     }
     static List<BlockPos> signs() {
         List<BlockPos> l = new ArrayList<>();
@@ -75,6 +79,7 @@ public final class LobbyPanels {
         l.add(at(LX - 1, BY, Z_DISPLAY));
         l.add(at(FX, BY + 1, FZ - 1));
         l.add(at(LX - 1, BY + 1, Z_HARD));
+        for (int z : new int[]{Z_SHOP_BATTERY, Z_SHOP_BANDAGE, Z_SHOP_FLASHLIGHT}) l.add(at(SX + 1, BY + 1, z));
         return l;
     }
 
@@ -87,6 +92,11 @@ public final class LobbyPanels {
             if (p.getZ() == Z_GO) return Kind.GO;
             if (p.getZ() == Z_HARD) return Kind.HARD;
             if (p.getZ() == Z_DISPLAY && (p.getX() == LX - 1)) return Kind.LABEL;
+        }
+        if (p.getX() == SX || p.getX() == SX + 1) {
+            if (p.getZ() == Z_SHOP_BATTERY) return Kind.SHOP_BATTERY;
+            if (p.getZ() == Z_SHOP_BANDAGE) return Kind.SHOP_BANDAGE;
+            if (p.getZ() == Z_SHOP_FLASHLIGHT) return Kind.SHOP_FLASHLIGHT;
         }
         if (p.getX() == FX && (p.getZ() == FZ || p.getZ() == FZ - 1)) return Kind.DEEPEST;
         return null;
@@ -112,6 +122,12 @@ public final class LobbyPanels {
         sign(level, at(LX - 1, BY + 1, Z_PLUS), Direction.WEST, "", "＋", "進める", "");
         sign(level, at(LX - 1, BY + 1, Z_GO), Direction.WEST, "", "GO", "スタート", "");
         sign(level, at(LX - 1, BY + 1, Z_DISPLAY), Direction.WEST, "START ROOM", "スタート部屋", "", "");
+        place(level, at(SX, BY, Z_SHOP_BATTERY), Blocks.YELLOW_CONCRETE.defaultBlockState());
+        place(level, at(SX, BY, Z_SHOP_BANDAGE), Blocks.WHITE_WOOL.defaultBlockState());
+        place(level, at(SX, BY, Z_SHOP_FLASHLIGHT), Blocks.IRON_BLOCK.defaultBlockState());
+        sign(level, at(SX + 1, BY + 1, Z_SHOP_BATTERY), Direction.EAST, "SHOP", "電池 BATTERY", com.example.roomsmod.economy.Shop.Product.BATTERY.price + " COIN", "");
+        sign(level, at(SX + 1, BY + 1, Z_SHOP_BANDAGE), Direction.EAST, "SHOP", "包帯 BANDAGE", com.example.roomsmod.economy.Shop.Product.BANDAGE.price + " COIN", "");
+        sign(level, at(SX + 1, BY + 1, Z_SHOP_FLASHLIGHT), Direction.EAST, "SHOP", "懐中電灯", com.example.roomsmod.economy.Shop.Product.FLASHLIGHT.price + " COIN", "FLASHLIGHT");
         refreshSelection(level);
         refreshDeepest(level);
         refreshHard(level);
@@ -182,7 +198,7 @@ public final class LobbyPanels {
     public static void click(ServerLevel level, ServerPlayer player, BlockPos pos) {
         Kind k = kindAt(pos.subtract(ORIGIN));
         if (k == null) return;
-        List<String> ids = new ArrayList<>(Sections.lobbyIds()); // テスト用（PLACEHOLDER）は出さない
+        List<String> ids = new ArrayList<>(Sections.selectableIds(RoomsState.get(level))); // ロックされたセクション（既定は PLACEHOLDER）は出さない
         switch (k) {
             case SECTION -> {
                 int i = Math.max(0, ids.indexOf(section));
@@ -195,6 +211,9 @@ public final class LobbyPanels {
             case LABEL -> player.displayClientMessage(Component.literal("スタート: " + label()), true);
             case GO -> go(level, player);
             case DEEPEST -> deepest(level, player);
+            case SHOP_BATTERY -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.BATTERY);
+            case SHOP_BANDAGE -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.BANDAGE);
+            case SHOP_FLASHLIGHT -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.FLASHLIGHT);
             case HARD -> {
                 boolean on = !RoomsState.get(level).hardMode;
                 level.playSound(null, player.blockPosition(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.6f, on ? 0.7f : 1.2f);
@@ -211,10 +230,17 @@ public final class LobbyPanels {
         RoomsDebug.log(player, "ロビーパネル: " + label(), "lobby panel {} by {} -> section={} room={}", what, player.getGameProfile().getName(), section, selectedRoom());
     }
 
+    /** セクションのロックが変わった（オーナーの /rooms admin section）。選択中がロックされたら最初のセクションへ。 */
+    public static void onAccessChanged(ServerLevel level) {
+        if (RoomsState.get(level).isSectionLocked(section)) { section = Sections.firstId(); stepIndex = 0; }
+        refreshSelection(level);
+    }
+
     static void go(ServerLevel level, ServerPlayer player) {
         if (RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
+        if (rs.isSectionLocked(s)) { player.displayClientMessage(Component.translatable("message.roomsmod.section_locked", s.toUpperCase(java.util.Locale.ROOT)), true); return; }
         rs.setChain(s); // 選んだセクションから、500部屋ごとに次のセクションへ
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }

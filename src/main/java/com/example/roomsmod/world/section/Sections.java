@@ -210,6 +210,15 @@ public final class Sections {
         return out;
     }
 
+    /** ロビーのパネルで選べるセクション：登録済みのうちロックされていないもの（ORDER の順、PLACEHOLDER はロック解除時だけ最後に）。 */
+    public static List<String> selectableIds(RoomsState rs) {
+        List<String> out = new java.util.ArrayList<>(ORDER);
+        for (String id : THEMES.keySet()) if (!out.contains(id)) out.add(id);
+        out.removeIf(rs::isSectionLocked);
+        if (out.isEmpty()) out.add(firstId());
+        return out;
+    }
+
     /** 進行の最初のセクション（ロビー＝部屋 0 から始まる）。 */
     public static String firstId() { return ORDER.get(0); }
 

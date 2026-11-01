@@ -38,6 +38,24 @@ public class RoomsState extends SavedData {
 
     public record SectionStart(String themeId, int startRoom) {}
 
+    /** セクションの利用可否の上書き（オーナー専用 /rooms admin section）。既定は Sections.TEST_ONLY（PLACEHOLDER）だけロック。 */
+    public final java.util.Set<String> lockedSections = new java.util.TreeSet<>(), unlockedSections = new java.util.TreeSet<>();
+
+    public boolean isSectionLocked(String id) {
+        String c = com.example.roomsmod.world.section.Sections.canonical(id);
+        if (lockedSections.contains(c)) return true;
+        return com.example.roomsmod.world.section.Sections.TEST_ONLY.contains(c) && !unlockedSections.contains(c);
+    }
+
+    public void setSectionLocked(String id, boolean locked) {
+        String c = com.example.roomsmod.world.section.Sections.canonical(id);
+        lockedSections.remove(c); unlockedSections.remove(c);
+        boolean def = com.example.roomsmod.world.section.Sections.TEST_ONLY.contains(c);
+        if (locked && !def) lockedSections.add(c);
+        if (!locked && def) unlockedSections.add(c);
+        setDirty();
+    }
+
     /** セクション表の形式。2 = 進行順 V → B → U → S → A（S は旧 GK、A は Abyss）。 */
     public static final int SECTIONS_VERSION = 2;
 
@@ -189,6 +207,10 @@ public class RoomsState extends SavedData {
             secs.add(c);
         }
         tag.put("sections", secs);
+        ListTag lk = new ListTag(), ul = new ListTag();
+        for (String id : lockedSections) lk.add(net.minecraft.nbt.StringTag.valueOf(id));
+        for (String id : unlockedSections) ul.add(net.minecraft.nbt.StringTag.valueOf(id));
+        tag.put("lockedSections", lk); tag.put("unlockedSections", ul);
         if (abyss != null) tag.put("abyss", abyss.save());
         tag.put("pendingClear", boxesTag(pendingClear));
         tag.put("pendingProtect", boxesTag(pendingProtect));
@@ -237,6 +259,8 @@ public class RoomsState extends SavedData {
             s.roomPaths.add(path);
         }
         s.hardMode = tag.getBoolean("hardMode");
+        for (Tag t : tag.getList("lockedSections", Tag.TAG_STRING)) s.lockedSections.add(t.getAsString());
+        for (Tag t : tag.getList("unlockedSections", Tag.TAG_STRING)) s.unlockedSections.add(t.getAsString());
         if (tag.contains("abyss")) s.abyss = com.example.roomsmod.world.AbyssRooms.Shaft.load(tag.getCompound("abyss"));
         if (tag.contains("sections")) {
             s.sections.clear();

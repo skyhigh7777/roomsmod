@@ -84,6 +84,7 @@ public class RoomsCommands {
         var theme = com.example.roomsmod.world.section.Sections.find(id);
         if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
+        if (rs.isSectionLocked(id)) { src.sendFailure(Component.translatable("message.roomsmod.section_locked", id.toUpperCase(java.util.Locale.ROOT))); return 0; }
         int start = startRoom != null ? startRoom : rs.currentRoom + 1;
         rs.chainFrom(id, start); // 以降は固定長（500部屋ごと）で次のセクションへ
         boolean relabeled = start == rs.currentRoom + 1 && com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
@@ -107,16 +108,34 @@ public class RoomsCommands {
     }
 
     /** ロビー（/rooms enter と同じ地点）へ送る。ロビーは毎回生成し直す（従来どおり）。 */
+    /** 所持数（Wallet）へ。上限を超えた分は渡さない。 */
     private static int giveBandage(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BANDAGE.get(), n));
-        src.sendSuccess(() -> Component.translatable("item.roomsmod.bandage").append(" x" + n), false);
-        return n;
+        var p = src.getPlayerOrException();
+        var w = com.example.roomsmod.economy.Wallet.of(p);
+        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BANDAGE - w.bandage);
+        w.bandage += Math.max(0, add);
+        com.example.roomsmod.economy.Wallet.sync(p);
+        src.sendSuccess(() -> Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + w.bandage + "/" + com.example.roomsmod.economy.Wallet.MAX_BANDAGE + ")"), false);
+        return Math.max(0, add);
     }
 
     private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        src.getPlayerOrException().getInventory().add(new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BATTERY.get(), n));
-        src.sendSuccess(() -> Component.translatable("item.roomsmod.battery").append(" x" + n), false);
-        return n;
+        var p = src.getPlayerOrException();
+        var w = com.example.roomsmod.economy.Wallet.of(p);
+        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BATTERY - w.battery);
+        w.battery += Math.max(0, add);
+        com.example.roomsmod.economy.Wallet.sync(p);
+        src.sendSuccess(() -> Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + w.battery + "/" + com.example.roomsmod.economy.Wallet.MAX_BATTERY + ")"), false);
+        return Math.max(0, add);
+    }
+
+    private static int giveCoins(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var p = src.getPlayerOrException();
+        var w = com.example.roomsmod.economy.Wallet.of(p);
+        w.coins = Math.max(0, w.coins + n);
+        com.example.roomsmod.economy.Wallet.sync(p);
+        src.sendSuccess(() -> Component.literal("COIN " + (n >= 0 ? "+" : "") + n + " → " + w.coins), false);
+        return 1;
     }
 
     /** ロビーを作り直して部屋 1..target を生成し、最後の部屋の安全な床へワープ（/rooms to とロビーの GO パネル）。
@@ -145,6 +164,7 @@ public class RoomsCommands {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rooms")
+            .then(AdminCommands.build())
             .then(Commands.literal("enter")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
@@ -199,7 +219,9 @@ public class RoomsCommands {
                 .then(Commands.literal("bandage").executes(ctx -> giveBandage(ctx.getSource(), 1))
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBandage(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
                 .then(Commands.literal("battery").executes(ctx -> giveBattery(ctx.getSource(), 1))
-                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
+                .then(Commands.literal("coins")
+                    .then(Commands.argument("count", IntegerArgumentType.integer(-1000000, 1000000)).executes(ctx -> giveCoins(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("b20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
