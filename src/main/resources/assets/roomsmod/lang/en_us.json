@@ -153,9 +153,6 @@
   "entity.roomsmod.a200": "A-200",
   "entity.roomsmod.a300": "A-300",
   "entity.roomsmod.a450": "A-450",
-  "roomsmod.section.clear.title": "%s CLEAR",
-  "roomsmod.section.clear.subtitle": "SECTION %s — %s/%s",
-  "roomsmod.section.enter.title": "SECTION %s",
-  "roomsmod.section.enter.subtitle": "%s — MAX %s",
-  "roomsmod.section.enter.subtitle_endless": "%s — MAX ∞"
+  "roomsmod.section.title.transition": "%s → %s (Max.%s)",
+  "roomsmod.section.title.single": "%s (Max.%s)"
 }
