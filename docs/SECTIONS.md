@@ -208,13 +208,13 @@ Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`en
 - Hiding: wall-niche lockers next to the bed (foot side) or a hiding table in place of a bed, alternating sides every 2–3 bays;
   gap ≤ 16 blocks, at least 2 per room, at least one locker. If the ward would overlap an older room, the bed row on that side is dropped (wall at x=7 / x=13).
 - Items: bandages lie in 30% of H rooms (`RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE`, 12% elsewhere). Batteries as usual.
-- Spawns: 4 H-only entities (`entity/h`, below) mixed with B / S / U entities re-used with H-local thresholds (`Sections.reuse`).
-  Table (minRoom, chance): U-20 (10, .16), B-15 (20, .08), **H-30 (30, .09)**, S-45 (35, .07), B-30 (50, .07), B-20 (60, .11), U-60 (80, .09),
-  **H-90 (90, .08)**, B-70 (100, .07), S-205 (120, .06), **H-150 (150, .08)**, U-120 (150, .07), B-40 (170, .08), S-225 (200, .06), B-155 (230, .06),
-  **H-260 (260, .08)**, U-200 (260, .06), B-260 (300, .06), S-245 (340, .05), U-300 (380, .06), S-270 (420, .05).
-  P(at least one) by depth (before → after the H entities): H-50 0.36 → 0.39, H-100 0.54 → 0.58, H-200 0.66 → 0.71, H-300 0.73 → 0.78, H-420+ 0.77 → 0.81.
-  Per-roll cap `GK_MAX_PER_ROLL` (2) like S / B / U / A. U entities count as off-section here (softened).
-  Hard mode: the H entities are in `Sections.hardTable()` (they can appear in any non-A section; `homeSection` is `h`) and 3!3!2 can imitate their sounds.
+- Spawns (normal mode): **only the 4 H entities** (`entity/h`, below). The number in an entity's name is not its start room here.
+  Table (minRoom, chance): H-30 (5, .22), H-90 (35, .25), H-150 (100, .30), H-260 (200, .40).
+  P(at least one) by depth: H-1..4 0, H-5 0.22, H-35 0.42, H-100 0.59, H-200 and deeper 0.75
+  (measured with 400 natural rolls each: H-5 0.24, H-35 0.44, H-100 0.61, H-200 0.72, H-300 0.76, H-450 0.75).
+  Per-roll cap `GK_MAX_PER_ROLL` (2); H-90 and H-150 share the exclusion group `h_ward` (at most one of them).
+  Hard mode: like every non-A section, H rolls the combined `Sections.hardTable()` (all sections' entities incl. the H ones with the minRooms above, chance x1.2, cap 2),
+  so B / S / U / V entities do appear in H in hard mode only. The H entities can also appear in other sections in hard mode (`homeSection` is `h`); 3!3!2 can imitate their sounds.
 
 ### H entities (`entity/h`)
 All are `VEntity` (no physics, invulnerable, max 100 s like S), billboard textures `textures/entity/h30|h90|h150|h260.png`, sounds `h30_drag`, `h90_step`, `h90_check`,
