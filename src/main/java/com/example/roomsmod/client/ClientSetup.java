@@ -88,6 +88,12 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.A200.get(), c -> new BRenderer<>(c, "a200", 1.8f));
         event.registerEntityRenderer(RoomsMod.A300.get(), c -> new BRenderer<>(c, "a300", 1.9f));
         event.registerEntityRenderer(RoomsMod.A450.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（重力が変わる）
+        event.registerEntityRenderer(RoomsMod.A525.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（暗転と光の粒）
+        event.registerEntityRenderer(RoomsMod.A600.get(), c -> new BRenderer<>(c, "a600", 2.0f));
+        event.registerEntityRenderer(RoomsMod.A666.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（声だけ）
+        event.registerEntityRenderer(RoomsMod.A750.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（看板が変わる）
+        event.registerEntityRenderer(RoomsMod.A800.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（床そのもの）
+        event.registerEntityRenderer(RoomsMod.A1000.get(), c -> new BRenderer<>(c, "a1000", 4.6f));
         event.registerEntityRenderer(RoomsMod.E332.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         event.registerEntityRenderer(RoomsMod.EXTRABOX.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         // PLACEHOLDER：単色の正方形（揺れなし）

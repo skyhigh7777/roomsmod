@@ -332,6 +332,24 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A450Entity>> A450 = ENTITIES.register("a450",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A450Entity::new, MobCategory.MONSTER)
                     .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a450"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A525Entity>> A525 = ENTITIES.register("a525",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A525Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a525"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A600Entity>> A600 = ENTITIES.register("a600",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A600Entity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 1.8f).clientTrackingRange(12).updateInterval(1).build("a600"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A666Entity>> A666 = ENTITIES.register("a666",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A666Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a666"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A750Entity>> A750 = ENTITIES.register("a750",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A750Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a750"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A800Entity>> A800 = ENTITIES.register("a800",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A800Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a800"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A1000Entity>> A1000 = ENTITIES.register("a1000",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A1000Entity::new, MobCategory.MONSTER)
+                    .sized(2.0f, 2.5f).clientTrackingRange(12).updateInterval(1).build("a1000"));
 
     // H（Hospital、病棟）区画
     public static final DeferredHolder<SoundEvent, SoundEvent> H30_DRAG = SOUND_EVENTS.register("h30_drag", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "h30_drag")));
@@ -375,7 +393,7 @@ public class RoomsMod {
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
                 B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
-                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
+                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, A525, A600, A666, A750, A800, A1000, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

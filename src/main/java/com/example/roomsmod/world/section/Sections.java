@@ -154,7 +154,7 @@ public final class Sections {
     /**
      * A（Abyss）区画。縦穴を落ち続ける（world/AbyssRooms.java）。1 周（縦穴の同じ見た目の上の層へ戻される）ごとに 1 部屋進む。
      * palette（壁・床）・sign・hidingMix（ロッカーのみ）を使う（shapeWeights/furniture/cover は未使用）。
-     * 出現表は A 専用の敵（A-25 / A-50 / A-90 / A-130 / A-180 / A-200 / A-250 / A-300 / A-350 / A-450、entity/a）だけ（minRoom はセクション内番号）。
+     * 出現表は A 専用の敵（A-25 / A-50 / A-90 / A-130 / A-180 / A-200 / A-250 / A-300 / A-350 / A-450 / A-525 / A-600 / A-666 / A-750 / A-800 / A-1000、entity/a）だけ（minRoom はセクション内番号）。
      */
     public static final SectionTheme A = register(new SectionTheme(
             "a", "A",
@@ -177,7 +177,13 @@ public final class Sections {
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A250, 250, 0.04f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A300, 300, 0.04f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A350, 350, 0.05f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A450, 450, 0.03f)),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A450, 450, 0.03f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A525, 525, 0.03f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A600, 600, 0.03f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A666, 666, 0.035f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A750, 750, 0.035f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A800, 800, 0.04f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.A1000, 1000, 0.04f)),
             new SectionTheme.SignStyle(() -> Blocks.DARK_OAK_WALL_SIGN, DyeColor.LIGHT_BLUE, true),
             0, 0));
 

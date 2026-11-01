@@ -81,7 +81,7 @@ public final class AbyssRooms {
     // ローカル座標（小部屋の origin から）。縦穴の内側 x 8..12, z 3..7、壁は 3 ブロック厚（x 5..15, z 0..10）
     public static final int CX = 10, CZ = 5, IN = 2, X0 = 5, X1 = 15, Z0 = 0, Z1 = 10;
     /** 看板と照明の層内の高さ（層の底から）。 */
-    static final int SIGN_OFF = 9, TORCH_OFF = 3;
+    public static final int SIGN_OFF = 9, TORCH_OFF = 3;
     /** 横穴の床の層内の高さの範囲（底から）。床+4 が天井で層内に収まる。 */
     static final int ALCOVE_OFF_MIN = 1, ALCOVE_OFF_MAX = L - 5;
 
@@ -102,6 +102,8 @@ public final class AbyssRooms {
         /** 狭めている間に残すマス（AbyssSqueeze のマスク）。 */
         int squeezeOpen = 0;
         final java.util.Set<BlockPos> squeezeCells = new java.util.HashSet<>();
+        /** 看板の文字の差し替え（部屋 → 文字と色。A-750 のくり返し）。保存しない（読み込み後は全部作り直すので元に戻る）。 */
+        final Map<Integer, SignOverride> signOver = new HashMap<>();
 
         Shaft(int ox, int oy, int oz, int entryRoom, int bottomY) { this.ox = ox; this.oy = oy; this.oz = oz; this.entryRoom = entryRoom; this.bottomY = bottomY; }
 
@@ -134,6 +136,9 @@ public final class AbyssRooms {
 
         @Override public String toString() { return "Shaft[o=(" + ox + "," + oy + "," + oz + ") entry=" + entryRoom + " bottom=" + bottomY + "]"; }
     }
+
+    /** 看板の文字の差し替え（text：表示する文字、color：null ならいつもの色）。 */
+    public record SignOverride(String text, net.minecraft.world.item.DyeColor color) {}
 
     /** 横穴（side の壁、床の高さは層の底から off）。fake は見た目だけの横穴（照明なし）。 */
     public record Alcove(Direction side, int off, boolean fake) {}
@@ -289,8 +294,9 @@ public final class AbyssRooms {
         SectionTheme.SignStyle st = Sections.A.sign();
         set(level, p, st.wallSign().get().defaultBlockState().setValue(WallSignBlock.FACING, Direction.SOUTH), changed);
         if (level.getBlockEntity(p) instanceof SignBlockEntity be) {
-            String text = room >= s.entryRoom ? Sections.formatRoom(rs, room) : "";
-            SignText t = new SignText().setMessage(1, Component.literal(text)).setColor(st.color()).setHasGlowingText(st.glowing());
+            SignOverride o = s.signOver.get(room);
+            String text = o != null ? o.text() : room >= s.entryRoom ? Sections.formatRoom(rs, room) : "";
+            SignText t = new SignText().setMessage(1, Component.literal(text)).setColor(o != null && o.color() != null ? o.color() : st.color()).setHasGlowingText(st.glowing());
             be.setText(t, true);
             be.setWaxed(true);
             be.setChanged();
@@ -483,6 +489,36 @@ public final class AbyssRooms {
         Alcove had = want == null ? s.fakes.remove(room) : s.fakes.put(room, want);
         if (!java.util.Objects.equals(had, want)) refreshRoom(level, rs, s, room);
         return true;
+    }
+
+    /**
+     * 看板の文字の差し替えをまとめて入れ替える（空の map で元に戻す。A-750）。今見えている層の看板はすぐ書き直して近くのプレイヤーへ送る
+     * （これから見える層は refresh が差し替えた文字で作る）。
+     */
+    public static void setSignOverrides(ServerLevel level, RoomsState rs, Map<Integer, SignOverride> m) {
+        Shaft s = rs.abyss;
+        if (s == null) return;
+        if (s.signOver.equals(m)) return;
+        java.util.Set<Integer> touched = new java.util.HashSet<>(s.signOver.keySet());
+        touched.addAll(m.keySet());
+        s.signOver.clear();
+        s.signOver.putAll(m);
+        if (!s.built) return;
+        List<BlockPos> changed = new ArrayList<>(), signs = new ArrayList<>();
+        DropGuard.begin();
+        try {
+            for (int k = -EXTRA_ABOVE; k < SEGMENTS; k++) {
+                int room = s.shownRoom[k + EXTRA_ABOVE];
+                if (room != Integer.MIN_VALUE && touched.contains(room)) sign(level, rs, s, k, room, changed, signs);
+            }
+        } finally { DropGuard.end("abyss sign override"); }
+        sendBlocks(level, s, changed);
+        Vec3 c = Vec3.atCenterOf(s.at(CX, s.segTop(1), CZ));
+        for (ServerPlayer p : level.players()) {
+            if (p.position().distanceToSqr(c) > 96 * 96) continue;
+            for (BlockPos q : signs) if (level.getBlockEntity(q) instanceof SignBlockEntity be) p.connection.send(ClientboundBlockEntityDataPacket.create(be));
+        }
+        RoomsDebug.log("abyss sign overrides={} rewritten={}", m.size(), signs.size());
     }
 
     public static boolean hasFake(RoomsState rs, int room) { return rs.abyss != null && rs.abyss.fakes.containsKey(room); }
@@ -712,7 +748,9 @@ public final class AbyssRooms {
                 .playToClient(AbyssSpace.ShiftPayload.TYPE, AbyssSpace.ShiftPayload.STREAM_CODEC,
                         (msg, ctx) -> ctx.enqueueWork(() -> AbyssSpace.clientShift.accept(msg)))
                 .playToClient(HoldPayload.TYPE, HoldPayload.STREAM_CODEC,
-                        (msg, ctx) -> ctx.enqueueWork(() -> clientHoldVy = msg.on() ? msg.vy() : Float.NaN)));
+                        (msg, ctx) -> ctx.enqueueWork(() -> clientHoldVy = msg.on() ? msg.vy() : Float.NaN))
+                .playToClient(AbyssFx.DarkPayload.TYPE, AbyssFx.DarkPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> AbyssFx.onClientDark(msg.ticks()))));
     }
 
     /** プレイヤーの今の部屋（縦穴の中）。わからなければ fallback。 */

@@ -144,8 +144,22 @@ A uses `world/AbyssRooms.java`. There are no doors: the player falls down a sing
 - No fall damage inside the shaft footprint (`LivingFallEvent` cancelled, fall distance reset every tick).
   Fall speed is capped client-side (`client/AbyssClient`, 0.6 blocks/tick ≈ 12 blocks/s, 0.3 while sneaking); the server tells the
   client when it is inside the shaft with `AbyssRooms.AbyssPayload`.
-- Spawn table: only path-walking entities that do not need doors or floors (B-15, U-20, B-50, U-60, B-90, U-120). Hard mode in A uses
-  A's own table (with the hard-mode buffs), not the combined table.
+- Spawn table: only A-native entities (`entity/a`, `VEntity.isAbyssNative`): A-25, A-50, A-90, A-130, A-180, A-200, A-250, A-300, A-350,
+  A-450, A-525, A-600, A-666, A-750, A-800, A-1000 (minRoom = section-local number). Hard mode in A uses A's own table (with the
+  hard-mode buffs), not the combined table. Pairs whose avoidance rules clash never coexist (`AbyssEnemy.incompatible`, checked both ways).
+- Later A enemies (details in each class javadoc; damage normal / hard):
+  - A-525 blackout (from A-525, 3%): a bell, then the screen goes black except glowing particles (`AbyssFx.DarkPayload`,
+    `client/AbyssFxClient`); an orange ring of particles marks a strike zone around where you were; leave it (6 / 9). Only coexists with A-1000.
+  - A-600 updraft (A-600, 3%): wind sound + rising particles, then the fall is pinned to 0.06 blocks/tick (`AbyssRooms.hold`) and a thing rises
+    from below; hide in an alcove/locker (one is required within reach to spawn) or out-run it sideways until the updraft ends (6 / 10). Solo.
+  - A-666 counting voice (A-666, 3.5%): titles 3-2-1 with sounds; at 0, average horizontal speed over 6 ticks > 0.04 hurts (5 / 8). Falling is fine.
+  - A-750 repeat (A-750, 3.5%): signs of the next 8 (10) rooms show the same number (`AbyssRooms.setSignOverrides`, `Shaft.signOver`);
+    one room with a real alcove shows its real number in red; enter that alcove to break the loop. Passing it by a room or timing out hurts (6 / 9).
+  - A-800 floors (A-800, 4%): a slab floor across the 5x5 column 13 (11) blocks below; cobbled-deepslate (cracked) tiles crumble just before you
+    reach them, smooth-stone tiles hurt and then shatter (5 / 8). Always one 2x2 cracked patch. Blocks are tracked in virtual coordinates,
+    re-placed after each loop and always removed (also after a reload, from the saved positions).
+  - A-1000 the bottom (A-1000, 4%): a shaft-wide mass falls from above at 0.235 (0.24) blocks/tick, a bit slower than full-speed falling;
+    sneaking, standing or hiding lets it catch up (10 / 14). Cannot be hidden from. Distance on the action bar.
 - No batteries / bandages are placed in A rooms. `SafeSpot.find` returns the vestibule (first room) or the top of layer 1 (others),
   so `/rooms to`, lobby GO and the deepest-room panel work.
 - If the section table is changed so that the room after an A room is not A (`/rooms section <id> now` while falling),
