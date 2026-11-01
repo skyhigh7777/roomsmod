@@ -215,7 +215,8 @@ public final class Sections {
      * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（H と同じ扱い）。/rooms admin section f unlock で解放。
      * この区画の中ではダッシュのスタミナ消費が FloodedRooms.STAMINA_DRAIN_MUL 倍（Stamina）。溺れない（FloodedRooms.onPlayerTick で空気を満タンに保つ）。
      * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
-     * 敵は B / S / U の敵をこの区画の番号で並べ直したもの（水とスタミナで動きにくいので確率はほかと同程度、1回の上限は GK_MAX_PER_ROLL）。
+     * 敵は F 専用の 4 体だけ（entity/f：F-5 聞き耳 / F-35 浮かび上がるもの / F-100 溺れた人影 / F-200 引き波。1回の上限は GK_MAX_PER_ROLL）。
+     * ハードモードでは全セクション共通の合同表（Sections.hardTable）になる。
      */
     public static final SectionTheme F = register(new SectionTheme(
             "f", "F",
@@ -229,23 +230,12 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.35f)),
             2, 2,
             List.of(
-                    // F: F-15〜F-420 にかけて易しい順に解禁。全部解禁時 P(1体以上)≈0.65（B 0.66 / S 0.61 / U 0.54 / H 0.77）
-                    reuse(U, "U-20", 15, 0.12f),
-                    reuse(B, "B-15", 25, 0.07f),
-                    reuse(B, "B-30", 40, 0.07f),
-                    reuse(GK, "S-45", 55, 0.06f),
-                    reuse(B, "B-20", 70, 0.09f),
-                    reuse(B, "B-70", 90, 0.06f),
-                    reuse(U, "U-60", 110, 0.08f),
-                    reuse(GK, "S-205", 130, 0.05f),
-                    reuse(B, "B-40", 160, 0.08f),
-                    reuse(B, "B-155", 190, 0.06f),
-                    reuse(U, "U-120", 220, 0.06f),
-                    reuse(GK, "S-225", 250, 0.05f),
-                    reuse(B, "B-260", 290, 0.05f),
-                    reuse(U, "U-200", 330, 0.05f),
-                    reuse(GK, "S-245", 370, 0.05f),
-                    reuse(U, "U-300", 420, 0.05f)),
+                    // F: F 専用の敵だけ（通常モード。ハードは合同表）。名前の番号＝出現開始（F-5 は F-5 から）。
+                    // P(1体以上)：F-5 0.22 / F-35 0.42 / F-100 0.59 / F-200〜 0.75（H と同じ曲線。1回の上限 2、F-5 と F-35 は排他）
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F5, 5, 0.22f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F35, 35, 0.25f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F100, 100, 0.30f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F200, 200, 0.40f)),
             new SectionTheme.SignStyle(() -> Blocks.MANGROVE_WALL_SIGN, DyeColor.LIGHT_BLUE, true),
             1, 8));
 

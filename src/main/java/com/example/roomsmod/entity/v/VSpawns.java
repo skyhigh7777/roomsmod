@@ -66,6 +66,11 @@ public final class VSpawns {
         H90("H-90", "h90", "h_ward", RoomsMod.H90),
         H150("H-150", "h150", "h_ward", RoomsMod.H150),
         H260("H-260", "h260", null, RoomsMod.H260),
+        // F（Flooded、水没）区画。F-5 と F-35 は同時に出さない（止まる／動き続ける：要求がぶつかる）
+        F5("F-5", "f5", "f_water", RoomsMod.F5),
+        F35("F-35", "f35", "f_water", RoomsMod.F35),
+        F100("F-100", "f100", null, RoomsMod.F100),
+        F200("F-200", "f200", null, RoomsMod.F200),
         // A（Abyss）専用（縦穴でだけ出る）
         A25("A-25", "a25", null, RoomsMod.A25),
         A90("A-90", "a90", null, RoomsMod.A90),

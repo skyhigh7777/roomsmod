@@ -74,6 +74,10 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.H90.get(), c -> new VRenderer<>(c, "h90", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.H150.get(), c -> new VRenderer<>(c, "h150", 2.2f, 0.12f)); // 気づいた時だけ描く（isRevealed）
         event.registerEntityRenderer(RoomsMod.H260.get(), c -> new VRenderer<>(c, "h260", 1.8f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.F5.get(), c -> new VRenderer<>(c, "f5", 1.8f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.F35.get(), c -> new VRenderer<>(c, "f35", 2.2f, 0.08f)); // 水上に出た時だけ描く（isRevealed）
+        event.registerEntityRenderer(RoomsMod.F100.get(), c -> new VRenderer<>(c, "f100", 2.1f, 0.03f));
+        event.registerEntityRenderer(RoomsMod.F200.get(), c -> new VRenderer<>(c, "f200", 2.8f, 0.10f));
         event.registerEntityRenderer(RoomsMod.A25.get(), c -> new BRenderer<>(c, "a25", 2.0f));
         event.registerEntityRenderer(RoomsMod.A90.get(), c -> new BRenderer<>(c, "a90", 1.9f));
         event.registerEntityRenderer(RoomsMod.A180.get(), c -> new BRenderer<>(c, "a180", 1.8f));
@@ -241,6 +245,7 @@ public class ClientSetup {
             if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
             if (entity instanceof com.example.roomsmod.entity.placeholder.Placeholder65535Entity && entity.isInvisible()) return; // 姿を現すまで描かない
             if (entity instanceof com.example.roomsmod.entity.h.HCurtainEntity hc && !hc.isRevealed() && !entity.isCurrentlyGlowing()) return; // H-150 はカーテンの陰：気づくまで描かない
+            if (entity instanceof com.example.roomsmod.entity.f.FSurfacerEntity fs && !fs.isRevealed() && !entity.isCurrentlyGlowing()) return; // F-35 は水の下：飛び出すまで描かない
             if (outlineOnly && !entity.isCurrentlyGlowing()) return; // 輪郭のみ型：デバッグ以外では何も描かない
             float age = entity.tickCount + pt;
             ps.pushPose();

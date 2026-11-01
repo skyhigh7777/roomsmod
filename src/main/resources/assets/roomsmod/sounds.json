@@ -276,5 +276,29 @@
       "roomsmod:h260_rattle"
     ],
     "subtitle": "subtitles.roomsmod.h260_rattle"
+  },
+  "f5_hum": {
+    "sounds": [
+      "roomsmod:f5_hum"
+    ],
+    "subtitle": "subtitles.roomsmod.f5_hum"
+  },
+  "f35_bubble": {
+    "sounds": [
+      "roomsmod:f35_bubble"
+    ],
+    "subtitle": "subtitles.roomsmod.f35_bubble"
+  },
+  "f100_gurgle": {
+    "sounds": [
+      "roomsmod:f100_gurgle"
+    ],
+    "subtitle": "subtitles.roomsmod.f100_gurgle"
+  },
+  "f200_wave": {
+    "sounds": [
+      "roomsmod:f200_wave"
+    ],
+    "subtitle": "subtitles.roomsmod.f200_wave"
   }
 }

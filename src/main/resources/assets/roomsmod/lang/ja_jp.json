@@ -189,5 +189,16 @@
   "subtitles.roomsmod.h150_rustle": "カーテンが揺れる音",
   "subtitles.roomsmod.h260_rattle": "車輪の音が近づく",
   "message.roomsmod.h90_gaze": "看護師が視線に気づいている。",
-  "message.roomsmod.h150_alert": "カーテンが動いた。"
+  "message.roomsmod.h150_alert": "カーテンが動いた。",
+  "entity.roomsmod.f5": "F-5",
+  "entity.roomsmod.f35": "F-35",
+  "entity.roomsmod.f100": "F-100",
+  "entity.roomsmod.f200": "F-200",
+  "subtitles.roomsmod.f5_hum": "水の下の低いうなり",
+  "subtitles.roomsmod.f35_bubble": "泡が湧く音",
+  "subtitles.roomsmod.f100_gurgle": "ごぼごぼという音",
+  "subtitles.roomsmod.f200_wave": "押し寄せる水の音",
+  "message.roomsmod.f5_listen": "何かが水音に耳をすましている。",
+  "message.roomsmod.f35_bubbles": "足元の水が泡立っている。",
+  "message.roomsmod.f100_drag": "水に足を取られる。"
 }

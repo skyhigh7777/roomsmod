@@ -237,6 +237,7 @@ public class RoomsMod {
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.RoomTracker.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.SectionTransition.class);
         com.example.roomsmod.hiding.HidingRules.addHidingCheck(com.example.roomsmod.hiding.LockerManager::isUnderTable);
+        com.example.roomsmod.hiding.HidingRules.addExposure(com.example.roomsmod.entity.f.FUndertowEntity::floodsTable); // F-200：テーブルの下は水に浸かる
         modEventBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(LOCKER_ITEM.get()); e.accept(HIDING_TABLE_ITEM.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS)); e.accept(BATTERY.get()); e.accept(BANDAGE.get()); }
@@ -351,12 +352,30 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.h.HGurneyEntity::new, MobCategory.MONSTER)
                     .sized(1.2f, 1.4f).clientTrackingRange(12).updateInterval(1).build("h260"));
 
+    // F（Flooded、水没）区画
+    public static final DeferredHolder<SoundEvent, SoundEvent> F5_HUM = SOUND_EVENTS.register("f5_hum", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "f5_hum")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> F35_BUBBLE = SOUND_EVENTS.register("f35_bubble", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "f35_bubble")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> F100_GURGLE = SOUND_EVENTS.register("f100_gurgle", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "f100_gurgle")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> F200_WAVE = SOUND_EVENTS.register("f200_wave", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "f200_wave")));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.f.FListenerEntity>> F5 = ENTITIES.register("f5",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.f.FListenerEntity::new, MobCategory.MONSTER)
+                    .sized(0.9f, 1.6f).clientTrackingRange(12).updateInterval(1).build("f5"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.f.FSurfacerEntity>> F35 = ENTITIES.register("f35",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.f.FSurfacerEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 2.0f).clientTrackingRange(12).updateInterval(1).build("f35"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.f.FDrownedEntity>> F100 = ENTITIES.register("f100",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.f.FDrownedEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.9f).clientTrackingRange(12).updateInterval(1).build("f100"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.f.FUndertowEntity>> F200 = ENTITIES.register("f200",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.f.FUndertowEntity::new, MobCategory.MONSTER)
+                    .sized(1.6f, 2.0f).clientTrackingRange(12).updateInterval(1).build("f200"));
+
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
                 B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
-                U20, U60, U120, U200, U300, H30, H90, H150, H260, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
+                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

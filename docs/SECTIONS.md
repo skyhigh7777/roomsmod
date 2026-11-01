@@ -253,6 +253,31 @@ All are `VEntity` (no physics, invulnerable, max 100 s like S), billboard textur
 - Lengths: SHORT 20, STD 30, LONG 42, VLONG 56 (only from `F-250`).
 - Hiding: lockers 0.65 / tables 0.35 (tables are never waterlogged), U-style spacing, at least 2 per room, at least one locker.
 - Items: bandages and batteries as usual.
-- Spawns: B / S / U entities re-used with F-local thresholds (`Sections.reuse`): U-20 (F-15) … U-300 (F-420), 16 entries, P(at least one) ≈ 0.65.
-  Per-roll cap `GK_MAX_PER_ROLL` (2).
+- Spawns (normal mode): **only the 4 F entities** (`entity/f`, below). The number in an F entity's name is its start room.
+  Table (minRoom, chance): F-5 (5, .22), F-35 (35, .25), F-100 (100, .30), F-200 (200, .40) — the same curve as H.
+  P(at least one) by depth: F-1..4 0, F-5 0.22, F-35 0.42, F-100 0.59, F-200 and deeper 0.75
+  (measured with 400 natural rolls each: F-5 0.21, F-20 0.22, F-35 0.44, F-60 0.38, F-100 0.61, F-150 0.60, F-200 0.76, F-300 0.75, F-450 0.76).
+  Per-roll cap `GK_MAX_PER_ROLL` (2); F-5 and F-35 share the exclusion group `f_water` (stand still vs keep moving: at most one of them).
+  Hard mode: like every non-A section, F rolls the combined `Sections.hardTable()` (so B / S / U / V / H entities appear in F in hard mode only),
+  and the F entities can appear in other sections (`homeSection` is `f`); 3!3!2 can imitate their sounds.
+
+### F entities (`entity/f`)
+All are `VEntity` (no physics, invulnerable, max 100 s), billboard textures `textures/entity/f5|f35|f100|f200.png`, sounds `f5_hum`, `f35_bubble`,
+`f100_gurgle`, `f200_wave`. Radar / scanner list them like every other MONSTER of this mod (name = `vName()`). `/rooms admin spawn f5|f35|f100|f200`.
+- **F-5** (`FListenerEntity`, the listener): a grey bald head with huge ears sticking out of the water. `GKRoomWatcher` in the opened room:
+  low hum for 2.5 s (hard 1.75 s), then listens for 7 s (actionbar "Something is listening to the water."), then sinks.
+  While it listens, players in that room or the room before it (or within 16 blocks) who are not hiding make noise:
+  sprinting or jumping = every tick, walking = every other tick, crouch-walking or standing still = none. At 24 noise (hard 18) it strikes (30) and leaves
+  (≈ 1.2 s of sprinting or 2.4 s of walking). Stop, crouch, or hide. Uncategorized, exclusion group `f_water`.
+- **F-35** (`FSurfacerEntity`, the surfacer): long black wet hair, a pale face and two hands. Hidden under the water (drawn only while surfaced).
+  After 2 s the water bubbles at the target's feet (actionbar "The water bubbles at your feet." the first time); 1.5 s later (hard 1.1 s) it bursts out at that spot:
+  players within 1.8 blocks of the bubbles who are not hiding are hit (20) and slowed. It sinks, then bubbles again under the target: 5 times (hard 6), then leaves.
+  While the target hides it waits; after 10 s of hiding it leaves. Keep moving when bubbles appear, or hide. Uncategorized, exclusion group `f_water`.
+- **F-100** (`FDrownedEntity`, the drowned): a bloated blue-grey figure wrapped in weed, dripping. `VPathWalker` **from the front**: from the next room's exit
+  back through the player's room to the entrance of the room 2 behind, 0.13 blocks/tick, then leaves. Hits (30) players it can see within 4 blocks (`RusherHits`).
+  Players within 6 blocks who are not hiding get slowness II (actionbar "The water drags at your feet."), so slipping past it is hard. Hide. Category HIDE_REQUIRED.
+- **F-200** (`FUndertowEntity`, the undertow): a dark wall of water with a foam crest and a gaping face. `URusher` (home section `f`): starts 5 rooms behind with a
+  rushing-water loop, 1.5 blocks/tick with acceleration, runs to 1 room ahead (no bounce). Hit range 22, damage 40.
+  **Tables do not protect** from it: water floods under them (`HidingRules` exposure `FUndertowEntity.floodsTable`, within 6 blocks even without line of sight). Hide in a locker.
+  Category HIDE_REQUIRED.
 - Start it: `/rooms admin section f unlock`, then the lobby panel (`F-001` … `F-500`, GO) or `/rooms admin tp f <n>`.
