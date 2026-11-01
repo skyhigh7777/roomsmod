@@ -117,7 +117,7 @@ public final class Stamina {
             boolean flying = p.getAbilities().flying || p.isPassenger() || p.isFallFlying();
             boolean adrenaline = com.example.roomsmod.economy.Adrenaline.isActive(p); // アドレナリン中は減らない・息切れ解除
             if (adrenaline) ex = false;
-            if (p.isSprinting() && moving && !flying) { if (!adrenaline) s -= DRAIN; }
+            if (p.isSprinting() && moving && !flying) { if (!adrenaline) s -= DRAIN * com.example.roomsmod.world.FloodedRooms.staminaDrainMul(p); } // F（水没）の中は速く減る
             else if (!p.isSprinting()) s += moving ? REGEN_WALK : REGEN_IDLE;
             s = Math.max(0f, Math.min(MAX, s));
             if (s <= 0f && !ex) { ex = true; RoomsDebug.log("stamina exhausted player={}", p.getGameProfile().getName()); }

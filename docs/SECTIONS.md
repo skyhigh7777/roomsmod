@@ -31,7 +31,7 @@ Moving to data-driven JSON later just means adding a codec and loading themes in
 `RoomsState.sections` is a list of `(themeId, startRoom)` (saved with the world).
 
 ### Fixed length (500 rooms)
-Every section is `Sections.SECTION_LENGTH` = 500 rooms, in the order `Sections.ORDER` = `v, b, u, s, a`.
+Every section is `Sections.SECTION_LENGTH` = 500 rooms, in the order `Sections.ORDER` = `v, b, u, s, h, f, a` (H and F are locked by default and skipped while locked, see below).
 The default table is `Sections.fixedChain("v")` = `[(v,0), (b,501), (u,1001), (s,1501), (a,2001)]`, so `V-500` is followed by `B-001`, and so on.
 `fixedChain(id)` starts `id` at global room 1 (the first section of `ORDER` at 0, the lobby) and chains the rest of `ORDER` every 500 rooms;
 `chainFrom(id, start)` does the same from an arbitrary global room (used by `/rooms section`).
@@ -193,7 +193,7 @@ Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`en
 
 ## H (Hospital ward)
 `Sections.H` (id `h`, rooms `H-001` … `H-500`), generator `world/HospitalRooms.java`. Position in `ORDER`: after S, before A.
-- **Locked by default** (`Sections.LOCKED_BY_DEFAULT` = `placeholder`, `h`). While it is locked, H is also left out of the
+- **Locked by default** (`Sections.LOCKED_BY_DEFAULT` = `placeholder`, `h`, `f`). While it is locked, H is also left out of the
   progression (`RoomsState.outOfProgression`), so the default table stays `V → B → U → S → A` (`[v0, b501, u801, s1301, a1801]`).
   `/rooms admin section h unlock` relinks the part of the table after the current section (`RoomsState.relinkProgression`)
   to `… S → H → A` (`h1801`, `a2301`); locking it again removes it. Rooms that are already generated never change their numbers
@@ -212,3 +212,23 @@ Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`en
   P(at least one) ≈ 0.77 when all are unlocked (B 0.66, S 0.61, U 0.54). Per-roll cap `GK_MAX_PER_ROLL` (2) like S / B / U / A.
   U entities count as off-section here (softened). Hard mode uses the combined table as everywhere else (H adds no new names).
 - Start it: `/rooms admin section h unlock`, then the lobby panel (`H-001` … `H-500`, GO) or `/rooms admin tp h <n>`.
+
+## F (Flooded area)
+`Sections.F` (id `f`, rooms `F-001` … `F-500`), generator `world/FloodedRooms.java`. Position in `ORDER`: after H, before A.
+- **Locked by default** with the same handling as H (`outOfProgression` / `relinkProgression`): the default table stays `V → B → U → S → A`.
+  `/rooms admin section f unlock` gives `… S → F → A` (`f1801`, `a2301`); with H also unlocked `… S → H → F → A` (`h1801`, `f2301`, `a2801`).
+  Locking it again removes it. Old 500-length tables are migrated with `LEGACY_ORDER` (F is never inserted by the migration).
+- Water: the inner floor (y=0) is **waterlogged stone brick bottom slabs**, so the water surface is ankle deep (player stands at y=0.5).
+  No water is placed at y ≥ 1, so the path, doors and hiding spots are never blocked and water never flows. The outer floor ring,
+  pillar bases and the floor under candle lights are full blocks. `SafeSpot.isSafe` accepts a bottom slab below.
+  Air supply is reset every 5 ticks inside F rooms (`FloodedRooms.onPlayerTick`), so drowning is impossible; occasional drip sounds.
+- Stamina: sprinting drains `Stamina.DRAIN × FloodedRooms.STAMINA_DRAIN_MUL` (1.5) inside F rooms (≈ 5.3 s instead of 8 s from full). Regeneration is unchanged.
+- Rooms: straight (entrance / exit on x=10). Shapes CULVERT (inner width 5), HALL (9), CISTERN (11, pillars every 5 blocks), narrower fallback on overlap.
+  Height 4. Mossy / cracked stone brick walls, cracked stone brick ceiling with chains and glow lichen (off the path), stone brick pillars in HALL / CISTERN.
+  Lights: hanging lanterns and candle fixtures with the usual light fade (one tier every 8 rooms).
+- Lengths: SHORT 20, STD 30, LONG 42, VLONG 56 (only from `F-250`).
+- Hiding: lockers 0.65 / tables 0.35 (tables are never waterlogged), U-style spacing, at least 2 per room, at least one locker.
+- Items: bandages and batteries as usual.
+- Spawns: B / S / U entities re-used with F-local thresholds (`Sections.reuse`): U-20 (F-15) … U-300 (F-420), 16 entries, P(at least one) ≈ 0.65.
+  Per-roll cap `GK_MAX_PER_ROLL` (2).
+- Start it: `/rooms admin section f unlock`, then the lobby panel (`F-001` … `F-500`, GO) or `/rooms admin tp f <n>`.

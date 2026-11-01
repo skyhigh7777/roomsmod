@@ -222,6 +222,45 @@ public final class Sections {
             1, 8));
 
     /**
+     * F（Flooded、水没区画）。床一面にくるぶしほどの水（水浸しのハーフブロック）、苔むした石レンガのまっすぐな部屋（world/FloodedRooms.java）。進行上は H の後、A の前。
+     * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（H と同じ扱い）。/rooms admin section f unlock で解放。
+     * この区画の中ではダッシュのスタミナ消費が FloodedRooms.STAMINA_DRAIN_MUL 倍（Stamina）。溺れない（FloodedRooms.onPlayerTick で空気を満タンに保つ）。
+     * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
+     * 敵は B / S / U の敵をこの区画の番号で並べ直したもの（水とスタミナで動きにくいので確率はほかと同程度、1回の上限は GK_MAX_PER_ROLL）。
+     */
+    public static final SectionTheme F = register(new SectionTheme(
+            "f", "F",
+            new SectionTheme.Palette(
+                    Blocks.STONE_BRICKS::defaultBlockState, Blocks.MOSSY_STONE_BRICKS::defaultBlockState, Blocks.CRACKED_STONE_BRICKS::defaultBlockState,
+                    () -> Blocks.MANGROVE_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{1, 1, 1, 1, 1},
+            B.furniture(), B.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.65f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.35f)),
+            2, 2,
+            List.of(
+                    // F: F-15〜F-420 にかけて易しい順に解禁。全部解禁時 P(1体以上)≈0.65（B 0.66 / S 0.61 / U 0.54 / H 0.77）
+                    reuse(U, "U-20", 15, 0.12f),
+                    reuse(B, "B-15", 25, 0.07f),
+                    reuse(B, "B-30", 40, 0.07f),
+                    reuse(GK, "S-45", 55, 0.06f),
+                    reuse(B, "B-20", 70, 0.09f),
+                    reuse(B, "B-70", 90, 0.06f),
+                    reuse(U, "U-60", 110, 0.08f),
+                    reuse(GK, "S-205", 130, 0.05f),
+                    reuse(B, "B-40", 160, 0.08f),
+                    reuse(B, "B-155", 190, 0.06f),
+                    reuse(U, "U-120", 220, 0.06f),
+                    reuse(GK, "S-225", 250, 0.05f),
+                    reuse(B, "B-260", 290, 0.05f),
+                    reuse(U, "U-200", 330, 0.05f),
+                    reuse(GK, "S-245", 370, 0.05f),
+                    reuse(U, "U-300", 420, 0.05f)),
+            new SectionTheme.SignStyle(() -> Blocks.MANGROVE_WALL_SIGN, DyeColor.LIGHT_BLUE, true),
+            1, 8));
+
+    /**
      * PLACEHOLDER（テスト用）。壁も天井もない 11x11 の床に、テーブルとロッカーだけ（world/PlaceholderRooms.java）。
      * 固定長の進行（ORDER）には入らず、ロビーのパネルにも出ない。/rooms section placeholder でだけ始まり、以後ずっと続く。
      * エンティティは自然出現しない（rushers は空）。/rooms spawn placeholder32767 などで出す。
@@ -244,10 +283,10 @@ public final class Sections {
     public static final java.util.Set<String> TEST_ONLY = java.util.Set.of("placeholder");
 
     /**
-     * 既定でロックするセクション（RoomsState.isSectionLocked）。テスト用（PLACEHOLDER）と未公開の H。
+     * 既定でロックするセクション（RoomsState.isSectionLocked）。テスト用（PLACEHOLDER）と未公開の H・F。
      * ORDER にあるものはロック中は進行表に入らない（RoomsState.outOfProgression）。ほかのセクションは手でロックしても進行表はそのまま。
      */
-    public static final java.util.Set<String> LOCKED_BY_DEFAULT = java.util.Set.of("placeholder", "h");
+    public static final java.util.Set<String> LOCKED_BY_DEFAULT = java.util.Set.of("placeholder", "h", "f");
 
     public static boolean isLockedByDefault(String id) { return LOCKED_BY_DEFAULT.contains(canonical(id)); }
 
@@ -284,9 +323,9 @@ public final class Sections {
     public static int length(String id) { return LENGTHS.getOrDefault(canonical(id), SECTION_LENGTH); }
     /**
      * 進行順。最初のセクション（V）はロビー（部屋 0）から始まる。最後のセクションの後は、そのセクションがそのまま続く。
-     * H は既定でロック（ロック中は進行表で飛ばす＝V → B → U → S → A）。
+     * H・F は既定でロック（ロック中は進行表で飛ばす＝V → B → U → S → A）。
      */
-    public static final List<String> ORDER = List.of("v", "b", "u", "s", "h", "a");
+    public static final List<String> ORDER = List.of("v", "b", "u", "s", "h", "f", "a");
     /** H を足す前の進行順（旧仕様の 500 長の表の判定用）。 */
     private static final List<String> LEGACY_ORDER = List.of("v", "b", "u", "s", "a");
 

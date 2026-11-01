@@ -287,9 +287,9 @@ public class DoorEventHandler {
                 }
             }
         }
-        // S / B / U / H / A は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
+        // S / B / U / H / F / A は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
         if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U
-                || theme == com.example.roomsmod.world.section.Sections.H || theme == com.example.roomsmod.world.section.Sections.A) {
+                || theme == com.example.roomsmod.world.section.Sections.H || theme == com.example.roomsmod.world.section.Sections.F || theme == com.example.roomsmod.world.section.Sections.A) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);

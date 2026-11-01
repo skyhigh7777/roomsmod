@@ -35,7 +35,13 @@ public final class SafeSpot {
         l.getChunk(p.getX() >> 4, p.getZ() >> 4); // 同期読み込み
         BlockPos below = p.below();
         return inInterior(rs, room, p) && passable(l, p) && passable(l, p.above())
-                && l.getBlockState(below).isFaceSturdy(l, below, Direction.UP);
+                && (l.getBlockState(below).isFaceSturdy(l, below, Direction.UP) || isBottomSlab(l.getBlockState(below)));
+    }
+
+    /** 下半分のハーフブロック（F の水浸しの床）。その上 0.5 に立てる。 */
+    private static boolean isBottomSlab(BlockState s) {
+        return s.getBlock() instanceof net.minecraft.world.level.block.SlabBlock
+                && s.getValue(net.minecraft.world.level.block.SlabBlock.TYPE) == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM;
     }
 
     /** 足の位置（ブロック中央の下面）。 */
