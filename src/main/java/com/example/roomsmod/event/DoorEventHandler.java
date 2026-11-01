@@ -142,6 +142,13 @@ public class DoorEventHandler {
             event.setCanceled(true);
             RoomsDebug.log("lobby panel break cancelled pos={} player={}", event.getPos(), event.getPlayer().getGameProfile().getName());
         }
+        // 部屋ディメンションではクリエイティブ以外はブロックを壊せない（扉・壁などを壊して進むのを防ぐ）
+        else if (event.getLevel() instanceof net.minecraft.world.level.Level l2
+                && l2.dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)
+                && !event.getPlayer().isCreative()) {
+            event.setCanceled(true);
+            RoomsDebug.log("rooms block break cancelled (not creative) pos={} player={}", event.getPos(), event.getPlayer().getGameProfile().getName());
+        }
     }
 
     public static boolean isAllowedInteraction(BlockState s) {
