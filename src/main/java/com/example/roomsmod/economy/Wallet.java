@@ -61,6 +61,9 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     public int adrenaline, charm;
     /** レーダー・スキャナー（売店で買う。生還でも死亡でも残る）。 */
     public int radar, scanner;
+    /** これまでに入ったいちばん深い部屋（セクション id とセクション内番号。ORDER の通しの深さで比べる。周回をまたいで残る）。"" = まだ。 */
+    public String deepSection = "";
+    public int deepLocal = 0;
     public long coins;
     /** 周回（RoomsState.epoch）。違えば下の記録はリセット。 */
     public int runEpoch = Integer.MIN_VALUE;
@@ -73,6 +76,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
         CompoundTag t = new CompoundTag();
         t.putInt("battery", battery); t.putInt("bandage", bandage); t.putLong("coins", coins);
         t.putInt("adrenaline", adrenaline); t.putInt("charm", charm); t.putInt("radar", radar); t.putInt("scanner", scanner);
+        t.putString("deepSection", deepSection); t.putInt("deepLocal", deepLocal);
         t.putInt("runEpoch", runEpoch); t.putInt("runStart", runStart); t.putInt("runFurthest", runFurthest); t.putBoolean("runHit", runHit);
         return t;
     }
@@ -81,6 +85,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     public void deserializeNBT(HolderLookup.Provider p, CompoundTag t) {
         battery = t.getInt("battery"); bandage = t.getInt("bandage"); coins = t.getLong("coins");
         adrenaline = t.getInt("adrenaline"); charm = t.getInt("charm"); radar = t.getInt("radar"); scanner = t.getInt("scanner");
+        deepSection = t.getString("deepSection"); deepLocal = t.getInt("deepLocal");
         runEpoch = t.contains("runEpoch") ? t.getInt("runEpoch") : Integer.MIN_VALUE;
         runStart = t.contains("runStart") ? t.getInt("runStart") : -1;
         runFurthest = t.contains("runFurthest") ? t.getInt("runFurthest") : -1;
@@ -135,6 +140,8 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
                         (msg, ctx) -> ctx.enqueueWork(() -> { clientBattery = msg.battery(); clientBandage = msg.bandage(); clientCoins = msg.coins();
                             clientAdrenaline = msg.adrenaline(); clientCharm = msg.charm(); clientAdrenalineTicks = msg.adrenalineTicks(); clientAdrenalineCooldown = msg.adrenalineCooldown();
                             clientRadar = msg.radar(); clientScanner = msg.scanner(); clientCharmProtect = msg.charmProtect(); }))
+                .playToClient(RoomsRun.RoomPayload.TYPE, RoomsRun.RoomPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> com.example.roomsmod.client.RoomHudClient.set(msg.label(), msg.hard())))
                 .playToServer(Gadgets.UsePayload.TYPE, Gadgets.UsePayload.STREAM_CODEC,
                         (msg, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Gadgets.use(sp, msg.kind()); }))
                 .playToClient(Gadgets.RadarPayload.TYPE, Gadgets.RadarPayload.STREAM_CODEC,

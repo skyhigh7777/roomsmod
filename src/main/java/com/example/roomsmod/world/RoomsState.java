@@ -33,6 +33,8 @@ public class RoomsState extends SavedData {
     /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。 */
     /** ハードモード：全セクションのエンティティがどの部屋でも出る（サーバー共有・セーブに保存）。 */
     public boolean hardMode = false;
+    /** ロビーのパネル・売店の配置の版（LobbyPanels.LAYOUT_VERSION と違えば作り直す）。 */
+    public int panelsVersion = 0;
     /** 既定は V → B → U → S → A（各 Sections.SECTION_LENGTH 部屋、V はロビー 0 から）。 */
     public final List<SectionStart> sections = new ArrayList<>(com.example.roomsmod.world.section.Sections.fixedChain(com.example.roomsmod.world.section.Sections.firstId()));
 
@@ -177,6 +179,7 @@ public class RoomsState extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putBoolean("debug", RoomsDebug.isEnabled());
         tag.putBoolean("hardMode", hardMode);
+        tag.putInt("panelsVersion", panelsVersion);
         tag.putInt("currentRoom", currentRoom);
         tag.putInt("epoch", epoch);
         if (expectedExitDoor != null) tag.putLong("expectedExitDoor", expectedExitDoor.asLong());
@@ -259,6 +262,7 @@ public class RoomsState extends SavedData {
             s.roomPaths.add(path);
         }
         s.hardMode = tag.getBoolean("hardMode");
+        s.panelsVersion = tag.getInt("panelsVersion");
         for (Tag t : tag.getList("lockedSections", Tag.TAG_STRING)) s.lockedSections.add(t.getAsString());
         for (Tag t : tag.getList("unlockedSections", Tag.TAG_STRING)) s.unlockedSections.add(t.getAsString());
         if (tag.contains("abyss")) s.abyss = com.example.roomsmod.world.AbyssRooms.Shaft.load(tag.getCompound("abyss"));

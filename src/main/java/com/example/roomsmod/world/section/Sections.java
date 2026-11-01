@@ -377,6 +377,26 @@ public final class Sections {
         return room - Math.max(sectionStart(rs, room), 1) + 1;
     }
 
+    /** ORDER の通しの深さ（前のセクションの部屋数の合計 + local）。ORDER にないセクションは -1。 */
+    public static int absoluteDepth(String id, int local) {
+        int i = ORDER.indexOf(canonical(id));
+        if (i < 0) return -1;
+        int off = 0;
+        for (int k = 0; k < i; k++) off += length(ORDER.get(k));
+        return off + local;
+    }
+
+    /** 今のセクション表で、セクション id の local 番目の部屋の通し番号（表にないなら -1）。 */
+    public static int globalRoom(RoomsState rs, String id, int local) {
+        String c = canonical(id);
+        for (RoomsState.SectionStart s : rs.sections) {
+            if (!canonical(s.themeId()).equals(c)) continue;
+            int g = Math.max(s.startRoom(), 1) + local - 1;
+            if (canonical(forRoom(rs, g).id()).equals(c) && localRoom(rs, g) == local) return g;
+        }
+        return -1;
+    }
+
     /** 表示用の部屋番号（セクション接頭辞 + セクション内番号）。 */
     public static String formatRoom(RoomsState rs, int room) { return forRoom(rs, room).formatRoom(localRoom(rs, room)); }
 }

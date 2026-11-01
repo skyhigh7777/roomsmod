@@ -136,24 +136,9 @@ public class RoomsCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rooms")
             .then(AdminCommands.build())
-            .then(Commands.literal("enter")
-                .executes(ctx -> {
-                    ServerPlayer player = ctx.getSource().getPlayerOrException();
-                    if (sendToLobby(player)) {
-                        player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.ok("Roomsディメンションへ移動した"));
-                    } else {
-                        player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない"));
-                    }
-                    return 1;
-                }))
-            .then(Commands.literal("to")
-                .then(Commands.argument("room", IntegerArgumentType.integer(1, com.example.roomsmod.world.LobbyPanels.MAX_ROOM))
-                    .executes(ctx -> {
-                        return goToRoom(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
-                    })))
+            .then(Commands.literal("restart")
+                .executes(ctx -> com.example.roomsmod.economy.RoomsRun.restart(ctx.getSource().getPlayerOrException()) ? 1 : 0))
             .then(Commands.literal("hard")
-                .then(Commands.literal("on").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), true)))
-                .then(Commands.literal("off").requires(src -> src.hasPermission(2)).executes(ctx -> setHard(ctx.getSource(), false)))
                 .then(Commands.literal("status").executes(ctx -> {
                     ServerLevel lv = ctx.getSource().getServer().getLevel(ROOMS_DIMENSION);
                     if (lv == null) return 0;
@@ -162,8 +147,29 @@ public class RoomsCommands {
                     ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("HARD MODE: " + (on ? "ON" : "OFF")), false);
                     return on ? 1 : 0;
                 })))
+        );
+    }
+
+    private static int setHard(CommandSourceStack src, boolean on) {
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) return 0;
+        com.example.roomsmod.world.HardMode.set(lv, on, src.getTextName());
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("HARD MODE: " + (on ? "ON" : "OFF")), true);
+        return 1;
+    }
+
+    /** /rooms admin の下に入れる管理用のコマンド（以前は OP 用の /rooms to・hard on/off・debug・spawn・section）。AdminCommands.build から。 */
+    static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> adminSubtrees(com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> admin) {
+        return admin
+            .then(Commands.literal("to")
+                .then(Commands.argument("room", IntegerArgumentType.integer(1, com.example.roomsmod.world.LobbyPanels.MAX_ROOM))
+                    .executes(ctx -> {
+                        return goToRoom(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
+                    })))
+            .then(Commands.literal("hard")
+                .then(Commands.literal("on").executes(ctx -> setHard(ctx.getSource(), true)))
+                .then(Commands.literal("off").executes(ctx -> setHard(ctx.getSource(), false))))
             .then(Commands.literal("debug")
-                .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("on").executes(ctx -> setDebug(ctx.getSource(), true)))
                 .then(Commands.literal("off").executes(ctx -> setDebug(ctx.getSource(), false)))
                 .then(Commands.literal("section").executes(ctx -> {
@@ -181,7 +187,6 @@ public class RoomsCommands {
                     return 1;
                 })))
             .then(Commands.literal("spawn")
-                .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("b20").executes(ctx -> spawnRusher(ctx.getSource(), false)))
                 .then(Commands.literal("b40").executes(ctx -> spawnRusher(ctx.getSource(), true)))
                 .then(Commands.literal("v10").executes(ctx -> spawnV(ctx.getSource(), "v10")))
@@ -242,7 +247,6 @@ public class RoomsCommands {
                 .then(Commands.literal("b290").executes(ctx -> spawnV(ctx.getSource(), "b17")))
                 .then(Commands.literal("v50").executes(ctx -> spawnV(ctx.getSource(), "v50"))))
             .then(Commands.literal("section")
-                .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("reset").executes(ctx -> resetSections(ctx.getSource())))
                 .then(Commands.argument("id", com.mojang.brigadier.arguments.StringArgumentType.word())
                     .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(com.example.roomsmod.world.section.Sections.ids(), b))
@@ -250,21 +254,7 @@ public class RoomsCommands {
                     .then(Commands.literal("now")
                         .executes(ctx -> addSection(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "id"), null)))
                     .then(Commands.argument("startRoom", IntegerArgumentType.integer(1))
-                        .executes(ctx -> addSection(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "id"), IntegerArgumentType.getInteger(ctx, "startRoom"))))))
-            .then(Commands.literal("deepest")
-                .executes(ctx -> {
-                    ServerPlayer player = ctx.getSource().getPlayerOrException();
-                    player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.warn("最深部屋へのワープは未実装"));
-                    return 1;
-                }))
-        );
+                        .executes(ctx -> addSection(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "id"), IntegerArgumentType.getInteger(ctx, "startRoom"))))));
     }
 
-    private static int setHard(CommandSourceStack src, boolean on) {
-        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
-        if (lv == null) return 0;
-        com.example.roomsmod.world.HardMode.set(lv, on, src.getTextName());
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("HARD MODE: " + (on ? "ON" : "OFF")), true);
-        return 1;
-    }
 }

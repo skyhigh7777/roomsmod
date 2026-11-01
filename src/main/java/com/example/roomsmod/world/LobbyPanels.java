@@ -114,6 +114,34 @@ public final class LobbyPanels {
 
     // ===================== 生成 =====================
 
+    /** パネル・売店の配置の版。配置を変えたら上げる（既存ワールドのロビーも ensure で作り直される）。2 = 売店 6 品（2026-11-01）。 */
+    public static final int LAYOUT_VERSION = 2;
+
+    /**
+     * 既存ワールドのロビー（jar 更新前に作られたもの）でもパネル・売店を今の配置にする。ロビーにプレイヤーがいる時に呼ぶ（RoomsRun）。
+     * 版が違うか、売店のボタンが欠けていたら、売店の壁（x=0）の古いボタン・看板を壁に戻してから build し直す。何度呼んでも同じ。
+     */
+    public static void ensure(ServerLevel level) {
+        RoomsState rs = RoomsState.get(level);
+        var lobby = rs.boxes(0);
+        if (lobby.isEmpty() || lobby.get(0).minX() != ORIGIN.getX() || lobby.get(0).minY() != ORIGIN.getY() || lobby.get(0).minZ() != ORIGIN.getZ()) return; // 旧位置のロビー
+        boolean missing = false;
+        for (int z : new int[]{Z_SHOP_BATTERY, Z_SHOP_BANDAGE, Z_SHOP_ADRENALINE, Z_SHOP_CHARM, Z_SHOP_RADAR, Z_SHOP_SCANNER})
+            if (!(level.getBlockState(at(SX + 1, BY + 1, z)).getBlock() instanceof WallSignBlock)) { missing = true; break; }
+        if (rs.panelsVersion == LAYOUT_VERSION && !missing) return;
+        int depth = lobby.get(0).maxZ() - lobby.get(0).minZ() + 1, height = lobby.get(0).maxY() - lobby.get(0).minY();
+        var quartz = Blocks.QUARTZ_BLOCK.defaultBlockState();
+        var bricks = Blocks.QUARTZ_BRICKS.defaultBlockState();
+        var pillar = Blocks.QUARTZ_PILLAR.defaultBlockState();
+        // 売店の壁（x=0）を元の壁に、その手前（x=1）の看板を取る
+        for (int z = 1; z < depth - 1; z++) {
+            for (int y = 1; y < height; y++) place(level, at(SX, y, z), z % 6 == 1 ? pillar : y == height - 1 ? bricks : quartz);
+            for (int y = 1; y < height; y++) if (level.getBlockState(at(SX + 1, y, z)).getBlock() instanceof WallSignBlock) level.setBlock(at(SX + 1, y, z), Blocks.AIR.defaultBlockState(), 3);
+        }
+        build(level);
+        RoomsDebug.info("lobby panels rebuilt (layout {} -> {}, missing={})", rs.panelsVersion, LAYOUT_VERSION, missing);
+    }
+
     /** generateLobby から（壁を作ったあと）。 */
     static void build(ServerLevel level) {
         place(level, at(LX, BY, Z_SECTION), Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState());
@@ -141,6 +169,8 @@ public final class LobbyPanels {
         refreshSelection(level);
         refreshDeepest(level);
         refreshHard(level);
+        RoomsState.get(level).panelsVersion = LAYOUT_VERSION;
+        RoomsState.get(level).setDirty();
         RoomsDebug.log("lobby panels built selection={} deepest={}", label(), deepestLabel(RoomsState.get(level)));
     }
 

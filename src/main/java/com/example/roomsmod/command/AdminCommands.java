@@ -30,6 +30,9 @@ import java.util.UUID;
  *   <li>wallet &lt;player&gt; [set battery|bandage|coins &lt;n&gt;]：所持数を見る・変える。</li>
  *   <li>run reset [player]：周回の記録を消す（コインは出ない）。</li>
  *   <li>give flashlight | bandage [n] | battery [n] | adrenaline [n] | charm [n] | radar [n] | scanner [n] | coins &lt;n&gt;：自分に渡す（電池・包帯・コインは所持数へ、上限まで）。以前の OP 用 /rooms give から移動。</li>
+ *   <li>deepest：自分のいちばん深い部屋（Wallet.deepSection / deepLocal、ORDER の通しの深さで比べる、周回・死亡をまたいで残る）へ。
+ *       今の部屋の並びにその部屋が生成済みならそこの安全な床へワープ（進行はそのまま）、なければ tp と同じくそのセクションから作り直してワープ。</li>
+ *   <li>to &lt;n&gt; / hard on|off / debug ... / spawn ... / section ...：以前の OP 用コマンド（RoomsCommands.adminSubtrees）。</li>
  *   <li>tp &lt;section&gt; &lt;room&gt;：そのセクションのその部屋へ（ロビー作り直し＝GO と同じ。ロックを無視、自分の周回の記録は消す）。</li>
  * </ul>
  */
@@ -44,8 +47,9 @@ public final class AdminCommands {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
-        return Commands.literal("admin")
+        return RoomsCommands.adminSubtrees(Commands.literal("admin")
             .requires(AdminCommands::isOwner)
+            .then(Commands.literal("deepest").executes(ctx -> deepest(ctx.getSource())))
             .then(Commands.literal("section")
                 .executes(ctx -> listSections(ctx.getSource()))
                 .then(Commands.argument("id", StringArgumentType.word())
@@ -90,7 +94,7 @@ public final class AdminCommands {
                 .then(Commands.argument("section", StringArgumentType.word())
                     .suggests((c, b) -> SharedSuggestionProvider.suggest(Sections.ids(), b))
                     .then(Commands.argument("room", IntegerArgumentType.integer(1, 100000))
-                        .executes(ctx -> tp(ctx.getSource(), StringArgumentType.getString(ctx, "section"), IntegerArgumentType.getInteger(ctx, "room"))))));
+                        .executes(ctx -> tp(ctx.getSource(), StringArgumentType.getString(ctx, "section"), IntegerArgumentType.getInteger(ctx, "room")))))));
     }
 
     private static ServerLevel rooms(CommandSourceStack src) { return src.getServer().getLevel(RoomsCommands.ROOMS_DIMENSION); }
@@ -216,5 +220,27 @@ public final class AdminCommands {
         Wallet.sync(p);
         src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("shop.roomsmod." + what).append(" +" + add + " (" + label + ")")), false);
         return add;
+    }
+
+    private static int deepest(CommandSourceStack src) throws CommandSyntaxException {
+        ServerPlayer p = src.getPlayerOrException();
+        ServerLevel lv = rooms(src);
+        if (lv == null) return 0;
+        Wallet w = Wallet.of(p);
+        if (w.deepSection.isEmpty() || w.deepLocal < 1) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("記録がない（まだ部屋に入っていない）")); return 0; }
+        RoomsState rs = RoomsState.get(lv);
+        String label = Sections.byId(w.deepSection).formatRoom(w.deepLocal);
+        int g = Sections.globalRoom(rs, w.deepSection, w.deepLocal);
+        if (g >= 1 && g < rs.roomPaths.size()) {
+            net.minecraft.world.phys.Vec3 v = com.example.roomsmod.world.SafeSpot.find(lv, rs, g);
+            if (v != null) {
+                p.teleportTo(lv, v.x, v.y, v.z, p.getYRot(), p.getXRot());
+                RoomsDebug.info("admin: deepest {} -> {} (room {}, existing)", p.getGameProfile().getName(), label, g);
+                src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(label + " へワープした（生成済み）"), false);
+                return 1;
+            }
+        }
+        RoomsDebug.info("admin: deepest {} -> {} (rebuild)", p.getGameProfile().getName(), label);
+        return tp(src, w.deepSection, w.deepLocal);
     }
 }

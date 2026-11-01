@@ -60,7 +60,8 @@ public final class HardMode {
         RoomsDebug.log("hard mode {} -> {} by {}", was ? "on" : "off", on ? "on" : "off", by);
     }
 
-    /** 扉を開けて次の部屋ができたとき（ハードモードのみ）、部屋ディメンションの全員にアクションバーで表示。 */
+    /** 以前の扉ごとのアクションバー表示（今は左下の部屋番号 HUD＝RoomsRun.RoomPayload / client.RoomHudClient に置き換え、未使用）。 */
+    @Deprecated
     public static void announceRoom(ServerLevel level, RoomsState rs, int room) {
         Component c = Component.literal("§c☠ HARD MODE §f" + Sections.formatRoom(rs, room));
         for (ServerPlayer p : level.players()) p.displayClientMessage(c, true);

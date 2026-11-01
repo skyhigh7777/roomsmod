@@ -191,7 +191,6 @@ public class DoorEventHandler {
             "{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
         else RoomsDebug.log("{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
 
-        if (rs.hardMode) com.example.roomsmod.world.HardMode.announceRoom(level, rs, room);
         try {
             rollRushers(level, rs, player, room);
         } catch (RuntimeException e) {
@@ -205,7 +204,6 @@ public class DoorEventHandler {
      * 部屋の生成（RoomGenerator.generateNextRoom）は呼び出し側で済ませておく。
      */
     public static void onRoomAdvanced(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
-        if (rs.hardMode) com.example.roomsmod.world.HardMode.announceRoom(level, rs, room);
         try {
             rollRushers(level, rs, player, room);
         } catch (RuntimeException e) {

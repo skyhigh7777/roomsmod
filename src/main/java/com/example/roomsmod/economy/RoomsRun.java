@@ -36,6 +36,34 @@ public final class RoomsRun {
     private RoomsRun() {}
 
     public static final int HOTBAR_SLOT = 8;
+
+    /** サーバー → クライアント：左下の部屋番号 HUD（label 空 = 表示しない）。 */
+    public record RoomPayload(String label, boolean hard) implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+        public static final Type<RoomPayload> TYPE = new Type<>(net.minecraft.resources.ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "room_hud"));
+        public static final net.minecraft.network.codec.StreamCodec<io.netty.buffer.ByteBuf, RoomPayload> STREAM_CODEC = net.minecraft.network.codec.StreamCodec.composite(
+                net.minecraft.network.codec.ByteBufCodecs.STRING_UTF8, RoomPayload::label, net.minecraft.network.codec.ByteBufCodecs.BOOL, RoomPayload::hard, RoomPayload::new);
+        @Override public Type<? extends net.minecraft.network.protocol.common.custom.CustomPacketPayload> type() { return TYPE; }
+    }
+    private static final java.util.Map<java.util.UUID, String> HUD_SENT = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** 今いる部屋の表示（部屋の間の通路などで部屋が取れない時は前の表示のまま）。変わった時だけ送る。 */
+    static void sendRoomHud(ServerPlayer p, RoomsState rs, int idx) {
+        String prev = HUD_SENT.get(p.getUUID());
+        String label;
+        if (!inRooms(p)) label = "";
+        else if (idx == 0) label = "LOBBY";
+        else if (idx > 0) label = Sections.formatRoom(rs, idx);
+        else { if (prev != null) return; label = ""; }
+        String key = label + "|" + (rs != null && rs.hardMode);
+        if (key.equals(prev)) return;
+        HUD_SENT.put(p.getUUID(), key);
+        net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(p, new RoomPayload(label, rs != null && rs.hardMode));
+    }
+
+    @SubscribeEvent
+    public static void onLogout(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent e) { HUD_SENT.remove(e.getEntity().getUUID()); }
+    @SubscribeEvent
+    public static void onDim(net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerChangedDimensionEvent e) { HUD_SENT.remove(e.getEntity().getUUID()); }
     public static final double ENEMY_RADIUS = 48;
 
     static boolean inRooms(ServerPlayer p) { return p.level().dimension().equals(RoomsCommands.ROOMS_DIMENSION); }
@@ -44,8 +72,12 @@ public final class RoomsRun {
     public static void onTick(PlayerTickEvent.Post e) {
         if (!(e.getEntity() instanceof ServerPlayer p) || p.tickCount % 5 != 0) return;
         enforceItem(p);
-        if (!inRooms(p) || !p.isAlive() || p.isSpectator()) return;
+        if (!inRooms(p)) { if (HUD_SENT.containsKey(p.getUUID()) && !"|false".equals(HUD_SENT.get(p.getUUID()))) sendRoomHud(p, null, -1); return; }
         RoomsState rs = RoomsState.get(p.serverLevel());
+        int hudIdx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        sendRoomHud(p, rs, hudIdx);
+        if (hudIdx == 0 && p.tickCount % 40 == 0) com.example.roomsmod.world.LobbyPanels.ensure(p.serverLevel()); // 既存ワールドのロビーも今のパネル・売店に
+        if (!p.isAlive() || p.isSpectator()) return;
         Wallet w = Wallet.of(p);
         if (w.runEpoch != rs.epoch) {
             if (w.runEpoch != Integer.MIN_VALUE && w.runStart >= 0 && w.runFurthest > w.runStart)
@@ -56,6 +88,12 @@ public final class RoomsRun {
         if (idx < 1) return;
         if (w.runStart < 0) w.runStart = idx == 1 ? 0 : idx; // 部屋1＝ロビーの扉から。それ以外（/rooms to・GO）はワープ先から
         if (idx > w.runFurthest) w.runFurthest = idx;
+        // いちばん深い部屋の記録（/rooms admin deepest）
+        String sec = Sections.canonical(Sections.forRoom(rs, idx).id());
+        int local = Sections.localRoom(rs, idx), depth = Sections.absoluteDepth(sec, local);
+        if (depth > 0 && depth > (w.deepSection.isEmpty() ? 0 : Sections.absoluteDepth(w.deepSection, w.deepLocal))) {
+            w.deepSection = sec; w.deepLocal = local;
+        }
     }
 
     @SubscribeEvent
@@ -99,6 +137,39 @@ public final class RoomsRun {
                 why, p.getGameProfile().getName(), w.runStart, w.runFurthest, r.rooms(), String.format("%.2f", r.base()), String.format("%.2f", r.multiplier()), String.format("%.2f", r.leftover()), bat, band,
                 w.runHit, rs.hardMode, r.coins(), w.coins);
         return r;
+    }
+
+    // ===================== やり直し（/rooms restart） =====================
+
+    /** /rooms restart を使える範囲：周回の開始部屋からこの部屋数先まで（いちばん先に進んだ部屋で判定）。 */
+    public static final int RESTART_MAX_ROOMS = 5;
+
+    /**
+     * /rooms restart（誰でも）。部屋ディメンションの外からはロビーへ送るだけ（以前の /rooms enter と同じ）。
+     * 周回中は開始から RESTART_MAX_ROOMS 部屋以内なら、コインなし・換金なし（所持数はそのまま）で周回を終えてロビーへ（ロビーを作り直す）。
+     */
+    public static boolean restart(ServerPlayer p) {
+        if (!inRooms(p)) {
+            boolean ok = RoomsCommands.sendToLobby(p);
+            p.sendSystemMessage(ok ? com.example.roomsmod.util.RoomsMsg.ok("ロビーへ移動した") : com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない"));
+            return ok;
+        }
+        if (com.example.roomsmod.world.RoomsTravel.busy()) { p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.err("部屋を生成中。完了まで待機")); return false; }
+        RoomsState rs = RoomsState.get(p.serverLevel());
+        Wallet w = Wallet.of(p);
+        int idx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        if (w.runEpoch == rs.epoch && w.runStart >= 0) {
+            int traveled = Math.max(w.runFurthest, idx) - w.runStart;
+            if (traveled > RESTART_MAX_ROOMS) {
+                p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.err("やり直しは開始から " + RESTART_MAX_ROOMS + " 部屋以内のみ（現在 " + traveled + " 部屋）"));
+                return false;
+            }
+        }
+        RoomsDebug.log("run restart player={} start={} furthest={} room={} (no coins)", p.getGameProfile().getName(), w.runStart, w.runFurthest, idx);
+        w.resetRun(Integer.MIN_VALUE); // 精算しない
+        boolean ok = RoomsCommands.sendToLobby(p);
+        if (ok) p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.ok("周回をやり直した（コインなし）"));
+        return ok;
     }
 
     // ===================== 帰還 =====================
