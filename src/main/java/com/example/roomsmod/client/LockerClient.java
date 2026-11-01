@@ -18,7 +18,7 @@ import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
 import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
 /**
- * ロッカー内のクライアント処理：移動入力を止め（スニークは退出用に残す）、スリット付きの暗いビネットを描く。
+ * ロッカー内のクライアント処理：移動入力を止め（スニークは退出用に残す）、暗いビネットを描く（外は扉の本物のスリットから見える）。
  * 「中にいるか」はサーバー同期せず、足元がロッカー下段かどうかで判定する（中へは壁で入れないため）。
  */
 @EventBusSubscriber(modid = RoomsMod.MOD_ID, value = Dist.CLIENT)
@@ -88,34 +88,22 @@ public final class LockerClient {
         g.fill(w - w / 12, top, w, bottom, 0x70000000);
     }
 
+    /**
+     * ロッカーの中：外はロッカーの扉の本物の隙間（locker_upper モデルの3本のスリット）から見える。
+     * ここでは全体を少し暗くして、画面の縁へ向かって濃くなるビネットだけ描く（以前は画面のほぼ全部を塗っていて外が見えなかった）。
+     */
     private static void renderOverlay(GuiGraphics g, DeltaTracker delta) {
         if (!isLocalPlayerInLocker() || Minecraft.getInstance().options.hideGui) return;
         int w = g.guiWidth(), h = g.guiHeight();
-        final int dark = 0xF0050505;
-        // スリット：画面中央付近に横長の隙間を3本
-        int slitW = (int) (w * 0.42), slitH = Math.max(3, h / 40), gap = Math.max(4, h / 22);
-        int sx = (w - slitW) / 2;
-        int total = 3 * slitH + 2 * gap;
-        int sy = (int) (h * 0.42) - total / 2;
-        // スリット以外を塗る
-        g.fill(0, 0, w, sy, dark);
-        for (int i = 0; i < 3; i++) {
-            int top = sy + i * (slitH + gap);
-            g.fill(0, top, sx, top + slitH, dark);
-            g.fill(sx + slitW, top, w, top + slitH, dark);
-            // スリット縁のやや暗いぼかし
-            g.fill(sx, top, sx + slitW, top + 1, 0x80000000);
-            g.fill(sx, top + slitH - 1, sx + slitW, top + slitH, 0x80000000);
-            if (i < 2) g.fill(0, top + slitH, w, top + slitH + gap, dark);
-        }
-        g.fill(0, sy + total, w, h, dark);
-        // スリット両端を暗く（ビネット）
-        int fade = slitW / 4;
-        for (int i = 0; i < 8; i++) {
-            int a = 0x18 * (8 - i);
-            int x0 = sx + i * fade / 8, x1 = sx + slitW - (i + 1) * fade / 8;
-            g.fill(x0, sy, x0 + fade / 8, sy + total, (a << 24));
-            g.fill(x1, sy, x1 + fade / 8, sy + total, (a << 24));
+        g.fill(0, 0, w, h, 0x30000000);
+        int steps = 12, bw = Math.max(2, w / 48), bh = Math.max(2, h / 32);
+        for (int i = 0; i < steps; i++) {
+            int a = (0x16 * (steps - i)) / 2;
+            int c = Math.min(0xFF, a) << 24;
+            g.fill(i * bw, i * bh, w - i * bw, i * bh + bh, c);            // 上
+            g.fill(i * bw, h - i * bh - bh, w - i * bw, h - i * bh, c);    // 下
+            g.fill(i * bw, i * bh + bh, i * bw + bw, h - i * bh - bh, c);  // 左
+            g.fill(w - i * bw - bw, i * bh + bh, w - i * bw, h - i * bh - bh, c); // 右
         }
     }
 }
