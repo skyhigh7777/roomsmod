@@ -35,27 +35,62 @@ public class RoomsState extends SavedData {
     public boolean hardMode = false;
     /** ロビーのパネル・売店の配置の版（LobbyPanels.LAYOUT_VERSION と違えば作り直す）。 */
     public int panelsVersion = 0;
-    /** 既定は V → B → U → S → A（各 Sections.SECTION_LENGTH 部屋、V はロビー 0 から）。 */
+    /** 既定は V → B → U → S → A（各セクションの長さ、V はロビー 0 から）。H は既定でロックなので入らない（解放すると S → H → A）。 */
     public final List<SectionStart> sections = new ArrayList<>(com.example.roomsmod.world.section.Sections.fixedChain(com.example.roomsmod.world.section.Sections.firstId()));
 
     public record SectionStart(String themeId, int startRoom) {}
 
-    /** セクションの利用可否の上書き（オーナー専用 /rooms admin section）。既定は Sections.TEST_ONLY（PLACEHOLDER）だけロック。 */
+    /** セクションの利用可否の上書き（オーナー専用 /rooms admin section）。既定は Sections.LOCKED_BY_DEFAULT（PLACEHOLDER と H）だけロック。 */
     public final java.util.Set<String> lockedSections = new java.util.TreeSet<>(), unlockedSections = new java.util.TreeSet<>();
 
     public boolean isSectionLocked(String id) {
         String c = com.example.roomsmod.world.section.Sections.canonical(id);
         if (lockedSections.contains(c)) return true;
-        return com.example.roomsmod.world.section.Sections.TEST_ONLY.contains(c) && !unlockedSections.contains(c);
+        return com.example.roomsmod.world.section.Sections.LOCKED_BY_DEFAULT.contains(c) && !unlockedSections.contains(c);
+    }
+
+    /** 進行表で飛ばすセクション：既定でロックのセクション（H）がロック中の時だけ。ほかのセクションは手でロックしても進行表に残る（選べなくなるだけ）。 */
+    public boolean outOfProgression(String id) {
+        return com.example.roomsmod.world.section.Sections.isLockedByDefault(id) && isSectionLocked(id);
     }
 
     public void setSectionLocked(String id, boolean locked) {
         String c = com.example.roomsmod.world.section.Sections.canonical(id);
         lockedSections.remove(c); unlockedSections.remove(c);
-        boolean def = com.example.roomsmod.world.section.Sections.TEST_ONLY.contains(c);
+        boolean def = com.example.roomsmod.world.section.Sections.LOCKED_BY_DEFAULT.contains(c);
         if (locked && !def) lockedSections.add(c);
         if (!locked && def) unlockedSections.add(c);
         setDirty();
+        if (def && com.example.roomsmod.world.section.Sections.ORDER.contains(c)) relinkProgression((locked ? "lock " : "unlock ") + c);
+    }
+
+    /**
+     * 今のセクションより後ろの進行表を、今のロックに合わせてつなぎ直す（H を解放したら S → H → A、ロックしたら S → A）。
+     * 生成済みの部屋（と currentRoom）の番号・セクションが変わる時は何もしない（例：もう A に入っている周回で H を解放）。
+     */
+    public boolean relinkProgression(String why) {
+        if (sections.isEmpty()) return false;
+        int last = Math.max(generatedRooms.size() - 1, currentRoom);
+        SectionStart cur = sections.get(0);
+        for (SectionStart s : sections) if (s.startRoom() <= last) cur = s;
+        if (!com.example.roomsmod.world.section.Sections.ORDER.contains(com.example.roomsmod.world.section.Sections.canonical(cur.themeId()))) return false;
+        List<SectionStart> now = new ArrayList<>();
+        for (SectionStart s : sections) if (s.startRoom() < cur.startRoom()) now.add(s);
+        now.addAll(com.example.roomsmod.world.section.Sections.chainFrom(cur.themeId(), cur.startRoom(), this::outOfProgression));
+        if (now.equals(sections)) return false;
+        List<SectionStart> was = new ArrayList<>(sections);
+        List<String> before = new ArrayList<>();
+        for (int i = 0; i <= last; i++) before.add(com.example.roomsmod.world.section.Sections.formatRoom(this, i));
+        sections.clear(); sections.addAll(now);
+        for (int i = 0; i <= last; i++)
+            if (!before.get(i).equals(com.example.roomsmod.world.section.Sections.formatRoom(this, i))) {
+                RoomsDebug.info("section table kept ({}): room {} would change {} -> {}", why, i, before.get(i), com.example.roomsmod.world.section.Sections.formatRoom(this, i));
+                sections.clear(); sections.addAll(was);
+                return false;
+            }
+        setDirty();
+        RoomsDebug.info("section table relinked ({}): {} -> {}", why, was, sections);
+        return true;
     }
 
     /** セクション表の形式。2 = 進行順 V → B → U → S → A（S は旧 GK、A は Abyss）。 */
@@ -82,7 +117,7 @@ public class RoomsState extends SavedData {
     /** セクション表を first から始まる固定長の進行（Sections.fixedChain）にする。 */
     public void setChain(String firstId) {
         sections.clear();
-        sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(firstId));
+        sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(firstId, this::outOfProgression));
         setDirty();
         RoomsDebug.log("section table set to fixed chain from {}: {}", firstId, sections);
     }
@@ -90,7 +125,7 @@ public class RoomsState extends SavedData {
     /** 部屋 start 以降を id から始まる固定長の進行に置き換える（それより前はそのまま）。/rooms section 用。 */
     public void chainFrom(String id, int start) {
         sections.removeIf(s -> s.startRoom() >= start);
-        sections.addAll(com.example.roomsmod.world.section.Sections.chainFrom(id, start));
+        sections.addAll(com.example.roomsmod.world.section.Sections.chainFrom(id, start, this::outOfProgression));
         sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
         setDirty();
         RoomsDebug.log("section table chained from {} at {}: {}", id, start, sections);
@@ -283,7 +318,7 @@ public class RoomsState extends SavedData {
                 for (SectionStart sec : s.sections) if (sec.startRoom() <= 1) first = sec.themeId();
                 List<SectionStart> old = new ArrayList<>(s.sections);
                 s.sections.clear();
-                s.sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(first));
+                s.sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(first, s::outOfProgression));
                 RoomsDebug.log("state migrated section table {} -> {}", old, s.sections);
             }
         }

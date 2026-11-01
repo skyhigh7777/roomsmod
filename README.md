@@ -45,6 +45,7 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 - どのセクションも **500 部屋** です。順番は **V → B → U → S → A** で、ロビーの扉の先が `V-001`、500 部屋ごとに自動で次のセクションへ切り替わります（例：`V-500` の次は `B-001`）。
 - A の 500 部屋目より先は、A がそのまま続きます（`A-501`…）。
+- 病棟のセクション **H**（`H-001`〜`H-500`）もあります。既定ではロックされていて、ロック中は上の順番に入りません（S の次は A）。`/rooms admin section h unlock` で解放すると **S → H → A** の順になり、ロビーのパネルでも選べます。
 - テスト用のセクション **PLACEHOLDER**（`PLACEHOLDER-001`〜）もあります。上の順番には入らず、ロビーのパネルにも出ません。`/rooms admin section placeholder unlock` で解放したあと `/rooms admin tp placeholder 1` などでだけ始まり、始めるとずっと続きます。エンティティは自然には出ません。
 - 途中のセクションから始めるときは、ロビーの **スタート選択パネル**、または `/rooms admin section`（オーナーのみ）を使います。
 - 奥へ進むほど部屋は少しずつ暗くなります。
@@ -152,7 +153,7 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms admin debug on` / `off` / `status` / `section` | オーナーのみ | デバッグモードの切り替え・確認、現在のセクション表 |
 | `/rooms admin spawn <id>` | オーナーのみ | エンティティを強制出現（同じ排他グループが生存中なら出現しません） |
 | `/rooms admin section <id>` / `<id> now` / `<id> <部屋番号>` / `reset` | オーナーのみ | セクション表の変更（ロック中のセクションは不可） |
-| `/rooms admin section [<id> lock\|unlock]` | オーナーのみ | セクションの利用可否（既定は PLACEHOLDER だけロック） |
+| `/rooms admin section [<id> lock\|unlock]` | オーナーのみ | セクションの利用可否（既定は PLACEHOLDER と H がロック） |
 | `/rooms admin give flashlight` / `battery [n]` / `bandage [n]` / `adrenaline [n]` / `charm [n]` / `radar [n]` / `scanner [n]` / `coins <n>` | オーナーのみ | 自分に渡す（所持数へ） |
 | `/rooms admin wallet <player> [set <種類> <n>]` | オーナーのみ | 所持数を見る・変える |
 | `/rooms admin run reset [player]` | オーナーのみ | 周回の記録を消す（コインなし） |

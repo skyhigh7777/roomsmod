@@ -26,7 +26,7 @@ import java.util.UUID;
  * オーナー専用の管理コマンド /rooms admin ...（OP 権限・サーバーコンソール・コマンドブロック・/execute as では使えない）。
  * 実行者が本人のプレイヤー（CommandSourceStack.source がそのプレイヤーで、実体も同じ）で、UUID が {@link #OWNER} の時だけ。
  * <ul>
- *   <li>section [id lock|unlock]：セクションの利用可否（既定は PLACEHOLDER だけロック）。ロック中はロビーのパネル・/rooms section で選べない。</li>
+ *   <li>section [id lock|unlock]：セクションの利用可否（既定は PLACEHOLDER と H がロック）。ロック中はロビーのパネル・/rooms section で選べない。H はロック中は進行表にも入らない（解放で S → H → A）。</li>
  *   <li>wallet &lt;player&gt; [set battery|bandage|coins &lt;n&gt;]：所持数を見る・変える。</li>
  *   <li>run reset [player]：周回の記録を消す（コインは出ない）。</li>
  *   <li>give flashlight | bandage [n] | battery [n] | adrenaline [n] | charm [n] | radar [n] | scanner [n] | coins &lt;n&gt;：自分に渡す（電池・包帯・コインは所持数へ、上限まで）。以前の OP 用 /rooms give から移動。</li>

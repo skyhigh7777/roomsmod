@@ -182,6 +182,46 @@ public final class Sections {
             0, 0));
 
     /**
+     * H（Hospital、病棟）区画。白いタイルの病室にベッドの列、ベッドの間はカーテンで仕切る（world/HospitalRooms.java）。進行上は S の後、A の前。
+     * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（S の次は A のまま）。/rooms admin section h unlock で解放すると進行表に入る。
+     * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
+     * 床の包帯がほかより多い（RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE）。
+     * 敵は B / S / U の敵をこの区画の番号で並べ直したもの（確率はやや高め、1回の抽選の上限は GK_MAX_PER_ROLL のまま）。
+     */
+    public static final SectionTheme H = register(new SectionTheme(
+            "h", "H",
+            new SectionTheme.Palette(
+                    Blocks.WHITE_CONCRETE::defaultBlockState, Blocks.QUARTZ_BRICKS::defaultBlockState, Blocks.SMOOTH_QUARTZ::defaultBlockState,
+                    () -> Blocks.WARPED_DOOR,
+                    () -> Blocks.END_ROD.defaultBlockState().setValue(net.minecraft.world.level.block.EndRodBlock.FACING, net.minecraft.core.Direction.DOWN)),
+            new int[]{1, 1, 1, 1, 1},
+            B.furniture(), B.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.55f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.45f)),
+            2, 2,
+            List.of(
+                    // H: H-10〜H-420 にかけて易しい順に解禁。全部解禁時 P(1体以上)≈0.77（B 0.66 / S 0.61 / U 0.54）
+                    reuse(U, "U-20", 10, 0.18f),
+                    reuse(B, "B-15", 20, 0.08f),
+                    reuse(GK, "S-45", 35, 0.08f),
+                    reuse(B, "B-30", 50, 0.08f),
+                    reuse(B, "B-20", 60, 0.12f),
+                    reuse(U, "U-60", 80, 0.10f),
+                    reuse(B, "B-70", 100, 0.08f),
+                    reuse(GK, "S-205", 120, 0.07f),
+                    reuse(U, "U-120", 150, 0.08f),
+                    reuse(B, "B-40", 170, 0.09f),
+                    reuse(GK, "S-225", 200, 0.07f),
+                    reuse(B, "B-155", 230, 0.07f),
+                    reuse(U, "U-200", 260, 0.07f),
+                    reuse(B, "B-260", 300, 0.06f),
+                    reuse(GK, "S-245", 340, 0.06f),
+                    reuse(U, "U-300", 380, 0.07f),
+                    reuse(GK, "S-270", 420, 0.05f)),
+            new SectionTheme.SignStyle(() -> Blocks.BIRCH_WALL_SIGN, DyeColor.RED, false),
+            1, 8));
+
+    /**
      * PLACEHOLDER（テスト用）。壁も天井もない 11x11 の床に、テーブルとロッカーだけ（world/PlaceholderRooms.java）。
      * 固定長の進行（ORDER）には入らず、ロビーのパネルにも出ない。/rooms section placeholder でだけ始まり、以後ずっと続く。
      * エンティティは自然出現しない（rushers は空）。/rooms spawn placeholder32767 などで出す。
@@ -202,6 +242,14 @@ public final class Sections {
 
     /** テスト用のセクション（ロビーのパネルに出さない、進行に入れない）。 */
     public static final java.util.Set<String> TEST_ONLY = java.util.Set.of("placeholder");
+
+    /**
+     * 既定でロックするセクション（RoomsState.isSectionLocked）。テスト用（PLACEHOLDER）と未公開の H。
+     * ORDER にあるものはロック中は進行表に入らない（RoomsState.outOfProgression）。ほかのセクションは手でロックしても進行表はそのまま。
+     */
+    public static final java.util.Set<String> LOCKED_BY_DEFAULT = java.util.Set.of("placeholder", "h");
+
+    public static boolean isLockedByDefault(String id) { return LOCKED_BY_DEFAULT.contains(canonical(id)); }
 
     /** ロビーのスタート選択パネルで巡回するセクション（ORDER の順、その後に ORDER にない登録済みのもの。テスト用を除く）。 */
     public static List<String> lobbyIds() {
@@ -234,54 +282,68 @@ public final class Sections {
 
     /** セクション id の部屋数（セクション内の最後の番号）。 */
     public static int length(String id) { return LENGTHS.getOrDefault(canonical(id), SECTION_LENGTH); }
-    /** 進行順。最初のセクション（V）はロビー（部屋 0）から始まる。最後のセクションの後は、そのセクションがそのまま続く。 */
-    public static final List<String> ORDER = List.of("v", "b", "u", "s", "a");
+    /**
+     * 進行順。最初のセクション（V）はロビー（部屋 0）から始まる。最後のセクションの後は、そのセクションがそのまま続く。
+     * H は既定でロック（ロック中は進行表で飛ばす＝V → B → U → S → A）。
+     */
+    public static final List<String> ORDER = List.of("v", "b", "u", "s", "h", "a");
+    /** H を足す前の進行順（旧仕様の 500 長の表の判定用）。 */
+    private static final List<String> LEGACY_ORDER = List.of("v", "b", "u", "s", "a");
 
     /**
      * first から始まるセクション表：first は通し番号 1（ORDER の最初のセクションはロビーが 0 なので 0）から、以降 ORDER の順に
-     * SECTION_LENGTH 部屋ごとに次のセクションへ切り替わる（V → B → U → S → A）。
+     * 各セクションの長さごとに次のセクションへ切り替わる（V → B → U → S → [H] → A）。skip に当たるセクション（first 以外）は飛ばす。
      * 最後のセクション（A）の 500 部屋目より先は、そのまま続く（A-501, A-502 …）。
      */
-    public static List<RoomsState.SectionStart> fixedChain(String firstId) {
-        return chainFrom(firstId, firstId().equals(canonical(firstId)) ? 0 : 1);
+    public static List<RoomsState.SectionStart> fixedChain(String firstId, java.util.function.Predicate<String> skip) {
+        return chainFrom(firstId, firstId().equals(canonical(firstId)) ? 0 : 1, skip);
     }
 
-    /** start から id、以降 SECTION_LENGTH ごとに ORDER の次のセクション。ORDER にない id はそれ1つだけ。 */
-    public static List<RoomsState.SectionStart> chainFrom(String id, int start) {
+    /** 既定のロック（LOCKED_BY_DEFAULT）で飛ばす版。 */
+    public static List<RoomsState.SectionStart> fixedChain(String firstId) { return fixedChain(firstId, Sections::isLockedByDefault); }
+
+    /** start から id、以降そのセクションの長さごとに ORDER の次のセクション（skip に当たるものは飛ばす）。ORDER にない id はそれ1つだけ。 */
+    public static List<RoomsState.SectionStart> chainFrom(String id, int start, java.util.function.Predicate<String> skip) {
         String c = canonical(id);
         List<RoomsState.SectionStart> out = new java.util.ArrayList<>();
         out.add(new RoomsState.SectionStart(c, start));
         int i = ORDER.indexOf(c);
         if (i < 0) return out;
         int pos = Math.max(start, 1) + length(c); // 番号付きの最初の部屋（ロビー 0 から始まるセクションは 1）＋ 部屋数
-        for (int k = i + 1; k < ORDER.size(); k++) { out.add(new RoomsState.SectionStart(ORDER.get(k), pos)); pos += length(ORDER.get(k)); }
+        for (int k = i + 1; k < ORDER.size(); k++) {
+            String n = ORDER.get(k);
+            if (skip != null && skip.test(n)) continue;
+            out.add(new RoomsState.SectionStart(n, pos));
+            pos += length(n);
+        }
         return out;
     }
 
-    /** id から旧仕様（全セクション SECTION_LENGTH）でつないだ進行。 */
+    /** id から旧仕様（全セクション SECTION_LENGTH、H なし）でつないだ進行。 */
     private static List<RoomsState.SectionStart> legacyChain(String id, int start) {
         String c = canonical(id);
         List<RoomsState.SectionStart> out = new java.util.ArrayList<>();
         out.add(new RoomsState.SectionStart(c, start));
-        int i = ORDER.indexOf(c);
+        int i = LEGACY_ORDER.indexOf(c);
         if (i < 0) return out;
         int first = Math.max(start, 1);
-        for (int k = i + 1; k < ORDER.size(); k++) out.add(new RoomsState.SectionStart(ORDER.get(k), first + SECTION_LENGTH * (k - i)));
+        for (int k = i + 1; k < LEGACY_ORDER.size(); k++) out.add(new RoomsState.SectionStart(LEGACY_ORDER.get(k), first + SECTION_LENGTH * (k - i)));
         return out;
     }
 
     /**
      * 旧仕様の進行表を今の長さにしたもの（後ろの部分が旧仕様のつなぎ方なら、そこを今の長さでつなぎ直す）。旧仕様でなければ null。
      * 例：[v0, b501, u1001, …] → [v0, b501, u801, …]、/rooms section b 1 の [v0, b1, u501, …] → [v0, b1, u301, …]。
+     * 長さだけ直す（旧仕様の表にないセクション＝H は足さない。H を入れるのは RoomsState.relinkProgression）。
      */
     public static List<RoomsState.SectionStart> migratedChain(List<RoomsState.SectionStart> table) {
         for (int k = 0; k < table.size(); k++) {
             RoomsState.SectionStart f = table.get(k);
-            if (ORDER.indexOf(canonical(f.themeId())) < 0) continue;
+            if (LEGACY_ORDER.indexOf(canonical(f.themeId())) < 0) continue;
             List<RoomsState.SectionStart> legacy = legacyChain(f.themeId(), f.startRoom());
             if (legacy.size() < 2 || !legacy.equals(table.subList(k, table.size()))) continue;
             List<RoomsState.SectionStart> now = new java.util.ArrayList<>(table.subList(0, k));
-            now.addAll(chainFrom(f.themeId(), f.startRoom()));
+            now.addAll(chainFrom(f.themeId(), f.startRoom(), n -> !LEGACY_ORDER.contains(n)));
             return now.equals(table) ? null : now;
         }
         return null;
@@ -307,6 +369,13 @@ public final class Sections {
     /** B-110 が生存中（B-20 / B-40 と同時に出さない）。 */
     private static boolean errorAlive(net.minecraft.server.level.ServerLevel l) {
         return com.example.roomsmod.entity.v.VSpawns.isAlive(l, com.example.roomsmod.RoomsMod.B_ERROR.get());
+    }
+
+    /** 別のセクションの敵（名前で探す）を、この区画の出現開始・確率で使う。生存確認・出現処理・排他グループは元のまま。 */
+    private static SectionTheme.RusherSpawn reuse(SectionTheme from, String name, int minRoom, float chance) {
+        for (SectionTheme.RusherSpawn r : from.rushers())
+            if (r.name().equals(name)) return new SectionTheme.RusherSpawn(r.name(), minRoom, chance, r.alive(), r.spawn(), r.exclusionGroup());
+        throw new IllegalStateException("unknown spawn " + name + " in section " + from.id());
     }
 
     private static SectionTheme.RusherSpawn vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind k, int minRoom, float chance) {

@@ -213,11 +213,18 @@ public class RoomGenerator {
     }
 
     public static final double BANDAGE_ROOM_CHANCE = 0.12;
+    /** H（病棟）の部屋で包帯が落ちている割合（ほかは BANDAGE_ROOM_CHANCE）。 */
+    public static final double HOSPITAL_BANDAGE_ROOM_CHANCE = 0.30;
 
-    /** BANDAGE_ROOM_CHANCE で、部屋の安全な床の上に包帯を1個（電池とは別の抽選）。ロビーには置かない。 */
+    /** 部屋 room で包帯が落ちている割合。 */
+    public static double bandageChance(RoomsState rs, int room) {
+        return com.example.roomsmod.world.section.Sections.forRoom(rs, room) == com.example.roomsmod.world.section.Sections.H ? HOSPITAL_BANDAGE_ROOM_CHANCE : BANDAGE_ROOM_CHANCE;
+    }
+
+    /** bandageChance で、部屋の安全な床の上に包帯を1個（電池とは別の抽選）。ロビーには置かない。 */
     static void placeBandage(ServerLevel level, int room) {
-        if (room <= 0 || level.random.nextDouble() >= BANDAGE_ROOM_CHANCE) return;
         RoomsState rs = RoomsState.get(level);
+        if (room <= 0 || level.random.nextDouble() >= bandageChance(rs, room)) return;
         net.minecraft.world.phys.Vec3 at = SafeSpot.findRandom(level, rs, room, level.random);
         if (at == null) return;
         var it = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y + 0.05, at.z, new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BANDAGE.get()), 0, 0, 0);
@@ -237,6 +244,7 @@ public class RoomGenerator {
         if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.GK) return GKRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.U) return CorridorRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.H) return HospitalRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.A) return AbyssRooms.generate(level, origin, roomNumber, state, prevTheme != theme);
         if (theme == com.example.roomsmod.world.section.Sections.PLACEHOLDER) return PlaceholderRooms.generate(level, origin, roomNumber, rand, state);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);

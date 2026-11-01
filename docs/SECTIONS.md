@@ -190,3 +190,25 @@ Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`en
 (no AI, no damage, no sound) and despawn after the usual 2-minute cap. `PLACEHOLDER-32767` has its own behaviour
 (`Placeholder32767Entity`, see the class javadoc; state is saved in NBT, positions snap without client interpolation). Graphics: single-colour squares (red / green / blue).
 
+
+## H (Hospital ward)
+`Sections.H` (id `h`, rooms `H-001` … `H-500`), generator `world/HospitalRooms.java`. Position in `ORDER`: after S, before A.
+- **Locked by default** (`Sections.LOCKED_BY_DEFAULT` = `placeholder`, `h`). While it is locked, H is also left out of the
+  progression (`RoomsState.outOfProgression`), so the default table stays `V → B → U → S → A` (`[v0, b501, u801, s1301, a1801]`).
+  `/rooms admin section h unlock` relinks the part of the table after the current section (`RoomsState.relinkProgression`)
+  to `… S → H → A` (`h1801`, `a2301`); locking it again removes it. Rooms that are already generated never change their numbers
+  (the relink is skipped and logged if they would). Other sections keep the old behaviour: locking them only hides them from the panel / `section`.
+- Old 500-length tables are migrated with the pre-H order (`LEGACY_ORDER`), so the length migration never inserts H.
+- Rooms: straight wards (entrance and exit on x=10, exit on the max-Z wall). Inner width 13 (x=4..16), height 4.
+  White tile floor (white concrete / smooth quartz checker, some dull tiles), tiled walls (quartz bricks up to y=2, light blue terracotta stripe, white above).
+  Bays of 4 blocks along both walls: a curtain partition (wool, 3 long, 3 high, with tears and cobwebs) and a chain curtain rail,
+  bedside cabinet (sometimes an unlit candle), white / light gray bed with the head at the wall, IV stand (iron bars + chain).
+  Some bays have the aisle-side curtain drawn, some beds are removed. Lights are end rods over the aisle (x=8..12), with the usual light fade (from H-001, one tier every 8 rooms).
+- Lengths (bays): SHORT 4 (25%), STD 6 (45%), LONG 8 (25%), VLONG 10 (5%, only from `H-250`). Variants: WARD, CURTAINED (more drawn curtains), DIM (half the lights, more tears and removed beds).
+- Hiding: wall-niche lockers next to the bed (foot side) or a hiding table in place of a bed, alternating sides every 2–3 bays;
+  gap ≤ 16 blocks, at least 2 per room, at least one locker. If the ward would overlap an older room, the bed row on that side is dropped (wall at x=7 / x=13).
+- Items: bandages lie in 30% of H rooms (`RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE`, 12% elsewhere). Batteries as usual.
+- Spawns: B / S / U entities re-used with H-local thresholds (`Sections.reuse`): U-20 (H-10) … S-270 (H-420), 17 entries,
+  P(at least one) ≈ 0.77 when all are unlocked (B 0.66, S 0.61, U 0.54). Per-roll cap `GK_MAX_PER_ROLL` (2) like S / B / U / A.
+  U entities count as off-section here (softened). Hard mode uses the combined table as everywhere else (H adds no new names).
+- Start it: `/rooms admin section h unlock`, then the lobby panel (`H-001` … `H-500`, GO) or `/rooms admin tp h <n>`.

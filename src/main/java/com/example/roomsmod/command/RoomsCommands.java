@@ -103,7 +103,8 @@ public class RoomsCommands {
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         rs.setChain(com.example.roomsmod.world.section.Sections.firstId());
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、" + com.example.roomsmod.world.section.Sections.ORDER.stream().map(i -> i.toUpperCase(java.util.Locale.ROOT) + " " + com.example.roomsmod.world.section.Sections.length(i)).collect(java.util.stream.Collectors.joining(" / ")) + " 部屋）に戻した"), true);
+        java.util.List<String> ids = rs.sections.stream().map(x -> x.themeId().toUpperCase(java.util.Locale.ROOT)).toList(); // ロック中の H は入らない
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("セクション表を既定（" + String.join(" → ", ids) + "、" + rs.sections.stream().map(x -> x.themeId().toUpperCase(java.util.Locale.ROOT) + " " + com.example.roomsmod.world.section.Sections.length(x.themeId())).collect(java.util.stream.Collectors.joining(" / ")) + " 部屋）に戻した"), true);
         return 1;
     }
 
