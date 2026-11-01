@@ -28,8 +28,8 @@ import java.util.UUID;
 /**
  * セクションの切り替わりの演出（プレイヤーごと・そのプレイヤーにだけ）。
  * <ul>
- *   <li>前のセクションの最後の部屋から次のセクションの最初の部屋へ進んだ：タイトル「V → B (Max.300)」。</li>
- *   <li>ロビーから最初の部屋へ・/rooms to 等で飛んだ：「B (Max.300)」。最後のセクションは Max.∞。</li>
+ *   <li>前のセクションの最後の部屋から次のセクションの最初の部屋へ進んだ：タイトル「V → B」、サブタイトル「Max.300」。</li>
+ *   <li>ロビーから最初の部屋へ・/rooms to 等で飛んだ：タイトル「B」、サブタイトル「Max.300」。最後のセクションは Max.∞。</li>
  *   <li>音1つ（低いビーコン起動音）と短い暗い脈動（Darkness 2.5 秒）。</li>
  *   <li>同じ周回（RoomsState.epoch）で同じセクションは1回だけ（戻って入り直しても出ない）。ロビーでは出ない。</li>
  * </ul>
@@ -65,10 +65,10 @@ public final class SectionTransition {
         int max = Sections.maxLocalRoom(rs, idx);
         String maxText = max > 0 ? String.valueOf(max) : "∞";
         Component title = natural
-                ? Component.translatable("roomsmod.section.title.transition", before.prefix(), cur.prefix(), maxText)
-                : Component.translatable("roomsmod.section.title.single", cur.prefix(), maxText);
+                ? Component.translatable("roomsmod.section.title.transition", before.prefix(), cur.prefix())
+                : Component.translatable("roomsmod.section.title.single", cur.prefix());
         sp.connection.send(new ClientboundSetTitlesAnimationPacket(10, 50, 20));
-        sp.connection.send(new ClientboundSetSubtitleTextPacket(Component.empty()));
+        sp.connection.send(new ClientboundSetSubtitleTextPacket(Component.translatable("roomsmod.section.subtitle.max", maxText).withStyle(ChatFormatting.GRAY)));
         sp.connection.send(new ClientboundSetTitleTextPacket(title.copy().withStyle(ChatFormatting.DARK_RED)));
         sp.playNotifySound(SoundEvents.BEACON_ACTIVATE, SoundSource.MASTER, 0.7f, 0.5f);
         sp.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 50, 0, true, false, false)); // 一瞬の暗い脈動

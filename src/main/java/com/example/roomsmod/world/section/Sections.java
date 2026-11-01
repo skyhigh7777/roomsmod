@@ -249,17 +249,36 @@ public final class Sections {
         return out;
     }
 
-    /** 旧仕様（全セクション SECTION_LENGTH）の進行表か（セーブの移行用）。 */
-    public static boolean isLegacyChain(List<RoomsState.SectionStart> table) {
-        if (table.isEmpty() || ORDER.indexOf(canonical(table.get(0).themeId())) < 0) return false;
-        RoomsState.SectionStart f = table.get(0);
-        int i = ORDER.indexOf(canonical(f.themeId()));
-        List<RoomsState.SectionStart> legacy = new java.util.ArrayList<>();
-        legacy.add(new RoomsState.SectionStart(canonical(f.themeId()), f.startRoom()));
-        int first = Math.max(f.startRoom(), 1);
-        for (int k = i + 1; k < ORDER.size(); k++) legacy.add(new RoomsState.SectionStart(ORDER.get(k), first + SECTION_LENGTH * (k - i)));
-        return legacy.equals(table) && !legacy.equals(chainFrom(f.themeId(), f.startRoom()));
+    /** id から旧仕様（全セクション SECTION_LENGTH）でつないだ進行。 */
+    private static List<RoomsState.SectionStart> legacyChain(String id, int start) {
+        String c = canonical(id);
+        List<RoomsState.SectionStart> out = new java.util.ArrayList<>();
+        out.add(new RoomsState.SectionStart(c, start));
+        int i = ORDER.indexOf(c);
+        if (i < 0) return out;
+        int first = Math.max(start, 1);
+        for (int k = i + 1; k < ORDER.size(); k++) out.add(new RoomsState.SectionStart(ORDER.get(k), first + SECTION_LENGTH * (k - i)));
+        return out;
     }
+
+    /**
+     * 旧仕様の進行表を今の長さにしたもの（後ろの部分が旧仕様のつなぎ方なら、そこを今の長さでつなぎ直す）。旧仕様でなければ null。
+     * 例：[v0, b501, u1001, …] → [v0, b501, u801, …]、/rooms section b 1 の [v0, b1, u501, …] → [v0, b1, u301, …]。
+     */
+    public static List<RoomsState.SectionStart> migratedChain(List<RoomsState.SectionStart> table) {
+        for (int k = 0; k < table.size(); k++) {
+            RoomsState.SectionStart f = table.get(k);
+            if (ORDER.indexOf(canonical(f.themeId())) < 0) continue;
+            List<RoomsState.SectionStart> legacy = legacyChain(f.themeId(), f.startRoom());
+            if (legacy.size() < 2 || !legacy.equals(table.subList(k, table.size()))) continue;
+            List<RoomsState.SectionStart> now = new java.util.ArrayList<>(table.subList(0, k));
+            now.addAll(chainFrom(f.themeId(), f.startRoom()));
+            return now.equals(table) ? null : now;
+        }
+        return null;
+    }
+
+    public static boolean isLegacyChain(List<RoomsState.SectionStart> table) { return migratedChain(table) != null; }
 
     /**
      * room のセクションの最大の部屋番号（セクション内番号。次のセクションの開始の1つ手前）。

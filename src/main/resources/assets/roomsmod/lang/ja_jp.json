@@ -138,6 +138,7 @@
   "entity.roomsmod.v25l": "V-25-L",
   "entity.roomsmod.v100": "V-100",
   "entity.roomsmod.v50": "V-50",
-  "roomsmod.section.title.transition": "%s → %s (Max.%s)",
-  "roomsmod.section.title.single": "%s (Max.%s)"
+  "roomsmod.section.title.transition": "%s → %s",
+  "roomsmod.section.title.single": "%s",
+  "roomsmod.section.subtitle.max": "Max.%s"
 }

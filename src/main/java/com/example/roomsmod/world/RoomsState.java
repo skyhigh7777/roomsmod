@@ -90,16 +90,33 @@ public class RoomsState extends SavedData {
         roomPaths.clear();
         abyss = null;
         epoch++;
-        // 旧仕様（全セクション 500 部屋）の進行表は、新しい周回の始まり（ここ）で今の長さ（B=300）に作り直す。
-        // 途中のセーブ（B-300 より先にいる等）はリセットされるまでそのまま続けられる
-        if (com.example.roomsmod.world.section.Sections.isLegacyChain(sections)) {
-            var f = sections.get(0);
-            List<SectionStart> was = new ArrayList<>(sections);
-            sections.clear();
-            sections.addAll(com.example.roomsmod.world.section.Sections.chainFrom(f.themeId(), f.startRoom()));
-            RoomsDebug.log("section table migrated to current lengths: {} -> {}", was, sections);
-        }
+        migrateSectionLengths("reset");
         setDirty();
+    }
+
+    /**
+     * 旧仕様（全セクション 500 部屋）の進行表を今の長さ（B=300 等）に作り直す。
+     * 生成済みの部屋（と currentRoom）の番号・セクションが新旧で全部同じ時だけ（＝まだ B-300 を越えていない）。
+     * 越えている周回は番号がずれるのでそのまま（次のロビー作り直しで移行）。
+     */
+    public boolean migrateSectionLengths(String why) {
+        List<SectionStart> now = com.example.roomsmod.world.section.Sections.migratedChain(sections);
+        if (now == null) return false;
+        List<SectionStart> was = new ArrayList<>(sections);
+        int last = Math.max(generatedRooms.size() - 1, currentRoom);
+        sections.clear(); sections.addAll(now);
+        List<String> after = new ArrayList<>();
+        for (int i = 0; i <= last; i++) after.add(com.example.roomsmod.world.section.Sections.formatRoom(this, i));
+        sections.clear(); sections.addAll(was);
+        for (int i = 0; i <= last; i++)
+            if (!after.get(i).equals(com.example.roomsmod.world.section.Sections.formatRoom(this, i))) {
+                RoomsDebug.log("section table kept legacy lengths ({}): room {} would change {} -> {}", why, i, com.example.roomsmod.world.section.Sections.formatRoom(this, i), after.get(i));
+                return false;
+            }
+        sections.clear(); sections.addAll(now);
+        setDirty();
+        RoomsDebug.log("section table migrated to current lengths ({}): {} -> {}", why, was, sections);
+        return true;
     }
 
     /** 部屋 room の範囲（なければ空。進行表のリセット後に古い番号で呼ばれても落ちない）。 */
@@ -242,6 +259,7 @@ public class RoomsState extends SavedData {
                 RoomsDebug.log("state migrated section table {} -> {}", old, s.sections);
             }
         }
+        s.migrateSectionLengths("load"); // 旧 500 長の表：まだ B-300 を越えていなければ今の長さに
         } catch (RuntimeException e) {
             RoomsDebug.error("failed to load RoomsState", e);
         }
