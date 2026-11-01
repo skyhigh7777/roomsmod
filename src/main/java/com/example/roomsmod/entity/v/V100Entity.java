@@ -35,6 +35,8 @@ import java.util.UUID;
  * 覗いている間（ノック後 REACT_TICKS の猶予の後）、見張っている部屋のプレイヤーはしゃがむか止まっていなければならない。
  * しゃがまずに動いた（ジャンプ含む）tick が累計 MOVE_KILL_TICKS に達すると攻撃。首振り・しゃがみ歩きは可。
  * 出口扉と同じ壁（+Z 側の壁）の窓には出ない（出口を見ないと進めない＝詰みを防ぐ）。
+ * 出るのは「いま開けた扉の先の部屋」（targetsOpenedRoom）。その部屋に窓がなければ出ない（今いる部屋には出ない）。
+ * 覗いている途中で部屋に入ってきたプレイヤーには、入った時から REACT_TICKS の猶予がある。
  */
 public class V100Entity extends VEntity {
     public static final int KNOCK_TICKS = 30;        // ノック〜出現（1.5秒）
@@ -61,10 +63,15 @@ public class V100Entity extends VEntity {
     private final Map<UUID, Vec3> lastPos = new HashMap<>();
     private final java.util.Set<UUID> airborne = new java.util.HashSet<>();
     private final Map<UUID, Integer> walkRun = new HashMap<>();
+    /** 見張っている部屋に入った life（猶予の起点）。最初からいた人は猶予済みとして記録。 */
+    private final Map<UUID, Integer> enteredAt = new HashMap<>();
 
     public V100Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
 
     @Override public String vName() { return "V-100"; }
+
+    /** 扉を開けた先の部屋の窓に出る（VSpawns が部屋番号 +1 を渡す）。 */
+    @Override public boolean targetsOpenedRoom() { return true; }
 
     @Override
     protected void defineSynchedData(SynchedEntityData.Builder b) {
@@ -152,9 +159,13 @@ public class V100Entity extends VEntity {
 
     @Override
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
+        // playerRoom は VSpawns が「開けた扉の先の部屋」にしたもの。もっと先にいるプレイヤーがいればその先の部屋。
+        // プレイヤーのいる部屋（の手前）にしかならない＝開けた先の部屋がまだない時は出ない
         int fr = furthestPlayerRoom(level, rs);
-        int room = Math.max(playerRoom, fr);
-        if (!pickWindow(level, rs, room)) return null;
+        int room = playerRoom;
+        if (fr >= room) room = fr + 1;
+        if (!rs.hasRoom(room)) { RoomsDebug.log("V-100 spawn skipped: opened room {} not generated (playerRoom={} furthest={})", room, playerRoom, fr); return null; }
+        if (!pickWindow(level, rs, room)) return null; // 開けた先の部屋に窓がない：今の部屋には出さない
         return window.relative(windowOut);
     }
 
@@ -176,7 +187,13 @@ public class V100Entity extends VEntity {
         if (t < KNOCK_TICKS) return;
         if (!isPeeking()) { entityData.set(PEEKING, true); RoomsDebug.log("V-100 peeking at window {} room {} inPocket={}", window, startRoom, isInPocket(level)); }
         if (t > KNOCK_TICKS + PEEK_TICKS) { leave("peek time over"); return; }
-        if (t < KNOCK_TICKS + REACT_TICKS) { for (Player p : level.players()) lastPos.put(p.getUUID(), p.position()); return; } // 反応の猶予
+        if (t < KNOCK_TICKS + REACT_TICKS) { // 反応の猶予（この間に部屋にいる人は、猶予はこれで済み）
+            for (Player p : level.players()) {
+                lastPos.put(p.getUUID(), p.position());
+                if (com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()) == startRoom) enteredAt.putIfAbsent(p.getUUID(), life - REACT_TICKS);
+            }
+            return;
+        }
         for (Player p : level.players()) if (moveTick(level, rs, p)) return;
     }
 
@@ -193,6 +210,13 @@ public class V100Entity extends VEntity {
         if (!isPeeking() || isRemoved() || prev == null || !p.isAlive()) return false;
         if (com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition()) != startRoom) return false;
         if (HidingRules.isHiding(p)) return false; // 隠れ場所の中は動けない
+        // 覗いている途中で入ってきた：入った時から REACT_TICKS は数えない（入った瞬間の一歩で即アウトにしない）
+        int ent = enteredAt.computeIfAbsent(p.getUUID(), k -> life);
+        if (life - ent < REACT_TICKS) {
+            if (life == ent) RoomsDebug.log(p, "V-100 の部屋に入った（猶予 " + REACT_TICKS + " tick）", "V-100 player {} entered watched room {} -> grace {} ticks", p.getGameProfile().getName(), startRoom, REACT_TICKS);
+            walkRun.remove(p.getUUID()); airborne.remove(p.getUUID());
+            return false;
+        }
         double dx = now.x - prev.x, dz = now.z - prev.z, dy = now.y - prev.y;
         UUID id = p.getUUID();
         boolean jumped = false, walked = false;
