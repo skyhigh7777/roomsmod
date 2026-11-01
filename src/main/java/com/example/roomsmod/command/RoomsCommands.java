@@ -102,7 +102,7 @@ public class RoomsCommands {
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         rs.setChain(com.example.roomsmod.world.section.Sections.firstId());
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、各 " + com.example.roomsmod.world.section.Sections.SECTION_LENGTH + " 部屋）に戻したわ"), true);
+        src.sendSuccess(() -> Component.literal("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、" + com.example.roomsmod.world.section.Sections.ORDER.stream().map(i -> i.toUpperCase(java.util.Locale.ROOT) + " " + com.example.roomsmod.world.section.Sections.length(i)).collect(java.util.stream.Collectors.joining(" / ")) + " 部屋）に戻したわ"), true);
         return 1;
     }
 

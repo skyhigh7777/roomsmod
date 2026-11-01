@@ -90,6 +90,15 @@ public class RoomsState extends SavedData {
         roomPaths.clear();
         abyss = null;
         epoch++;
+        // 旧仕様（全セクション 500 部屋）の進行表は、新しい周回の始まり（ここ）で今の長さ（B=300）に作り直す。
+        // 途中のセーブ（B-300 より先にいる等）はリセットされるまでそのまま続けられる
+        if (com.example.roomsmod.world.section.Sections.isLegacyChain(sections)) {
+            var f = sections.get(0);
+            List<SectionStart> was = new ArrayList<>(sections);
+            sections.clear();
+            sections.addAll(com.example.roomsmod.world.section.Sections.chainFrom(f.themeId(), f.startRoom()));
+            RoomsDebug.log("section table migrated to current lengths: {} -> {}", was, sections);
+        }
         setDirty();
     }
 

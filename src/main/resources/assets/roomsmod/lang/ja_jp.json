@@ -137,5 +137,10 @@
   "entity.roomsmod.v25t": "V-25-T",
   "entity.roomsmod.v25l": "V-25-L",
   "entity.roomsmod.v100": "V-100",
-  "entity.roomsmod.v50": "V-50"
+  "entity.roomsmod.v50": "V-50",
+  "roomsmod.section.clear.title": "%s CLEAR",
+  "roomsmod.section.clear.subtitle": "セクション %s 突破 — %s/%s",
+  "roomsmod.section.enter.title": "SECTION %s",
+  "roomsmod.section.enter.subtitle": "%s — 最大 %s 部屋",
+  "roomsmod.section.enter.subtitle_endless": "%s — 最大 ∞"
 }

@@ -39,10 +39,11 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.7f)),
             3, 2,
             List.of(
-                    new SectionTheme.RusherSpawn("B-20", 20, 0.6f, l -> DoorEventHandler.isA20Alive(l) || errorAlive(l),
+                    new SectionTheme.RusherSpawn("B-20", 20, 0.12f, l -> DoorEventHandler.isA20Alive(l) || errorAlive(l),
                             (l, rs, p) -> { DoorEventHandler.spawnA20(l, rs, p); return true; }, "err_b20"),
-                    new SectionTheme.RusherSpawn("B-40", 40, 0.25f, l -> DoorEventHandler.isA40Alive(l) || errorAlive(l), DoorEventHandler::spawnA40, "err_b40"),
-                    // B: B-15〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）
+                    new SectionTheme.RusherSpawn("B-40", 40, 0.09f, l -> DoorEventHandler.isA40Alive(l) || errorAlive(l), DoorEventHandler::spawnA40, "err_b40"),
+                    // B: B-15〜B-290 にかけて易しい順に解禁（1回の抽選で最大 GK_MAX_PER_ROLL 体）。
+                    // 2026-11-01 確率をならした（B-20 0.6 → 0.12、B-40 0.25 → 0.09、ほかは 0.05〜0.08。B は 300 部屋）
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_STATIC, 15, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MASK, 30, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_REACH, 50, 0.07f),
@@ -51,11 +52,11 @@ public final class Sections {
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ERROR, 110, 0.06f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_GRIN, 130, 0.06f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_MAW, 155, 0.06f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ARGUS, 180, 0.05f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SCATTER, 205, 0.05f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_CHORUS, 230, 0.05f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_VOID, 260, 0.04f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_17, 290, 0.04f)),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_ARGUS, 180, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_SCATTER, 205, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_CHORUS, 230, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_VOID, 260, 0.05f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.B_17, 290, 0.05f)),
             new SectionTheme.SignStyle(() -> Blocks.OAK_WALL_SIGN, DyeColor.WHITE, true),
             1, 7)); // 減光: セクション内1部屋目から7部屋ごとに1段（RoomLighting）
 
@@ -219,6 +220,11 @@ public final class Sections {
 
     /** どのセクションも 500 部屋。 */
     public static final int SECTION_LENGTH = 500;
+    /** セクションごとの部屋数（ここにないものは SECTION_LENGTH）。2026-11-01 に B を 500 → 300。 */
+    private static final Map<String, Integer> LENGTHS = Map.of("b", 300);
+
+    /** セクション id の部屋数（セクション内の最後の番号）。 */
+    public static int length(String id) { return LENGTHS.getOrDefault(canonical(id), SECTION_LENGTH); }
     /** 進行順。最初のセクション（V）はロビー（部屋 0）から始まる。最後のセクションの後は、そのセクションがそのまま続く。 */
     public static final List<String> ORDER = List.of("v", "b", "u", "s", "a");
 
@@ -238,10 +244,35 @@ public final class Sections {
         out.add(new RoomsState.SectionStart(c, start));
         int i = ORDER.indexOf(c);
         if (i < 0) return out;
-        int first = Math.max(start, 1); // 番号付きの最初の部屋（ロビー 0 から始まるセクションは 1）
-        for (int k = i + 1; k < ORDER.size(); k++) out.add(new RoomsState.SectionStart(ORDER.get(k), first + SECTION_LENGTH * (k - i)));
+        int pos = Math.max(start, 1) + length(c); // 番号付きの最初の部屋（ロビー 0 から始まるセクションは 1）＋ 部屋数
+        for (int k = i + 1; k < ORDER.size(); k++) { out.add(new RoomsState.SectionStart(ORDER.get(k), pos)); pos += length(ORDER.get(k)); }
         return out;
     }
+
+    /** 旧仕様（全セクション SECTION_LENGTH）の進行表か（セーブの移行用）。 */
+    public static boolean isLegacyChain(List<RoomsState.SectionStart> table) {
+        if (table.isEmpty() || ORDER.indexOf(canonical(table.get(0).themeId())) < 0) return false;
+        RoomsState.SectionStart f = table.get(0);
+        int i = ORDER.indexOf(canonical(f.themeId()));
+        List<RoomsState.SectionStart> legacy = new java.util.ArrayList<>();
+        legacy.add(new RoomsState.SectionStart(canonical(f.themeId()), f.startRoom()));
+        int first = Math.max(f.startRoom(), 1);
+        for (int k = i + 1; k < ORDER.size(); k++) legacy.add(new RoomsState.SectionStart(ORDER.get(k), first + SECTION_LENGTH * (k - i)));
+        return legacy.equals(table) && !legacy.equals(chainFrom(f.themeId(), f.startRoom()));
+    }
+
+    /**
+     * room のセクションの最大の部屋番号（セクション内番号。次のセクションの開始の1つ手前）。
+     * 次のセクションがない（最後のセクション、進行表の最後）なら -1（上限なし）。
+     */
+    public static int maxLocalRoom(RoomsState rs, int room) {
+        int start = sectionStart(rs, room);
+        for (RoomsState.SectionStart s : rs.sections) if (s.startRoom() > start) return s.startRoom() - Math.max(start, 1);
+        return -1;
+    }
+
+    /** room がセクションの最初の番号付き部屋か。 */
+    public static boolean isSectionFirstRoom(RoomsState rs, int room) { return room >= 1 && localRoom(rs, room) == 1; }
 
     private Sections() {}
 

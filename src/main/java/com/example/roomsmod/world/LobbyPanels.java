@@ -56,7 +56,13 @@ public final class LobbyPanels {
     static int stepIndex = 0;
 
     public static String selectedSection() { return section; }
-    public static int selectedRoom() { return STEPS[stepIndex]; }
+    /** 選んでいるセクションで選べる番号（セクションの部屋数まで。B は 300 まで）。 */
+    static int[] steps() {
+        int len = Sections.length(section);
+        int[] s = java.util.Arrays.stream(STEPS).filter(n -> n <= len).toArray();
+        return s.length == 0 ? new int[]{1} : s;
+    }
+    public static int selectedRoom() { int[] s = steps(); return s[Math.min(stepIndex, s.length - 1)]; }
 
     private static BlockPos at(int x, int y, int z) { return ORIGIN.offset(x, y, z); }
 
@@ -181,10 +187,11 @@ public final class LobbyPanels {
             case SECTION -> {
                 int i = Math.max(0, ids.indexOf(section));
                 section = ids.get(Math.floorMod(i + (player.isShiftKeyDown() ? -1 : 1), ids.size()));
+                stepIndex = Math.min(stepIndex, steps().length - 1); // 短いセクション（B=300）では上限に合わせる
                 selectionChanged(level, player, "section");
             }
-            case MINUS -> { stepIndex = Math.floorMod(stepIndex - 1, STEPS.length); selectionChanged(level, player, "minus"); }
-            case PLUS -> { stepIndex = Math.floorMod(stepIndex + 1, STEPS.length); selectionChanged(level, player, "plus"); }
+            case MINUS -> { stepIndex = Math.floorMod(Math.min(stepIndex, steps().length - 1) - 1, steps().length); selectionChanged(level, player, "minus"); }
+            case PLUS -> { stepIndex = Math.floorMod(Math.min(stepIndex, steps().length - 1) + 1, steps().length); selectionChanged(level, player, "plus"); }
             case LABEL -> player.displayClientMessage(Component.literal("スタート: " + label()), true);
             case GO -> go(level, player);
             case DEEPEST -> deepest(level, player);
