@@ -85,6 +85,7 @@ public final class RoomsDamage {
         p.hurtTime = 10;
         if (p.level() instanceof net.minecraft.server.level.ServerLevel sl) sl.broadcastDamageEvent(p, src); // 赤く光る・被ダメ音（クライアント側）
         if (p instanceof net.minecraft.server.level.ServerPlayer sp) com.example.roomsmod.event.DebugNoDeath.noteDamage(sp, amount);
+        if (p instanceof net.minecraft.server.level.ServerPlayer sp2) com.example.roomsmod.economy.RoomsRun.markHit(sp2);
         float nh = p.getHealth() - rest;
         if (nh <= 0f) { p.setHealth(0f); p.die(src); }
         else p.setHealth(nh);

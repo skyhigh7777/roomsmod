@@ -146,10 +146,16 @@ public final class RoomsRun {
     @SubscribeEvent
     public static void onHurt(LivingDamageEvent.Post e) {
         if (e.getEntity() instanceof ServerPlayer p && e.getNewDamage() > 0 && inRooms(p)) {
-            Wallet w = Wallet.of(p);
-            if (!w.runHit && w.runStart >= 0) RoomsDebug.log("run: {} was hit (no-hit bonus lost)", p.getGameProfile().getName());
-            w.runHit = true;
+            markHit(p);
         }
+    }
+
+    /** 被弾の印（NO HIT ボーナスを消す）。クリエイティブの直接ダメージからも呼ぶ。 */
+    public static void markHit(ServerPlayer p) {
+        if (!inRooms(p)) return;
+        Wallet w = Wallet.of(p);
+        if (!w.runHit && w.runStart >= 0) RoomsDebug.log("run: {} was hit (no-hit bonus lost)", p.getGameProfile().getName());
+        w.runHit = true;
     }
 
     @SubscribeEvent(priority = net.neoforged.bus.api.EventPriority.LOW)
