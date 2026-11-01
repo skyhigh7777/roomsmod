@@ -164,7 +164,10 @@ public class RoomsCommands {
             .then(Commands.literal("to")
                 .then(Commands.argument("room", IntegerArgumentType.integer(1, com.example.roomsmod.world.LobbyPanels.MAX_ROOM))
                     .executes(ctx -> {
-                        return goToRoom(ctx.getSource().getPlayerOrException(), IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
+                        ServerPlayer tp = ctx.getSource().getPlayerOrException();
+                        com.example.roomsmod.economy.Wallet.of(tp).resetRun(Integer.MIN_VALUE); // 今の周回は精算しない
+                        com.example.roomsmod.economy.RoomsRun.adminTeleport(tp); // この周回はコインなし
+                        return goToRoom(tp, IntegerArgumentType.getInteger(ctx, "room")) ? 1 : 0;
                     })))
             .then(Commands.literal("hard")
                 .then(Commands.literal("on").executes(ctx -> setHard(ctx.getSource(), true)))

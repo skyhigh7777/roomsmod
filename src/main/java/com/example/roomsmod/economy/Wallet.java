@@ -69,6 +69,10 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     public int runEpoch = Integer.MIN_VALUE;
     /** この周回で最初に入った部屋（-1 = まだ）と、いちばん先の部屋。 */
     public int runStart = -1, runFurthest = -1;
+    /** 最後にいた部屋（歩いて隣の部屋へ移ったかの判定。-1 = まだ）。 */
+    public int runLast = -1;
+    /** この周回はコインなし（オーナーの管理ワープ /rooms admin tp・to・deepest で始めた）。周回の精算・死亡・restart で消える。 */
+    public boolean runNoPay = false;
     public boolean runHit = false;
 
     @Override
@@ -78,6 +82,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
         t.putInt("adrenaline", adrenaline); t.putInt("charm", charm); t.putInt("radar", radar); t.putInt("scanner", scanner);
         t.putString("deepSection", deepSection); t.putInt("deepLocal", deepLocal);
         t.putInt("runEpoch", runEpoch); t.putInt("runStart", runStart); t.putInt("runFurthest", runFurthest); t.putBoolean("runHit", runHit);
+        t.putInt("runLast", runLast); t.putBoolean("runNoPay", runNoPay);
         return t;
     }
 
@@ -89,10 +94,13 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
         runEpoch = t.contains("runEpoch") ? t.getInt("runEpoch") : Integer.MIN_VALUE;
         runStart = t.contains("runStart") ? t.getInt("runStart") : -1;
         runFurthest = t.contains("runFurthest") ? t.getInt("runFurthest") : -1;
+        runLast = t.contains("runLast") ? t.getInt("runLast") : -1;
+        runNoPay = t.getBoolean("runNoPay");
         runHit = t.getBoolean("runHit");
     }
 
-    public void resetRun(int epoch) { runEpoch = epoch; runStart = -1; runFurthest = -1; runHit = false; }
+    /** 周回の記録を消す（runNoPay は残す：管理ワープでロビーが作り直されても消えないように。消すのは精算・死亡・restart）。 */
+    public void resetRun(int epoch) { runEpoch = epoch; runStart = -1; runFurthest = -1; runLast = -1; runHit = false; }
 
     // ===================== 登録・同期 =====================
 

@@ -9,7 +9,9 @@ import com.example.roomsmod.world.section.Sections;
  *   基本   = Σ（周回で進んだ各部屋 r = 開始の次 .. いちばん先）weight(r)
  *   weight = ノーマル: BASE + DEPTH × (min(local, max) − 1) / (max − 1)    （セクションの奥ほど高い。max を越えた部屋は max と同じ）
  *            ハード  : BASE（深さの加算なし、代わりに全体 × HARD_MUL）
- *   倍率   = (1 + NO_HIT_BONUS[被弾なし] + SURVIVE_BONUS[生還]) × (死亡なら DEATH_MUL) × (ハードなら HARD_MUL)
+ *   倍率   = 生還: (1 + NO_HIT_BONUS[被弾なし] + SURVIVE_BONUS) ／ 死亡: DEATH_MUL（ボーナスなし）、ハードならさらに × HARD_MUL
+ *            例：ハード・被弾なし・生還 = (1 + 0.30 + 0.20) × 2 = 3.00
+ *   部屋数 = 実際に隣の部屋へ移った分だけ（RoomsRun.track）。ワープ（GO・管理コマンド）はそこが開始＝0 部屋から。管理ワープの周回は 0 コイン
  *   残り物 = 生還時のみ 電池 × LEFTOVER_BATTERY + 包帯 × LEFTOVER_BANDAGE（倍率の対象外。電池・包帯は換金されて 0 になる）
  *   コイン = floor(基本 × 倍率 + 残り物)
  * </pre>

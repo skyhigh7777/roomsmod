@@ -129,6 +129,7 @@ public final class LobbyPanels {
         for (int z : new int[]{Z_SHOP_BATTERY, Z_SHOP_BANDAGE, Z_SHOP_ADRENALINE, Z_SHOP_CHARM, Z_SHOP_RADAR, Z_SHOP_SCANNER})
             if (!(level.getBlockState(at(SX + 1, BY + 1, z)).getBlock() instanceof WallSignBlock)) { missing = true; break; }
         if (rs.panelsVersion == LAYOUT_VERSION && !missing) return;
+        int oldVersion = rs.panelsVersion;
         int depth = lobby.get(0).maxZ() - lobby.get(0).minZ() + 1, height = lobby.get(0).maxY() - lobby.get(0).minY();
         var quartz = Blocks.QUARTZ_BLOCK.defaultBlockState();
         var bricks = Blocks.QUARTZ_BRICKS.defaultBlockState();
@@ -139,7 +140,7 @@ public final class LobbyPanels {
             for (int y = 1; y < height; y++) if (level.getBlockState(at(SX + 1, y, z)).getBlock() instanceof WallSignBlock) level.setBlock(at(SX + 1, y, z), Blocks.AIR.defaultBlockState(), 3);
         }
         build(level);
-        RoomsDebug.info("lobby panels rebuilt (layout {} -> {}, missing={})", rs.panelsVersion, LAYOUT_VERSION, missing);
+        RoomsDebug.info("lobby panels rebuilt (layout {} -> {}, missing={})", oldVersion, LAYOUT_VERSION, missing);
     }
 
     /** generateLobby から（壁を作ったあと）。 */
@@ -287,6 +288,7 @@ public final class LobbyPanels {
         rs.setChain(s); // 選んだセクションから、500部屋ごとに次のセクションへ
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(com.example.roomsmod.util.RoomsMsg.barDeny("部屋を生成中。完了まで待機"), true); return; }
+        com.example.roomsmod.economy.RoomsRun.panelTeleport(player); // 開始はワープ先（RoomsRun.track のジャンプ判定）
         RoomsCommands.goToRoom(player, n);
     }
 

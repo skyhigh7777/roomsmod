@@ -169,7 +169,8 @@ public final class AdminCommands {
         int max = Sections.length(id);
         if (room > max && Sections.ORDER.contains(id)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(id.toUpperCase(Locale.ROOT) + " は " + max + " 部屋まで")); return 0; }
         rs.setChain(id); // ロックは無視（テスト用）
-        Wallet.of(p).resetRun(Integer.MIN_VALUE); // テストのワープでコインが出ないように
+        Wallet.of(p).resetRun(Integer.MIN_VALUE); // 今の周回は精算しない
+        com.example.roomsmod.economy.RoomsRun.adminTeleport(p); // この周回はコインなし
         RoomsDebug.info("admin: tp {} -> section {} room {}", p.getGameProfile().getName(), id, room);
         return RoomsCommands.goToRoom(p, room) ? 1 : 0;
     }
@@ -234,6 +235,7 @@ public final class AdminCommands {
         if (g >= 1 && g < rs.roomPaths.size()) {
             net.minecraft.world.phys.Vec3 v = com.example.roomsmod.world.SafeSpot.find(lv, rs, g);
             if (v != null) {
+                com.example.roomsmod.economy.RoomsRun.adminTeleport(p); // この周回はコインなし（開始はワープ先）
                 p.teleportTo(lv, v.x, v.y, v.z, p.getYRot(), p.getXRot());
                 RoomsDebug.info("admin: deepest {} -> {} (room {}, existing)", p.getGameProfile().getName(), label, g);
                 src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(label + " へワープした（生成済み）"), false);

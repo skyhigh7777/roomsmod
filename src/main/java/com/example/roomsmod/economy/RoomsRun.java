@@ -70,11 +70,13 @@ public final class RoomsRun {
 
     @SubscribeEvent
     public static void onTick(PlayerTickEvent.Post e) {
-        if (!(e.getEntity() instanceof ServerPlayer p) || p.tickCount % 5 != 0) return;
+        if (!(e.getEntity() instanceof ServerPlayer p)) return;
+        if (inRooms(p) && p.isAlive() && !p.isSpectator()) track(p); // 部屋の移動は毎 tick 見る（隣の部屋へ歩いたかの判定）
+        if (p.tickCount % 5 != 0) return;
         enforceItem(p);
         if (!inRooms(p)) { if (HUD_SENT.containsKey(p.getUUID()) && !"|false".equals(HUD_SENT.get(p.getUUID()))) sendRoomHud(p, null, -1); return; }
         RoomsState rs = RoomsState.get(p.serverLevel());
-        int hudIdx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        int hudIdx = playerRoom(p, rs);
         sendRoomHud(p, rs, hudIdx);
         if (hudIdx == 0 && p.tickCount % 40 == 0) com.example.roomsmod.world.LobbyPanels.ensure(p.serverLevel()); // 既存ワールドのロビーも今のパネル・売店に
         if (!p.isAlive() || p.isSpectator()) return;
@@ -84,10 +86,8 @@ public final class RoomsRun {
                 settle(p, rs, false, "run reset");
             w.resetRun(rs.epoch);
         }
-        int idx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        int idx = w.runLast;
         if (idx < 1) return;
-        if (w.runStart < 0) w.runStart = idx == 1 ? 0 : idx; // 部屋1＝ロビーの扉から。それ以外（/rooms to・GO）はワープ先から
-        if (idx > w.runFurthest) w.runFurthest = idx;
         // いちばん深い部屋の記録（/rooms admin deepest）
         String sec = Sections.canonical(Sections.forRoom(rs, idx).id());
         int local = Sections.localRoom(rs, idx), depth = Sections.absoluteDepth(sec, local);
@@ -95,6 +95,53 @@ public final class RoomsRun {
             w.deepSection = sec; w.deepLocal = local;
         }
     }
+
+    /** 1 tick にこの部屋数までの移動は歩いた（落ちた）ものとして数える。これより大きい移動はワープ＝開始をそこにし直す。 */
+    public static final int WALK_TOLERANCE = 2;
+
+    /** プレイヤーの今の部屋。A の縦穴は全部屋が同じ箱なので AbyssRooms の部屋（ループ込み）を使う。 */
+    public static int playerRoom(ServerPlayer p, RoomsState rs) {
+        int idx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        if (idx >= 0 && rs.abyss != null && idx >= rs.abyss.entryRoom && Sections.forRoom(rs, idx) == Sections.A)
+            idx = com.example.roomsmod.world.AbyssRooms.roomOf(p, idx);
+        return idx;
+    }
+
+
+    /**
+     * 周回の進み具合：実際に部屋から部屋へ移った分だけ数える（生成した範囲やワープは数えない）。
+     * <ul>
+     *   <li>最初に見た部屋が開始（ロビーなら 0 = ロビーの扉から）。</li>
+     *   <li>前の部屋から WALK_TOLERANCE 以内の移動は歩き。いちばん先（runFurthest）を更新。</li>
+     *   <li>それより大きい移動（GO・/rooms admin to・tp・deepest・最奥パネル・ほかのワープ）は、そこを新しい開始にする（進んだ部屋数 0 から）。被弾の記録はそのまま。</li>
+     * </ul>
+     */
+    static void track(ServerPlayer p) {
+        RoomsState rs = RoomsState.get(p.serverLevel());
+        Wallet w = Wallet.of(p);
+        if (w.runEpoch != rs.epoch) return; // 周回の切り替えは 5 tick ごとの処理で（精算を先に）
+        int idx = playerRoom(p, rs);
+        if (idx < 0) return; // 部屋の外（境目など）
+        if (w.runStart < 0 || w.runLast < 0) { w.runStart = idx; w.runFurthest = idx; w.runLast = idx; return; }
+        if (idx == w.runLast) return;
+        if (Math.abs(idx - w.runLast) > WALK_TOLERANCE) {
+            RoomsDebug.log("run jump player={} {} -> {}: start reset (was start={} furthest={})", p.getGameProfile().getName(), w.runLast, idx, w.runStart, w.runFurthest);
+            w.runStart = idx; w.runFurthest = idx; w.runLast = idx;
+            return;
+        }
+        w.runLast = idx;
+        if (idx > w.runFurthest) w.runFurthest = idx;
+    }
+
+    /** 管理ワープ（/rooms admin tp・to・deepest）：この周回はコインなし。 */
+    public static void adminTeleport(ServerPlayer p) {
+        Wallet w = Wallet.of(p);
+        w.runNoPay = true;
+        RoomsDebug.log("run marked no-pay (admin teleport) player={}", p.getGameProfile().getName());
+    }
+
+    /** ロビーの GO（ふつうのワープ）：管理ワープのコインなしの印を消す（開始はワープ先＝track のジャンプ判定）。 */
+    public static void panelTeleport(ServerPlayer p) { Wallet.of(p).runNoPay = false; }
 
     @SubscribeEvent
     public static void onHurt(LivingDamageEvent.Post e) {
@@ -112,6 +159,7 @@ public final class RoomsRun {
         RoomsState rs = RoomsState.get(p.serverLevel());
         if (w.runEpoch == rs.epoch && w.runStart >= 0 && w.runFurthest > w.runStart) settle(p, rs, false, "death");
         w.resetRun(rs.epoch);
+        w.runNoPay = false;
     }
 
     /** 精算してコインを渡す。 */
@@ -119,13 +167,17 @@ public final class RoomsRun {
         Wallet w = Wallet.of(p);
         int bat = survived ? w.battery : 0, band = survived ? w.bandage : 0;
         CoinFormula.Result r = CoinFormula.compute(rs, w.runStart, w.runFurthest, !w.runHit, survived, rs.hardMode, bat, band);
-        if (survived) { w.battery = 0; w.bandage = 0; } // 生還時は残りの電池・包帯をコインに換える（消費）
+        boolean noPay = w.runNoPay;
+        if (noPay) { bat = 0; band = 0; r = new CoinFormula.Result(r.rooms(), r.base(), r.multiplier(), 0, 0); } // 管理ワープの周回はコインなし（換金もしない）
+        w.runNoPay = false;
+        if (survived && !noPay) { w.battery = 0; w.bandage = 0; } // 生還時は残りの電池・包帯をコインに換える（消費）
         w.coins += r.coins();
         Wallet.sync(p);
         String from = w.runStart <= 0 ? "LOBBY" : Sections.formatRoom(rs, w.runStart), to = Sections.formatRoom(rs, w.runFurthest);
         p.sendSystemMessage(Component.translatable(survived ? "message.roomsmod.run.returned" : "message.roomsmod.run.ended",
                 from, to, r.rooms(), r.coins()).withStyle(ChatFormatting.GOLD));
-        if (survived) {
+        if (noPay) p.sendSystemMessage(Component.literal("  ADMIN TELEPORT: no coins").withStyle(ChatFormatting.GRAY));
+        else if (survived) {
             java.util.List<String> parts = new java.util.ArrayList<>();
             if (!w.runHit) parts.add("NO HIT +" + Math.round(CoinFormula.NO_HIT_BONUS * 100) + "%");
             parts.add("SURVIVED +" + Math.round(CoinFormula.SURVIVE_BONUS * 100) + "%");
@@ -133,8 +185,8 @@ public final class RoomsRun {
             if (bat + band > 0) parts.add("ITEMS +" + String.format(java.util.Locale.ROOT, "%.2f", r.leftover()) + " (battery " + bat + ", bandage " + band + ")");
             p.sendSystemMessage(Component.literal("  " + String.join(" / ", parts)).withStyle(ChatFormatting.GRAY));
         }
-        RoomsDebug.log("run settled ({}) player={} start={} furthest={} rooms={} base={} mul={} leftover={} converted_battery={} converted_bandage={} hit={} hard={} -> +{} coins (total {})",
-                why, p.getGameProfile().getName(), w.runStart, w.runFurthest, r.rooms(), String.format("%.2f", r.base()), String.format("%.2f", r.multiplier()), String.format("%.2f", r.leftover()), bat, band,
+        RoomsDebug.log("run settled ({}) player={} no_pay={} start={} furthest={} rooms={} base={} mul={} leftover={} converted_battery={} converted_bandage={} hit={} hard={} -> +{} coins (total {})",
+                why, p.getGameProfile().getName(), noPay, w.runStart, w.runFurthest, r.rooms(), String.format("%.2f", r.base()), String.format("%.2f", r.multiplier()), String.format("%.2f", r.leftover()), bat, band,
                 w.runHit, rs.hardMode, r.coins(), w.coins);
         return r;
     }
@@ -157,7 +209,7 @@ public final class RoomsRun {
         if (com.example.roomsmod.world.RoomsTravel.busy()) { p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.err("部屋を生成中。完了まで待機")); return false; }
         RoomsState rs = RoomsState.get(p.serverLevel());
         Wallet w = Wallet.of(p);
-        int idx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        int idx = playerRoom(p, rs);
         if (w.runEpoch == rs.epoch && w.runStart >= 0) {
             int traveled = Math.max(w.runFurthest, idx) - w.runStart;
             if (traveled > RESTART_MAX_ROOMS) {
@@ -167,6 +219,7 @@ public final class RoomsRun {
         }
         RoomsDebug.log("run restart player={} start={} furthest={} room={} (no coins)", p.getGameProfile().getName(), w.runStart, w.runFurthest, idx);
         w.resetRun(Integer.MIN_VALUE); // 精算しない
+        w.runNoPay = false;
         boolean ok = RoomsCommands.sendToLobby(p);
         if (ok) p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.ok("周回をやり直した（コインなし）"));
         return ok;
@@ -181,7 +234,7 @@ public final class RoomsRun {
         RoomsState rs = RoomsState.get(level);
         Wallet w = Wallet.of(p);
         if (com.example.roomsmod.world.RoomsTravel.busy()) { deny(p, Component.translatable("message.roomsmod.return.busy")); return; }
-        int idx = RoomTracker.roomIndexAt(rs, p.blockPosition());
+        int idx = playerRoom(p, rs);
         if (idx < 1 || w.runEpoch != rs.epoch || w.runStart < 0) { deny(p, Component.translatable("message.roomsmod.return.lobby")); return; }
         int need = w.runStart + CoinFormula.MIN_ROOMS_TO_RETURN - idx;
         if (need > 0) { deny(p, Component.translatable("message.roomsmod.return.too_early", need)); return; }
