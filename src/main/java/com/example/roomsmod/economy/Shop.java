@@ -25,8 +25,8 @@ public final class Shop {
         Wallet w = Wallet.of(p);
         Component name = Component.translatable("shop.roomsmod." + item.key);
         String why = switch (item) {
-            case BATTERY -> w.battery >= Wallet.MAX_BATTERY ? "message.roomsmod.shop.full" : null;
-            case BANDAGE -> w.bandage >= Wallet.MAX_BANDAGE ? "message.roomsmod.shop.full" : null;
+            case BATTERY -> Wallet.full(Wallet.MAX_BATTERY, w.battery) ? "message.roomsmod.shop.full" : null;
+            case BANDAGE -> Wallet.full(Wallet.MAX_BANDAGE, w.bandage) ? "message.roomsmod.shop.full" : null;
             case FLASHLIGHT -> p.getInventory().countItem(RoomsMod.FLASHLIGHT.get()) > 0 ? "message.roomsmod.shop.have_flashlight" : null;
         };
         if (why == null && w.coins < item.price) why = "message.roomsmod.shop.no_coins";

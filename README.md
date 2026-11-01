@@ -150,8 +150,8 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms section reset` | OP | セクション表を既定（V → B → U → S → A、各 500 部屋）に戻す |
 | `/rooms spawn <id>` | OP | エンティティを強制出現（同じ排他グループが生存中なら出現しません） |
 | `/rooms admin give flashlight` | オーナーのみ | 満充電の懐中電灯をもらう |
-| `/rooms admin give battery [個数]` | オーナーのみ | 電池を所持数へ（上限10まで） |
-| `/rooms admin give bandage [個数]` | オーナーのみ | 包帯を所持数へ（上限5まで） |
+| `/rooms admin give battery [個数]` | オーナーのみ | 電池を所持数へ |
+| `/rooms admin give bandage [個数]` | オーナーのみ | 包帯を所持数へ |
 | `/rooms admin give coins <数>` | オーナーのみ | コインを増減 |
 | `/rooms hard on` / `off` | OP | ハードモードの切り替え（サーバー全体・ワールドに保存） |
 | `/rooms hard status` | 全員 | ハードモードの状態を表示 |

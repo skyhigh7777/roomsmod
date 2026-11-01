@@ -79,7 +79,7 @@ public final class RoomsRun {
     /** 精算してコインを渡す。 */
     static CoinFormula.Result settle(ServerPlayer p, RoomsState rs, boolean survived, String why) {
         Wallet w = Wallet.of(p);
-        CoinFormula.Result r = CoinFormula.compute(rs, w.runStart, w.runFurthest, !w.runHit, survived, rs.hardMode);
+        CoinFormula.Result r = CoinFormula.compute(rs, w.runStart, w.runFurthest, !w.runHit, survived, rs.hardMode, w.battery, w.bandage);
         Wallet.addCoins(p, r.coins());
         String from = w.runStart <= 0 ? "LOBBY" : Sections.formatRoom(rs, w.runStart), to = Sections.formatRoom(rs, w.runFurthest);
         p.sendSystemMessage(Component.translatable(survived ? "message.roomsmod.run.returned" : "message.roomsmod.run.ended",
@@ -89,10 +89,11 @@ public final class RoomsRun {
             if (!w.runHit) parts.add("NO HIT +" + Math.round(CoinFormula.NO_HIT_BONUS * 100) + "%");
             parts.add("SURVIVED +" + Math.round(CoinFormula.SURVIVE_BONUS * 100) + "%");
             if (rs.hardMode) parts.add("HARD x" + CoinFormula.HARD_MUL);
+            if (r.leftover() > 0) parts.add("ITEMS +" + String.format(java.util.Locale.ROOT, "%.2f", r.leftover()));
             p.sendSystemMessage(Component.literal("  " + String.join(" / ", parts)).withStyle(ChatFormatting.GRAY));
         }
-        RoomsDebug.log("run settled ({}) player={} start={} furthest={} rooms={} base={} mul={} hit={} hard={} -> +{} coins (total {})",
-                why, p.getGameProfile().getName(), w.runStart, w.runFurthest, r.rooms(), String.format("%.2f", r.base()), String.format("%.2f", r.multiplier()),
+        RoomsDebug.log("run settled ({}) player={} start={} furthest={} rooms={} base={} mul={} leftover={} hit={} hard={} -> +{} coins (total {})",
+                why, p.getGameProfile().getName(), w.runStart, w.runFurthest, r.rooms(), String.format("%.2f", r.base()), String.format("%.2f", r.multiplier()), String.format("%.2f", r.leftover()),
                 w.runHit, rs.hardMode, r.coins(), w.coins);
         return r;
     }

@@ -10,7 +10,8 @@ import com.example.roomsmod.world.section.Sections;
  *   weight = ノーマル: BASE + DEPTH × (min(local, max) − 1) / (max − 1)    （セクションの奥ほど高い。max を越えた部屋は max と同じ）
  *            ハード  : BASE（深さの加算なし、代わりに全体 × HARD_MUL）
  *   倍率   = (1 + NO_HIT_BONUS[被弾なし] + SURVIVE_BONUS[生還]) × (死亡なら DEATH_MUL) × (ハードなら HARD_MUL)
- *   コイン = floor(基本 × 倍率)
+ *   残り物 = 生還時のみ 電池 × LEFTOVER_BATTERY + 包帯 × LEFTOVER_BANDAGE（倍率の対象外）
+ *   コイン = floor(基本 × 倍率 + 残り物)
  * </pre>
  * 例（ノーマル）：V-401〜V-500 の 100 部屋 ≈ 122.5、V-451〜B-050 の 100 部屋 ≈ 112.9（B の始めは浅いので少なめ）。
  */
@@ -25,6 +26,8 @@ public final class CoinFormula {
     /** 死亡した時は基本の半分（被弾なし・生還のボーナスもなし）。 */
     public static final double DEATH_MUL = 0.5;
     public static final double HARD_MUL = 2.0;
+    /** 帰還（生還）時、持っている電池・包帯1個あたりのボーナス（倍率のあとに足す。消費はしない）。 */
+    public static final double LEFTOVER_BATTERY = 0.25, LEFTOVER_BANDAGE = 0.5;
     /** ロビーへ戻れるのに必要な部屋数（周回の開始の部屋から、セクションをまたいでも通算）。 */
     public static final int MIN_ROOMS_TO_RETURN = 50;
 
@@ -45,13 +48,18 @@ public final class CoinFormula {
         return sum;
     }
 
-    public record Result(int rooms, double base, double multiplier, long coins) {}
+    public record Result(int rooms, double base, double multiplier, double leftover, long coins) {}
 
     public static Result compute(RoomsState rs, int start, int furthest, boolean noHit, boolean survived, boolean hard) {
+        return compute(rs, start, furthest, noHit, survived, hard, 0, 0);
+    }
+
+    public static Result compute(RoomsState rs, int start, int furthest, boolean noHit, boolean survived, boolean hard, int batteries, int bandages) {
         int rooms = Math.max(0, furthest - start);
         double b = base(rs, start, furthest, hard);
         double m = survived ? 1 + (noHit ? NO_HIT_BONUS : 0) + SURVIVE_BONUS : DEATH_MUL;
         if (hard) m *= HARD_MUL;
-        return new Result(rooms, b, m, (long) Math.floor(b * m));
+        double left = survived ? batteries * LEFTOVER_BATTERY + bandages * LEFTOVER_BANDAGE : 0;
+        return new Result(rooms, b, m, left, (long) Math.floor(b * m + left));
     }
 }

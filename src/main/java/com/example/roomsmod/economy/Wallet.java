@@ -36,14 +36,23 @@ import java.util.function.Supplier;
 /**
  * 電池・包帯・コインの所持数（インベントリの外、HUD に表示）。プレイヤーごとに保存し、クライアントへ同期する。
  * <ul>
- *   <li>電池は最大 {@value #MAX_BATTERY}、包帯は最大 {@value #MAX_BANDAGE}、コインは上限なし。</li>
- *   <li>床の電池・包帯は拾うとここに入る（いっぱいなら拾わない＝床に残る）。持ち物に残っている電池・包帯（旧セーブ・creative）も入れられる分だけ移す。</li>
+ *   <li>上限は MAX_BATTERY / MAX_BANDAGE（{@value #UNLIMITED} = 上限なし。2026-11-01 は電池・包帯ともいったん上限なし。戻すなら 10 / 5）。コインは上限なし。</li>
+ *   <li>床の電池・包帯は拾うとここに入る（いっぱいなら拾わない＝床に残る）。持ち物には存在させない：持ち物・カーソルにある電池・包帯（旧セーブ・チェスト・creative 等）は毎 tick 所持数へ入れ、上限を超えた分は消す。</li>
  *   <li>死ぬと電池・包帯はなくなる（以前の持ち物と同じ）。コインは残る。</li>
  *   <li>周回の記録（どの部屋から始めたか・どこまで進んだか・被弾したか）もここ（RoomsRun）。</li>
  * </ul>
  */
 public final class Wallet implements INBTSerializable<CompoundTag> {
-    public static final int MAX_BATTERY = 10, MAX_BANDAGE = 5;
+    /** 上限なしを表す値。 */
+    public static final int UNLIMITED = -1;
+    /** 所持数の上限（UNLIMITED = なし）。以前は 10 / 5。 */
+    public static final int MAX_BATTERY = UNLIMITED, MAX_BANDAGE = UNLIMITED;
+
+    /** あと何個入るか。 */
+    public static int space(int max, int cur) { return max < 0 ? Integer.MAX_VALUE - Math.max(0, cur) : Math.max(0, max - cur); }
+    public static boolean full(int max, int cur) { return max >= 0 && cur >= max; }
+    /** 表示用：上限なしなら "3"、あれば "3/10"。 */
+    public static String label(int cur, int max) { return max < 0 ? String.valueOf(cur) : cur + "/" + max; }
 
     public int battery, bandage;
     public long coins;
@@ -143,7 +152,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
         if (it.hasPickUpDelay()) return;
         e.setCanPickup(TriState.FALSE); // 持ち物には入れない
         Wallet w = of(sp);
-        int room = bat ? MAX_BATTERY - w.battery : MAX_BANDAGE - w.bandage;
+        int room = bat ? space(MAX_BATTERY, w.battery) : space(MAX_BANDAGE, w.bandage);
         if (room <= 0) {
             if (sp.tickCount % 40 == 0) sp.displayClientMessage(Component.translatable(bat ? "message.roomsmod.battery_full" : "message.roomsmod.bandage_carry_full"), true);
             return;
@@ -157,22 +166,48 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
         RoomsDebug.log("wallet pickup {} x{} player={} -> battery={} bandage={}", bat ? "battery" : "bandage", n, sp.getGameProfile().getName(), w.battery, w.bandage);
     }
 
-    /** 持ち物に残っている電池・包帯（旧セーブ・コマンド）を入れられる分だけ移す。 */
+    /**
+     * 電池・包帯は持ち物に存在させない：持ち物（とカーソルで持っている物）にあれば所持数へ入れ、上限を超えた分は消す。
+     * 拾う以外の経路（旧セーブ・チェスト等から取り出し・クリエイティブ・ほかの MOD）もここで吸収する。毎 tick。
+     */
     @SubscribeEvent
     public static void onTick(PlayerTickEvent.Post e) {
-        if (!(e.getEntity() instanceof ServerPlayer sp) || sp.tickCount % 20 != 7) return;
+        if (!(e.getEntity() instanceof ServerPlayer sp)) return;
         Wallet w = of(sp);
         var inv = sp.getInventory();
-        boolean changed = false;
+        int gotBat = 0, gotBand = 0, lostBat = 0, lostBand = 0;
         for (int i = 0; i < inv.getContainerSize(); i++) {
             ItemStack s = inv.getItem(i);
-            if (s.is(RoomsMod.BATTERY.get()) && w.battery < MAX_BATTERY) {
-                int n = Math.min(MAX_BATTERY - w.battery, s.getCount()); w.battery += n; s.shrink(n); changed = true;
-            } else if (s.is(RoomsMod.BANDAGE.get()) && w.bandage < MAX_BANDAGE) {
-                int n = Math.min(MAX_BANDAGE - w.bandage, s.getCount()); w.bandage += n; s.shrink(n); changed = true;
-            }
+            if (s.isEmpty()) continue;
+            int[] r = absorb(w, s);
+            if (r == null) continue;
+            gotBat += r[0]; gotBand += r[1]; lostBat += r[2]; lostBand += r[3];
+            inv.setItem(i, ItemStack.EMPTY);
         }
-        if (changed) { sync(sp); RoomsDebug.log("wallet moved inventory items player={} -> battery={} bandage={}", sp.getGameProfile().getName(), w.battery, w.bandage); }
+        ItemStack carried = sp.containerMenu.getCarried();
+        if (!carried.isEmpty()) {
+            int[] r = absorb(w, carried);
+            if (r != null) { gotBat += r[0]; gotBand += r[1]; lostBat += r[2]; lostBand += r[3]; sp.containerMenu.setCarried(ItemStack.EMPTY); sp.containerMenu.broadcastChanges(); }
+        }
+        if (gotBat + gotBand + lostBat + lostBand == 0) return;
+        sync(sp);
+        RoomsDebug.log("inventory items absorbed player={} battery=+{} bandage=+{} discarded_battery={} discarded_bandage={} -> battery={} bandage={}",
+                sp.getGameProfile().getName(), gotBat, gotBand, lostBat, lostBand, w.battery, w.bandage);
+    }
+
+    /** 電池・包帯なら所持数へ（上限まで）入れて {入った電池, 入った包帯, 消えた電池, 消えた包帯}、ほかの物は null。 */
+    private static int[] absorb(Wallet w, ItemStack s) {
+        if (s.is(RoomsMod.BATTERY.get())) {
+            int n = Math.min(space(MAX_BATTERY, w.battery), s.getCount());
+            w.battery += n;
+            return new int[]{n, 0, s.getCount() - n, 0};
+        }
+        if (s.is(RoomsMod.BANDAGE.get())) {
+            int n = Math.min(space(MAX_BANDAGE, w.bandage), s.getCount());
+            w.bandage += n;
+            return new int[]{0, n, 0, s.getCount() - n};
+        }
+        return null;
     }
 
     /** 死亡：電池・包帯はなくなる（以前の持ち物と同じ）。周回のコインは RoomsRun が先に精算する。 */

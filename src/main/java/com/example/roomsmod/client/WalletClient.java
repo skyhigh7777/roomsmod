@@ -54,8 +54,8 @@ public final class WalletClient {
         GuiGraphics g = e.getGuiGraphics();
         int x = g.guiWidth() / 2 + 91 + 8, y = g.guiHeight() - 20;
         if (!mc.player.getOffhandItem().isEmpty() && mc.player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT) x += 29; // オフハンド枠が右に出る時はその外へ
-        x = entry(g, mc, battery, Wallet.clientBattery + "/" + Wallet.MAX_BATTERY, Wallet.clientBattery >= Wallet.MAX_BATTERY ? 0xFFE0A040 : 0xFFFFFFFF, x, y);
-        x = entry(g, mc, bandage, Wallet.clientBandage + "/" + Wallet.MAX_BANDAGE, Wallet.clientBandage >= Wallet.MAX_BANDAGE ? 0xFFE0A040 : 0xFFFFFFFF, x, y);
+        x = entry(g, mc, battery, Wallet.label(Wallet.clientBattery, Wallet.MAX_BATTERY), Wallet.full(Wallet.MAX_BATTERY, Wallet.clientBattery) ? 0xFFE0A040 : 0xFFFFFFFF, x, y);
+        x = entry(g, mc, bandage, Wallet.label(Wallet.clientBandage, Wallet.MAX_BANDAGE), Wallet.full(Wallet.MAX_BANDAGE, Wallet.clientBandage) ? 0xFFE0A040 : 0xFFFFFFFF, x, y);
         entry(g, mc, COIN, String.valueOf(Wallet.clientCoins), 0xFFFFD040, x, y);
     }
 

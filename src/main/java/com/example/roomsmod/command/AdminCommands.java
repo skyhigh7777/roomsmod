@@ -114,8 +114,8 @@ public final class AdminCommands {
 
     private static int showWallet(CommandSourceStack src, ServerPlayer p) {
         Wallet w = Wallet.of(p);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(p.getGameProfile().getName() + ": 電池 " + w.battery + "/" + Wallet.MAX_BATTERY
-                + "  包帯 " + w.bandage + "/" + Wallet.MAX_BANDAGE + "  コイン " + w.coins
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(p.getGameProfile().getName() + ": 電池 " + Wallet.label(w.battery, Wallet.MAX_BATTERY)
+                + "  包帯 " + Wallet.label(w.bandage, Wallet.MAX_BANDAGE) + "  コイン " + w.coins
                 + "  周回 start=" + w.runStart + " furthest=" + w.runFurthest + " hit=" + w.runHit), false);
         return 1;
     }
@@ -123,8 +123,8 @@ public final class AdminCommands {
     private static int setWallet(CommandSourceStack src, ServerPlayer p, String what, int n) {
         Wallet w = Wallet.of(p);
         switch (what.toLowerCase(Locale.ROOT)) {
-            case "battery" -> w.battery = Math.min(n, Wallet.MAX_BATTERY);
-            case "bandage" -> w.bandage = Math.min(n, Wallet.MAX_BANDAGE);
+            case "battery" -> w.battery = Math.min(n, Wallet.space(Wallet.MAX_BATTERY, 0));
+            case "bandage" -> w.bandage = Math.min(n, Wallet.space(Wallet.MAX_BANDAGE, 0));
             case "coins", "coin" -> w.coins = n;
             default -> { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("battery / bandage / coins のどれか")); return 0; }
         }
@@ -162,20 +162,20 @@ public final class AdminCommands {
     private static int giveBandage(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var p = src.getPlayerOrException();
         var w = com.example.roomsmod.economy.Wallet.of(p);
-        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BANDAGE - w.bandage);
+        int add = Math.min(n, com.example.roomsmod.economy.Wallet.space(com.example.roomsmod.economy.Wallet.MAX_BANDAGE, w.bandage));
         w.bandage += Math.max(0, add);
         com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + w.bandage + "/" + com.example.roomsmod.economy.Wallet.MAX_BANDAGE + ")")), false);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + com.example.roomsmod.economy.Wallet.label(w.bandage, com.example.roomsmod.economy.Wallet.MAX_BANDAGE) + ")")), false);
         return Math.max(0, add);
     }
 
     private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         var p = src.getPlayerOrException();
         var w = com.example.roomsmod.economy.Wallet.of(p);
-        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BATTERY - w.battery);
+        int add = Math.min(n, com.example.roomsmod.economy.Wallet.space(com.example.roomsmod.economy.Wallet.MAX_BATTERY, w.battery));
         w.battery += Math.max(0, add);
         com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + w.battery + "/" + com.example.roomsmod.economy.Wallet.MAX_BATTERY + ")")), false);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + com.example.roomsmod.economy.Wallet.label(w.battery, com.example.roomsmod.economy.Wallet.MAX_BATTERY) + ")")), false);
         return Math.max(0, add);
     }
 
