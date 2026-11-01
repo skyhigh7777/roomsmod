@@ -23,7 +23,16 @@ public final class StaminaClient {
     public static void onClientTick(ClientTickEvent.Pre event) {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer p = mc.player;
-        if (p == null || p.isSpectator() || !ClientStamina.exhausted || !Stamina.inRooms(p)) return;
+        if (p == null || p.isSpectator() || !Stamina.inRooms(p)) return;
+        if (!ClientStamina.exhausted) {
+            // 浅い水（F の水没区画）ではバニラがダッシュの「開始」を許さないので、条件を満たせばこちらで開始する（地面にいれば止められない）。
+            if (!p.isSprinting() && p.isInWater() && !p.isUnderWater() && p.onGround() && mc.options.keySprint.isDown()
+                    && p.input != null && p.input.hasForwardImpulse() && !p.isUsingItem() && !p.isCrouching()
+                    && !p.hasEffect(net.minecraft.world.effect.MobEffects.BLINDNESS)
+                    && !LockerClient.isLocalPlayerInLocker() && !LockerClient.isLocalPlayerUnderTable())
+                p.setSprinting(true);
+            return;
+        }
         mc.options.keySprint.setDown(false);
         if (p.isSprinting()) p.setSprinting(false);
     }
