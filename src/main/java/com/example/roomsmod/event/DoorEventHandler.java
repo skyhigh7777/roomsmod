@@ -62,7 +62,7 @@ public class DoorEventHandler {
                     // 詰み防止：開いているのに次の部屋ができていない出口扉（生成失敗・扉だけ開いた等）は、もう一度生成を試す
                     if (dp.equals(rs0.expectedExitDoor)) {
                         rs0.generatedDoors.remove(dp);
-                        RoomsDebug.log(event.getEntity(), "開いた出口扉の先に部屋がないので生成し直すわ", "door click pos={} -> open exit door without next room: retry generation", dp);
+                        RoomsDebug.log(event.getEntity(), "出口扉の先に部屋がないため再生成", "door click pos={} -> open exit door without next room: retry generation", dp);
                         advanceThroughExitDoor(sl, rs0, event.getEntity(), dp, "stuck open exit door retry");
                         return;
                     }
@@ -72,11 +72,11 @@ public class DoorEventHandler {
                         if (ds.getBlock() instanceof DoorBlock db && ds.getValue(DoorBlock.OPEN)) {
                             sl.setBlock(dp, ds.setValue(DoorBlock.OPEN, false), 10);
                             sl.playSound(null, dp, db.type().doorClose(), net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, sl.getRandom().nextFloat() * 0.1f + 0.9f);
-                            RoomsDebug.log(event.getEntity(), "扉を閉めたわ", "door click pos={} -> closed (inner door, not a generated exit)", dp);
+                            RoomsDebug.log(event.getEntity(), "扉を閉めた", "door click pos={} -> closed (inner door, not a generated exit)", dp);
                             return;
                         }
                     }
-                    RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
+                    RoomsDebug.log(event.getEntity(), "扉は開いたまま", "door click pos={} -> cancelled (already open)", event.getPos());
                 }
                 return;
             }
@@ -187,7 +187,7 @@ public class DoorEventHandler {
             rs.generatedDoors.remove(doorPos); // もう一度クリックすれば再試行できるように
             return false;
         }
-        if (player != null) RoomsDebug.log(player, "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
+        if (player != null) RoomsDebug.log(player, "次の部屋を生成した（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
             "{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
         else RoomsDebug.log("{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
 
@@ -341,7 +341,7 @@ public class DoorEventHandler {
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
         if (!level.addFreshEntity(a40)) { RoomsDebug.warn("B-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
-            "B-40が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
+            "B-40 が出現した（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, startIndex) + "、X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + "）",
             "B-40 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
         return true;
     }
@@ -369,7 +369,7 @@ public class DoorEventHandler {
         int pathLen = 0;
         for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.path(i).size();
         RoomsDebug.log(player,
-            "B-20が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
+            "B-20 が出現した（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, startIndex) + "、X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + "）",
             "B-20 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
     }
 }

@@ -56,7 +56,7 @@ public class GK07Entity extends com.example.roomsmod.entity.v.VEntity {
             level.setBlock(door, s.setValue(DoorBlock.OPEN, false), 10);
             level.playSound(null, door, db.type().doorClose(), SoundSource.BLOCKS, 1.0f, 1.0f);
         }
-        RoomsDebug.log(p, "S-125: 扉を閉めたわ", "S-125 door closed by {} at life={}", p.getGameProfile().getName(), life);
+        RoomsDebug.log(p, "S-125: 扉を閉めた", "S-125 door closed by {} at life={}", p.getGameProfile().getName(), life);
         leave("door closed");
     }
 

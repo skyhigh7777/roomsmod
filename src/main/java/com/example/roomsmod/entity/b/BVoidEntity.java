@@ -53,7 +53,7 @@ public class BVoidEntity extends VPathWalker {
     protected void serverTick(ServerLevel level) {
         if (grace < graceTicks()) {
             if (grace == 0) {
-                RoomsDebug.announce(playersNear(200), "B-260 が前から来るわ（" + TELEGRAPH / 20.0 + "秒）", "B-260 telegraph from room {} toward {}", startRoom, endRoom);
+                RoomsDebug.announce(playersNear(200), "B-260 が前から来る（" + TELEGRAPH / 20.0 + "秒）", "B-260 telegraph from room {} toward {}", startRoom, endRoom);
             }
             if (grace % 20 == 0) level.playSound(null, getX(), getY(), getZ(), SoundEvents.WARDEN_SONIC_CHARGE, SoundSource.HOSTILE, 4.0f, 0.4f);
         }
@@ -64,7 +64,7 @@ public class BVoidEntity extends VPathWalker {
             Vec3 to = t.position().add(0, 0.5, 0).subtract(position());
             double d = to.length();
             if (d <= KILL_RADIUS) {
-                RoomsDebug.log(t, "B-260 に捕まったわ", "B-260 caught player={}", t.getGameProfile().getName());
+                RoomsDebug.log(t, "B-260 に捕まった", "B-260 caught player={}", t.getGameProfile().getName());
                 com.example.roomsmod.util.RoomsDamage.hurt(this, t, 1000f);
                 leave("caught " + t.getGameProfile().getName());
                 return;

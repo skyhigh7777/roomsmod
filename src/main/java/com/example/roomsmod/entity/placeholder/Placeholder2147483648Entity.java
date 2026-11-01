@@ -209,7 +209,7 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
         boolean locker = LockerManager.isInLocker(p);
         String who = p.getGameProfile().getName();
         if (locker && cycle < FINAL_CYCLE) {
-            RoomsDebug.log(p, name + ": ロッカーで助かったわ（" + cycle + "/" + FINAL_CYCLE + "）", "{} check cycle {}/{} player={} spared (locker)", name, cycle, FINAL_CYCLE, who);
+            RoomsDebug.log(p, name + ": ロッカーで助かった（" + cycle + "/" + FINAL_CYCLE + "）", "{} check cycle {}/{} player={} spared (locker)", name, cycle, FINAL_CYCLE, who);
             return;
         }
         RoomsDamage.hurt(this, p, KILL_DAMAGE);

@@ -229,7 +229,7 @@ public final class RoomsCleanup {
         p.teleportTo(level, RoomsLayout.SPAWN_X, RoomsLayout.SPAWN_Y, RoomsLayout.SPAWN_Z, p.getYRot(), p.getXRot());
         p.fallDistance = 0;
         p.setDeltaMovement(Vec3.ZERO);
-        p.displayClientMessage(Component.literal("部屋が作り直されたのでロビーへ戻ったわ"), true);
+        p.displayClientMessage(Component.literal("部屋が作り直されたためロビーへ移動"), true);
         RoomsDebug.log("rooms cleanup: {} moved to lobby ({})", p.getGameProfile().getName(), why);
     }
 }

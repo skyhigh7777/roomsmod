@@ -76,7 +76,7 @@ public class A250Entity extends AbyssEnemy {
         switch (state) {
             case WARN -> {
                 if (t == null) { leave("target gone"); return; }
-                if (life == 1) RoomsDebug.announce(java.util.List.of(t), "A-250：壁が動くわ（粉の落ちていない所へ、" + shape + "）", "A-250 telegraph shape={} warn={}", shape, warn);
+                if (life == 1) RoomsDebug.announce(java.util.List.of(t), "A-250：壁が動く（粉の落ちていない所へ、" + shape + "）", "A-250 telegraph shape={} warn={}", shape, warn);
                 if (stateTicks % 8 == 1) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.AMBIENT_BASALT_DELTAS_MOOD.value(), SoundSource.HOSTILE, 2.0f, 0.5f);
                 if (stateTicks % 12 == 1) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.GRINDSTONE_USE, SoundSource.HOSTILE, 1.5f, 0.5f);
                 if (warn - stateTicks == 15) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.PISTON_CONTRACT, SoundSource.HOSTILE, 2.0f, 0.4f); // 直前の合図

@@ -90,7 +90,7 @@ public class A450Entity extends AbyssEnemy {
         setVirtualPos(pv(rs, t)); // プレイヤーと一緒（姿なし）
         if (life == 1) {
             level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.BEACON_AMBIENT, SoundSource.HOSTILE, 3.0f, 0.5f);
-            RoomsDebug.announce(java.util.List.of(t), "A-450：もうすぐ上と下が入れ替わるわ", "A-450 telegraph warn={}", hardSpawn ? WARN_HARD : WARN);
+            RoomsDebug.announce(java.util.List.of(t), "A-450：もうすぐ上と下が入れ替わる", "A-450 telegraph warn={}", hardSpawn ? WARN_HARD : WARN);
         }
         switch (state) {
             case WARN -> {

@@ -56,7 +56,7 @@ public abstract class BRusher extends VPathWalker {
         // 予告：折り返し回数＋1 回のチャイム（10 tick 間隔）
         if (chimes <= rebounds() && tickCount % 10 == 1) {
             level.playSound(null, getX(), getY(), getZ(), turnSound(), SoundSource.HOSTILE, 3.0f, 0.6f);
-            if (chimes == 0) RoomsDebug.announce(playersNear(160), vName() + " が来るわ（チャイム " + (rebounds() + 1) + " 回）", "{} telegraph rebounds={} passes={} rooms {}->{}", vName(), rebounds(), extraPasses() + 1, startRoom, endRoom);
+            if (chimes == 0) RoomsDebug.announce(playersNear(160), vName() + " が来る（チャイム " + (rebounds() + 1) + " 回）", "{} telegraph rebounds={} passes={} rooms {}->{}", vName(), rebounds(), extraPasses() + 1, startRoom, endRoom);
             chimes++;
         }
         if (super.holdTick(level)) return true;

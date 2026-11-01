@@ -69,7 +69,7 @@ public final class LockerManager {
         if (HIDING.containsKey(player.getUUID())) { exit(player, "right-click"); return; }
         if (player.isSpectator() || !player.isAlive()) return;
         if (occupied(player, pos)) {
-            RoomsDebug.log(player, "机の下は使用中よ", "table enter denied pos={} player={} (occupied)", pos, player.getGameProfile().getName());
+            RoomsDebug.log(player, "机の下は使用中", "table enter denied pos={} player={} (occupied)", pos, player.getGameProfile().getName());
             return;
         }
         // blockPosition() は床が 15/16 高さ（土の道など）だと床ブロック自身を指す（足のy=10.94 → 10）。
@@ -82,7 +82,7 @@ public final class LockerManager {
         player.setDeltaMovement(Vec3.ZERO);
         Vec3 c = inside(pos);
         player.teleportTo(player.serverLevel(), c.x, c.y, c.z, player.getYRot(), 0f);
-        RoomsDebug.log(player, "机の下に隠れたわ", "table enter pos={} exit={} player={}", pos, exitPos, player.getGameProfile().getName());
+        RoomsDebug.log(player, "机の下に隠れた", "table enter pos={} exit={} player={}", pos, exitPos, player.getGameProfile().getName());
     }
 
     public static void toggle(ServerPlayer player, BlockPos base, Direction facing) {
@@ -93,7 +93,7 @@ public final class LockerManager {
         }
         if (player.isSpectator() || !player.isAlive()) return;
         if (occupied(player, base)) {
-            RoomsDebug.log(player, "ロッカーは使用中よ", "locker enter denied pos={} player={} (occupied)", base, player.getGameProfile().getName());
+            RoomsDebug.log(player, "ロッカーは使用中", "locker enter denied pos={} player={} (occupied)", base, player.getGameProfile().getName());
             return;
         }
         if (com.example.roomsmod.entity.gk.GKDoorTricks.onLockerEnter(player.serverLevel(), player, base)) return;
@@ -102,7 +102,7 @@ public final class LockerManager {
         player.setDeltaMovement(Vec3.ZERO);
         Vec3 c = inside(base);
         player.teleportTo(player.serverLevel(), c.x, c.y, c.z, facing.toYRot(), 0f);
-        RoomsDebug.log(player, "ロッカーに入ったわ", "locker enter pos={} facing={} player={}", base, facing, player.getGameProfile().getName());
+        RoomsDebug.log(player, "ロッカーに入った", "locker enter pos={} facing={} player={}", base, facing, player.getGameProfile().getName());
     }
 
     /** feet に立てるか: 足元に当たり判定あり、足と頭のマスに当たり判定なし。 */
@@ -150,7 +150,7 @@ public final class LockerManager {
             player.teleportTo(h.level, o.x, o.y, o.z, player.getYRot(), player.getXRot());
         }
         String what = h.spot == Spot.TABLE ? "机の下" : "ロッカー";
-        RoomsDebug.log(player, what + "から出たわ（" + reason + "）", "{} exit pos={} reason={} player={}", h.spot, h.pos, reason, player.getGameProfile().getName());
+        RoomsDebug.log(player, what + "から出た（" + reason + "）", "{} exit pos={} reason={} player={}", h.spot, h.pos, reason, player.getGameProfile().getName());
     }
 
     @SubscribeEvent

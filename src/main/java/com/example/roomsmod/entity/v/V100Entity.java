@@ -244,7 +244,7 @@ public class V100Entity extends VEntity {
         if (n < MOVE_KILL_TICKS) return false;
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.V100_SCREAM.get(), SoundSource.HOSTILE, 3.0f, 1.0f);
         boolean immune = p.isSpectator();
-        RoomsDebug.log(p, immune ? "V-100: would kill（クリエイティブ）" : "V-100 に見つかったわ",
+        RoomsDebug.log(p, immune ? "V-100: would kill（クリエイティブ）" : "V-100 に見つかった",
                 "V-100 attack player={} after {} moves creative={}{}", p.getGameProfile().getName(), n, p.isCreative(), immune ? " -> would kill" : "");
         if (!immune) com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
         leave("attacked");

@@ -18,7 +18,7 @@ public class RoomsCommands {
     private static int setDebug(CommandSourceStack src, boolean on) {
         ServerLevel roomsLevel = src.getServer().getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) {
-            src.sendFailure(Component.literal("ディメンションが見つからないわ"));
+            src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない"));
             return 0;
         }
         com.example.roomsmod.world.RoomsState.get(roomsLevel).setDebug(on);
@@ -27,33 +27,33 @@ public class RoomsCommands {
         for (ServerLevel lv : src.getServer().getAllLevels())
             for (net.minecraft.world.entity.Entity e : lv.getAllEntities())
                 if ("roomsmod".equals(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace()) && e.hasGlowingTag() != on) { e.setGlowingTag(on); n++; }
-        com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] debug outline sync -> {} entities={}", on, n);
-        com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] debug {} by {}", on ? "ON" : "OFF", src.getTextName());
-        src.sendSuccess(() -> Component.literal("Roomsデバッグを" + (on ? "ON" : "OFF") + "にしたわ"), true);
+        com.example.roomsmod.util.RoomsDebug.info("debug outline sync -> {} entities={}", on, n);
+        com.example.roomsmod.util.RoomsDebug.info("debug {} by {}", on ? "ON" : "OFF", src.getTextName());
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("Roomsデバッグを" + (on ? "ON" : "OFF") + "にした"), true);
         return 1;
     }
 
     private static int spawnRusher(CommandSourceStack src, boolean a40) {
         ServerLevel roomsLevel = src.getServer().getLevel(ROOMS_DIMENSION);
-        if (roomsLevel == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        if (roomsLevel == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(roomsLevel);
-        if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
-        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(roomsLevel)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
+        if (rs.roomPaths.isEmpty()) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("部屋がまだ生成されていない")); return 0; }
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(roomsLevel)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("PLACEHOLDER-2147483648 が生存中は他の敵を出せない（/kill で消せる）")); return 0; }
         boolean sameAlive = a40 ? com.example.roomsmod.event.DoorEventHandler.isA40Alive(roomsLevel)
                                 : com.example.roomsmod.event.DoorEventHandler.isA20Alive(roomsLevel);
         if (sameAlive) {
-            src.sendFailure(Component.literal((a40 ? "B-40" : "B-20") + "はすでに生存中よ")); return 0;
+            src.sendFailure(com.example.roomsmod.util.RoomsMsg.err((a40 ? "B-40" : "B-20") + "はすでに生存中")); return 0;
         }
         if (com.example.roomsmod.entity.v.VSpawns.isAlive(roomsLevel, com.example.roomsmod.RoomsMod.B_ERROR.get())) {
-            src.sendFailure(Component.literal("B-110 が生存中なので " + (a40 ? "B-40" : "B-20") + " は出せないわ")); return 0;
+            src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("B-110 が生存中なので " + (a40 ? "B-40" : "B-20") + " は出せない")); return 0;
         }
         var player = src.getPlayer();
         if (a40) {
-            if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player))) { src.sendFailure(Component.literal("B-40の出現に失敗したわ")); return 0; }
+            if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player))) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("B-40の出現に失敗した")); return 0; }
         } else {
             com.example.roomsmod.world.AbyssSpace.asCommand(() -> { com.example.roomsmod.event.DoorEventHandler.spawnA20(roomsLevel, rs, player); return true; });
         }
-        src.sendSuccess(() -> Component.literal((a40 ? "B-40" : "B-20") + "を出現させたわ"), true);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok((a40 ? "B-40" : "B-20") + "を出現させた"), true);
         return 1;
     }
 
@@ -65,45 +65,45 @@ public class RoomsCommands {
 
     private static int spawnV(CommandSourceStack src, String id) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
-        if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        if (lv == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
-        if (rs.roomPaths.isEmpty()) { src.sendFailure(Component.literal("部屋がまだ生成されていないわ")); return 0; }
+        if (rs.roomPaths.isEmpty()) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("部屋がまだ生成されていない")); return 0; }
         var k = com.example.roomsmod.entity.v.VSpawns.Kind.byId(id);
-        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(lv)) { src.sendFailure(Component.literal("PLACEHOLDER-2147483648 が生存中は他の敵を出せないわ（/kill で消せる）")); return 0; }
-        if (k.alive(lv)) { src.sendFailure(Component.literal(k.display + "（または同じ排他グループ）はすでに生存中よ")); return 0; }
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(lv)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("PLACEHOLDER-2147483648 が生存中は他の敵を出せない（/kill で消せる）")); return 0; }
+        if (k.alive(lv)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(k.display + "（または同じ排他グループ）はすでに生存中")); return 0; }
         com.example.roomsmod.util.RoomsDebug.log("force spawn {} by {}", k.display, src.getTextName());
-        if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> k.spawn(lv, rs, src.getPlayer()))) { src.sendFailure(Component.literal(k.display + "の出現に失敗したわ（条件を満たす場所がない？デバッグログ参照）")); return 0; }
-        src.sendSuccess(() -> Component.literal(k.display + "を出現させたわ"), true);
+        if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> k.spawn(lv, rs, src.getPlayer()))) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(k.display + "の出現に失敗した（条件を満たす場所がない？デバッグログ参照）")); return 0; }
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(k.display + "を出現させた"), true);
         return 1;
     }
 
     private static int addSection(CommandSourceStack src, String id, Integer startRoom) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
-        if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        if (lv == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない")); return 0; }
         id = com.example.roomsmod.world.section.Sections.canonical(id);
         var theme = com.example.roomsmod.world.section.Sections.find(id);
-        if (theme == null) { src.sendFailure(Component.literal("セクション '" + id + "' は未登録よ（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
+        if (theme == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("セクション '" + id + "' は未登録（登録済み: " + com.example.roomsmod.world.section.Sections.ids() + "）")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
-        if (rs.isSectionLocked(id)) { src.sendFailure(Component.translatable("message.roomsmod.section_locked", id.toUpperCase(java.util.Locale.ROOT))); return 0; }
+        if (rs.isSectionLocked(id)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(Component.translatable("message.roomsmod.section_locked", id.toUpperCase(java.util.Locale.ROOT)))); return 0; }
         int start = startRoom != null ? startRoom : rs.currentRoom + 1;
         rs.chainFrom(id, start); // 以降は固定長（500部屋ごと）で次のセクションへ
         boolean relabeled = start == rs.currentRoom + 1 && com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
         String label = com.example.roomsmod.world.section.Sections.formatRoom(rs, start);
-        com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] section {} added at global room {} ({}) by {} table={}", id, start, label, src.getTextName(), rs.sections);
-        String msg = "セクション " + theme.prefix() + " を部屋 " + start + " から開始するわ（その部屋は " + label + "）"
-                + (start <= rs.currentRoom ? "。※生成済みの部屋は変わらないわ" : "")
-                + (relabeled ? "。次の扉の番号も書き換えたわ" : "");
-        src.sendSuccess(() -> Component.literal(msg), true);
+        com.example.roomsmod.util.RoomsDebug.info("section {} added at global room {} ({}) by {} table={}", id, start, label, src.getTextName(), rs.sections);
+        String msg = "セクション " + theme.prefix() + " を部屋 " + start + " から開始する（その部屋は " + label + "）"
+                + (start <= rs.currentRoom ? "。※生成済みの部屋は変わらない" : "")
+                + (relabeled ? "。次の扉の番号も書き換えた" : "");
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(msg), true);
         return 1;
     }
 
     private static int resetSections(CommandSourceStack src) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
-        if (lv == null) { src.sendFailure(Component.literal("ディメンションが見つからないわ")); return 0; }
+        if (lv == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない")); return 0; }
         var rs = com.example.roomsmod.world.RoomsState.get(lv);
         rs.setChain(com.example.roomsmod.world.section.Sections.firstId());
         com.example.roomsmod.world.RoomGenerator.relabelNextExitSign(lv, rs);
-        src.sendSuccess(() -> Component.literal("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、" + com.example.roomsmod.world.section.Sections.ORDER.stream().map(i -> i.toUpperCase(java.util.Locale.ROOT) + " " + com.example.roomsmod.world.section.Sections.length(i)).collect(java.util.stream.Collectors.joining(" / ")) + " 部屋）に戻したわ"), true);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("セクション表を既定（" + String.join(" → ", com.example.roomsmod.world.section.Sections.ORDER).toUpperCase(java.util.Locale.ROOT) + "、" + com.example.roomsmod.world.section.Sections.ORDER.stream().map(i -> i.toUpperCase(java.util.Locale.ROOT) + " " + com.example.roomsmod.world.section.Sections.length(i)).collect(java.util.stream.Collectors.joining(" / ")) + " 部屋）に戻した"), true);
         return 1;
     }
 
@@ -115,7 +115,7 @@ public class RoomsCommands {
         int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BANDAGE - w.bandage);
         w.bandage += Math.max(0, add);
         com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + w.bandage + "/" + com.example.roomsmod.economy.Wallet.MAX_BANDAGE + ")"), false);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + w.bandage + "/" + com.example.roomsmod.economy.Wallet.MAX_BANDAGE + ")")), false);
         return Math.max(0, add);
     }
 
@@ -125,7 +125,7 @@ public class RoomsCommands {
         int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BATTERY - w.battery);
         w.battery += Math.max(0, add);
         com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + w.battery + "/" + com.example.roomsmod.economy.Wallet.MAX_BATTERY + ")"), false);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + w.battery + "/" + com.example.roomsmod.economy.Wallet.MAX_BATTERY + ")")), false);
         return Math.max(0, add);
     }
 
@@ -134,7 +134,7 @@ public class RoomsCommands {
         var w = com.example.roomsmod.economy.Wallet.of(p);
         w.coins = Math.max(0, w.coins + n);
         com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> Component.literal("COIN " + (n >= 0 ? "+" : "") + n + " → " + w.coins), false);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("COIN " + (n >= 0 ? "+" : "") + n + " → " + w.coins), false);
         return 1;
     }
 
@@ -143,7 +143,7 @@ public class RoomsCommands {
     public static boolean goToRoom(ServerPlayer player, int target) {
         ServerLevel roomsLevel = player.server.getLevel(ROOMS_DIMENSION);
         if (roomsLevel == null) {
-            player.sendSystemMessage(Component.literal("ディメンションが見つからないわ"));
+            player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない"));
             return false;
         }
         return com.example.roomsmod.world.RoomsTravel.start(roomsLevel, player, target);
@@ -169,9 +169,9 @@ public class RoomsCommands {
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
                     if (sendToLobby(player)) {
-                        player.sendSystemMessage(Component.literal("Roomsディメンションへ移動したわ"));
+                        player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.ok("Roomsディメンションへ移動した"));
                     } else {
-                        player.sendSystemMessage(Component.literal("ディメンションが見つからないわ"));
+                        player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない"));
                     }
                     return 1;
                 }))
@@ -188,7 +188,7 @@ public class RoomsCommands {
                     if (lv == null) return 0;
                     boolean on = com.example.roomsmod.world.HardMode.isOn(lv);
                     com.example.roomsmod.util.RoomsDebug.log("hard mode status {}", on ? "on" : "off");
-                    ctx.getSource().sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), false);
+                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("HARD MODE: " + (on ? "ON" : "OFF")), false);
                     return on ? 1 : 0;
                 })))
             .then(Commands.literal("debug")
@@ -201,19 +201,19 @@ public class RoomsCommands {
                     var rs = com.example.roomsmod.world.RoomsState.get(lv);
                     var cur = com.example.roomsmod.world.section.Sections.forRoom(rs, rs.currentRoom);
                     String msg = "section current=" + cur.id() + " (prefix " + cur.prefix() + ") room=" + com.example.roomsmod.world.section.Sections.formatRoom(rs, rs.currentRoom) + " (global " + rs.currentRoom + ", local " + com.example.roomsmod.world.section.Sections.localRoom(rs, rs.currentRoom) + ") table=" + rs.sections;
-                    com.example.roomsmod.util.RoomsDebug.LOGGER.info("[RoomsDebug] " + msg);
-                    ctx.getSource().sendSuccess(() -> Component.literal(msg), false);
+                    com.example.roomsmod.util.RoomsDebug.info("{}", msg);
+                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(msg), false);
                     return 1;
                 }))
                 .then(Commands.literal("status").executes(ctx -> {
-                    ctx.getSource().sendSuccess(() -> Component.literal("Roomsデバッグ: " + (com.example.roomsmod.util.RoomsDebug.isEnabled() ? "ON" : "OFF")), false);
+                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info("Roomsデバッグ: " + (com.example.roomsmod.util.RoomsDebug.isEnabled() ? "ON" : "OFF")), false);
                     return 1;
                 })))
             .then(Commands.literal("give")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("flashlight").executes(ctx -> {
                     ctx.getSource().getPlayerOrException().getInventory().add(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS));
-                    ctx.getSource().sendSuccess(() -> Component.translatable("item.roomsmod.flashlight"), false);
+                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("item.roomsmod.flashlight")), false);
                     return 1;
                 }))
                 .then(Commands.literal("bandage").executes(ctx -> giveBandage(ctx.getSource(), 1))
@@ -296,7 +296,7 @@ public class RoomsCommands {
             .then(Commands.literal("deepest")
                 .executes(ctx -> {
                     ServerPlayer player = ctx.getSource().getPlayerOrException();
-                    player.sendSystemMessage(Component.literal("最深部屋へワープ（実装中）"));
+                    player.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.warn("最深部屋へのワープは未実装"));
                     return 1;
                 }))
         );
@@ -306,7 +306,7 @@ public class RoomsCommands {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) return 0;
         com.example.roomsmod.world.HardMode.set(lv, on, src.getTextName());
-        src.sendSuccess(() -> Component.literal("HARD MODE: " + (on ? "ON" : "OFF")), true);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("HARD MODE: " + (on ? "ON" : "OFF")), true);
         return 1;
     }
 }

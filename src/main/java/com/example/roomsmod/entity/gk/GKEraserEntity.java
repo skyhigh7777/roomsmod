@@ -40,7 +40,7 @@ public class GKEraserEntity extends VPathWalker {
             if (FlashlightHandler.heldOn(p).isEmpty() || !canSee(p)) continue;
             Vec3 to = getEyePosition().subtract(p.getEyePosition()).normalize();
             if (p.getViewVector(1f).dot(to) > FREEZE_DOT) {
-                if (frozenTicks++ % 20 == 0) RoomsDebug.log(p, "S-245: 光で止まっているわ", "S-245 frozen by flashlight player={} frozenTicks={}", p.getGameProfile().getName(), frozenTicks);
+                if (frozenTicks++ % 20 == 0) RoomsDebug.log(p, "S-245: 光で止まっている", "S-245 frozen by flashlight player={} frozenTicks={}", p.getGameProfile().getName(), frozenTicks);
                 return true;
             }
         }

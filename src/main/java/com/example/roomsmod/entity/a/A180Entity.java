@@ -80,7 +80,7 @@ public class A180Entity extends AbyssEnemy {
         Vec3 v = virtualPos();
         if (life == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.AMBIENT_CAVE.value(), SoundSource.HOSTILE, 2.0f, 0.7f);
-            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-180 が下にいるわ", "A-180 telegraph clouds={}", maxClouds());
+            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-180 が下にいる", "A-180 telegraph clouds={}", maxClouds());
         }
         boolean done = t == null || dropped >= maxClouds();
         if (done) { // 置き終わった：深いところへ沈み、雲が消えたら消える

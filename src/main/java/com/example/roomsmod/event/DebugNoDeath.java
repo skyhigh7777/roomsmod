@@ -51,7 +51,7 @@ public final class DebugNoDeath {
         boolean void_ = src.is(DamageTypes.FELL_OUT_OF_WORLD) || sp.getY() < sp.level().getMinBuildHeight();
         if (void_) rescue(sp);
         String amount = dmg == null ? "?" : String.format("%.1f", dmg);
-        sp.sendSystemMessage(Component.literal("[Debug] 死亡を回避したわ（原因: " + cause + ", ダメージ " + amount + (void_ ? "、奈落から戻したわ" : "") + "）"));
+        sp.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.debug("死亡を回避した（原因: " + cause + ", ダメージ " + amount + (void_ ? "、奈落から戻した" : "") + "）"));
         RoomsDebug.log("debug no-death player={} cause={} damage={} void={} pos={}", sp.getGameProfile().getName(), cause, amount, void_, sp.blockPosition());
     }
 

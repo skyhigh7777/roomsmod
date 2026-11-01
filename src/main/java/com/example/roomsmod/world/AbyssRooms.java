@@ -845,7 +845,7 @@ public final class AbyssRooms {
         sp.setDeltaMovement(Vec3.ZERO);
         sp.fallDistance = 0;
         ROOM.remove(sp.getUUID()); LAST.remove(sp.getUUID());
-        RoomsDebug.log(sp, "縦穴を抜けたわ（" + Sections.formatRoom(rs, next) + "）", "abyss exit player={} -> room {} ({}) at {}", sp.getGameProfile().getName(), next, Sections.formatRoom(rs, next), v);
+        RoomsDebug.log(sp, "縦穴を抜けた（" + Sections.formatRoom(rs, next) + "）", "abyss exit player={} -> room {} ({}) at {}", sp.getGameProfile().getName(), next, Sections.formatRoom(rs, next), v);
         com.example.roomsmod.event.DoorEventHandler.onRoomAdvanced(level, rs, sp, next);
     }
 

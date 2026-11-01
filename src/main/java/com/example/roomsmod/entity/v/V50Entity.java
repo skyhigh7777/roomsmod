@@ -98,7 +98,7 @@ public class V50Entity extends VPathWalker {
     public static void onDoorOpened(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, BlockPos door) {
         for (net.minecraft.world.entity.Entity e : level.getAllEntities()) {
             if (!(e instanceof V50Entity v) || !v.isAlive() || v.phase >= 3 || !v.isWaitingDoor(rs, door)) continue;
-            RoomsDebug.log(player, "V-50: 扉を開けるのが早すぎたわ",
+            RoomsDebug.log(player, "V-50: 扉を開けるのが早すぎた",
                     "V-50 door opened early -> punish player={} door={} phase={} creative={}", player.getGameProfile().getName(), door, v.phase, player.isCreative());
             if (!player.isSpectator()) com.example.roomsmod.util.RoomsDamage.hurt(v, player, OPEN_DOOR_DAMAGE);
             v.burst(level, false);

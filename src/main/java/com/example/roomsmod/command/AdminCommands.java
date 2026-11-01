@@ -81,29 +81,29 @@ public final class AdminCommands {
         StringBuilder sb = new StringBuilder("セクション: ");
         for (String id : Sections.ids())
             sb.append(id.toUpperCase(Locale.ROOT)).append(rs.isSectionLocked(id) ? "[LOCK] " : "[OPEN] ");
-        src.sendSuccess(() -> Component.literal(sb.toString().trim()), false);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(sb.toString().trim()), false);
         return 1;
     }
 
     private static int lock(CommandContext<CommandSourceStack> ctx, boolean locked) {
         CommandSourceStack src = ctx.getSource();
         String id = Sections.canonical(StringArgumentType.getString(ctx, "id"));
-        if (Sections.find(id) == null) { src.sendFailure(Component.literal("未登録のセクション: " + id)); return 0; }
+        if (Sections.find(id) == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("未登録のセクション: " + id)); return 0; }
         ServerLevel lv = rooms(src);
         if (lv == null) return 0;
         RoomsState rs = RoomsState.get(lv);
         rs.setSectionLocked(id, locked);
         LobbyPanels.onAccessChanged(lv);
-        RoomsDebug.LOGGER.info("[RoomsDebug] admin: section {} {} by {}", id, locked ? "locked" : "unlocked", src.getTextName());
-        src.sendSuccess(() -> Component.literal("セクション " + id.toUpperCase(Locale.ROOT) + " を" + (locked ? "ロック" : "解放") + "した"), false);
+        RoomsDebug.info("admin: section {} {} by {}", id, locked ? "locked" : "unlocked", src.getTextName());
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("セクション " + id.toUpperCase(Locale.ROOT) + " を" + (locked ? "ロック" : "解放") + "した"), false);
         return 1;
     }
 
     private static int showWallet(CommandSourceStack src, ServerPlayer p) {
         Wallet w = Wallet.of(p);
-        src.sendSuccess(() -> Component.literal(p.getGameProfile().getName() + ": 電池 " + w.battery + "/" + Wallet.MAX_BATTERY
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(p.getGameProfile().getName() + ": 電池 " + w.battery + "/" + Wallet.MAX_BATTERY
                 + "  包帯 " + w.bandage + "/" + Wallet.MAX_BANDAGE + "  コイン " + w.coins
-                + "  周回 start=" + w.runStart + " furthest=" + w.runFurthest + " hit=" + w.runHit).withStyle(ChatFormatting.GOLD), false);
+                + "  周回 start=" + w.runStart + " furthest=" + w.runFurthest + " hit=" + w.runHit), false);
         return 1;
     }
 
@@ -113,10 +113,10 @@ public final class AdminCommands {
             case "battery" -> w.battery = Math.min(n, Wallet.MAX_BATTERY);
             case "bandage" -> w.bandage = Math.min(n, Wallet.MAX_BANDAGE);
             case "coins", "coin" -> w.coins = n;
-            default -> { src.sendFailure(Component.literal("battery / bandage / coins のどれか")); return 0; }
+            default -> { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("battery / bandage / coins のどれか")); return 0; }
         }
         Wallet.sync(p);
-        RoomsDebug.LOGGER.info("[RoomsDebug] admin: wallet {} {}={} by {}", p.getGameProfile().getName(), what, n, src.getTextName());
+        RoomsDebug.info("admin: wallet {} {}={} by {}", p.getGameProfile().getName(), what, n, src.getTextName());
         return showWallet(src, p);
     }
 
@@ -124,8 +124,8 @@ public final class AdminCommands {
         ServerLevel lv = rooms(src);
         if (lv == null) return 0;
         Wallet.of(p).resetRun(RoomsState.get(lv).epoch);
-        RoomsDebug.LOGGER.info("[RoomsDebug] admin: run reset {} by {}", p.getGameProfile().getName(), src.getTextName());
-        src.sendSuccess(() -> Component.literal(p.getGameProfile().getName() + " の周回の記録を消した（コインなし）"), false);
+        RoomsDebug.info("admin: run reset {} by {}", p.getGameProfile().getName(), src.getTextName());
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(p.getGameProfile().getName() + " の周回の記録を消した（コインなし）"), false);
         return 1;
     }
 
@@ -134,14 +134,14 @@ public final class AdminCommands {
         ServerLevel lv = rooms(src);
         if (lv == null) return 0;
         String id = Sections.canonical(sectionId);
-        if (Sections.find(id) == null) { src.sendFailure(Component.literal("未登録のセクション: " + id)); return 0; }
-        if (com.example.roomsmod.world.RoomsTravel.busy()) { src.sendFailure(Component.literal("いま部屋を生成中")); return 0; }
+        if (Sections.find(id) == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("未登録のセクション: " + id)); return 0; }
+        if (com.example.roomsmod.world.RoomsTravel.busy()) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("部屋を生成中。完了まで待機")); return 0; }
         RoomsState rs = RoomsState.get(lv);
         int max = Sections.length(id);
-        if (room > max && Sections.ORDER.contains(id)) { src.sendFailure(Component.literal(id.toUpperCase(Locale.ROOT) + " は " + max + " 部屋まで")); return 0; }
+        if (room > max && Sections.ORDER.contains(id)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(id.toUpperCase(Locale.ROOT) + " は " + max + " 部屋まで")); return 0; }
         rs.setChain(id); // ロックは無視（テスト用）
         Wallet.of(p).resetRun(Integer.MIN_VALUE); // テストのワープでコインが出ないように
-        RoomsDebug.LOGGER.info("[RoomsDebug] admin: tp {} -> section {} room {}", p.getGameProfile().getName(), id, room);
+        RoomsDebug.info("admin: tp {} -> section {} room {}", p.getGameProfile().getName(), id, room);
         return RoomsCommands.goToRoom(p, room) ? 1 : 0;
     }
 }

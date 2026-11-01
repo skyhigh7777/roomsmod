@@ -78,7 +78,7 @@ public class A130Entity extends AbyssEnemy {
         stateTicks++;
         if (life == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.AMBIENT_SOUL_SAND_VALLEY_MOOD.value(), SoundSource.HOSTILE, 3.0f, 0.5f);
-            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-130 が下で待っているわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, alcoveRoom) + " の横穴へ）",
+            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-130 が下で待っている（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, alcoveRoom) + " の横穴へ）",
                     "A-130 telegraph alcoveRoom={}", alcoveRoom);
         }
         if (t == null) { // 縦穴から出た・いなくなった：沈んで消える

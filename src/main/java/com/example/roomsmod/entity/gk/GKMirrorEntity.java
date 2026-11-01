@@ -52,7 +52,7 @@ public class GKMirrorEntity extends com.example.roomsmod.entity.v.VEntity {
         Player p = target == null ? null : level.getPlayerByUUID(target);
         if (phase % 20 == 1) level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_MIRROR_CHIME.get(), SoundSource.HOSTILE, 1.5f, phase <= TELEGRAPH ? 1.0f : 0.7f);
         if (p == null || p.isSpectator()) { if (phase > TELEGRAPH) leave("no target"); return; }
-        if (phase == 1) RoomsDebug.log(p, "S-270: 影があなたを追うわ（止まらないで）", "S-270 telegraph target={}", p.getGameProfile().getName());
+        if (phase == 1) RoomsDebug.log(p, "S-270: 影があなたを追う（止まらないで）", "S-270 telegraph target={}", p.getGameProfile().getName());
         trail.addLast(p.position());
         while (trail.size() > DELAY) trail.removeFirst();
         if (phase % 20 == 0) GKUtil.actionbar(List.of(p), Component.translatable("message.roomsmod.gk_mirror", Math.max(0, TELEGRAPH + CHASE - phase) / 20));
@@ -60,7 +60,7 @@ public class GKMirrorEntity extends com.example.roomsmod.entity.v.VEntity {
         if (phase > TELEGRAPH + CHASE) { leave("chase over"); return; }
         if (trail.size() >= DELAY) { Vec3 v = trail.peekFirst(); faceTowards(v); setPos(v.x, v.y, v.z); }
         if (distanceTo(p) < TOUCH) {
-            RoomsDebug.log(p, "S-270: 影に追いつかれたわ", "S-270 touched player={} creative={}", p.getGameProfile().getName(), p.isCreative());
+            RoomsDebug.log(p, "S-270: 影に追いつかれた", "S-270 touched player={} creative={}", p.getGameProfile().getName(), p.isCreative());
             RoomsDamage.hurt(this, p, DAMAGE);
             leave("touched");
         }

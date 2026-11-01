@@ -73,7 +73,7 @@ public class A25Entity extends AbyssEnemy {
         Vec3 v = virtualPos();
         if (life == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.WARDEN_HEARTBEAT, SoundSource.HOSTILE, 3.0f, 0.5f);
-            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-25 が来るわ（上）", "A-25 telegraph target={}", t.getGameProfile().getName());
+            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-25 が来る（上）", "A-25 telegraph target={}", t.getGameProfile().getName());
         }
         if (t == null) { // 縦穴から出た・いなくなった：上へ消える
             setVirtualPos(v.add(0, 0.4, 0));

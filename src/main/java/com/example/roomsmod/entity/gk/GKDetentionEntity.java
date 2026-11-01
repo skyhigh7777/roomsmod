@@ -138,7 +138,7 @@ public class GKDetentionEntity extends com.example.roomsmod.entity.v.VEntity {
                     inv.setItem(i, ItemStack.EMPTY);
                     level.playSound(null, door, net.minecraft.sounds.SoundEvents.IRON_DOOR_OPEN, SoundSource.BLOCKS, 1.5f, 1.2f);
                     GKUtil.actionbar(List.of(p), Component.translatable("message.roomsmod.gk_detention_open"));
-                    RoomsDebug.log(p, "S-65: 通行証で解錠したわ", "S-65 unlocked by pass player={} door={}", p.getGameProfile().getName(), door);
+                    RoomsDebug.log(p, "S-65: 通行証で解錠した", "S-65 unlocked by pass player={} door={}", p.getGameProfile().getName(), door);
                     leave("pass used");
                     return;
                 }

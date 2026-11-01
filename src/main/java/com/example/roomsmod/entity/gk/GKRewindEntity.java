@@ -52,7 +52,7 @@ public class GKRewindEntity extends com.example.roomsmod.entity.v.VEntity {
         Vec3 to = SafeSpot.find(level, rs, back);
         for (Player p : ps) {
             boolean hid = HidingRules.isHiding(p);
-            RoomsDebug.log(p, "S-145: " + (hid ? "隠れて無事" : "2部屋戻されたわ"), "S-145 player={} hiding={} to room {} {}", p.getGameProfile().getName(), hid, back, to);
+            RoomsDebug.log(p, "S-145: " + (hid ? "隠れて無事" : "2部屋戻された"), "S-145 player={} hiding={} to room {} {}", p.getGameProfile().getName(), hid, back, to);
             if (hid || to == null) continue;
             p.teleportTo(to.x, to.y, to.z);
             level.playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.ENDERMAN_TELEPORT, SoundSource.HOSTILE, 1.0f, 0.5f);

@@ -185,7 +185,7 @@ public abstract class VSearcherEntity extends VEntity {
         for (Player p : level.players()) {
             if (!spot.equals(LockerManager.getSpotPos(p)) || LockerManager.getSpot(p) != spotType()) continue;
             found = true;
-            RoomsDebug.log(p, vName() + ": 隠れ場所で見つかったわ（" + spotType() + "）",
+            RoomsDebug.log(p, vName() + ": 隠れ場所で見つかった（" + spotType() + "）",
                     "{} caught player={} spot={} at {} creative={}", vName(), p.getGameProfile().getName(), spotType(), spot, p.isCreative());
             com.example.roomsmod.util.RoomsDamage.hurt(this, p, CATCH_DAMAGE);
         }

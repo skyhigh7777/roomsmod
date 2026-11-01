@@ -143,7 +143,7 @@ public final class VSpawns {
         if (at == null) { RoomsDebug.log("{} spawn skipped: no valid position near room {}", k.display, room); return false; }
         RusherChunks.prepareSpawn(level, e, new ChunkPos(at));
         if (!level.addFreshEntity(e)) { RoomsDebug.warn("{} spawn failed: addFreshEntity returned false", k.display); return false; }
-        RoomsDebug.log(player, k.display + " が出現したわ（" + RoomTracker.format(rs, room) + "）",
+        RoomsDebug.log(player, k.display + " が出現した（" + RoomTracker.format(rs, room) + "）",
                 "{} spawn playerRoom={} ({}) pos=({}, {}, {}) {}", k.display, room, RoomTracker.format(rs, room),
                 VEntity.f(e.getX()), VEntity.f(e.getY()), VEntity.f(e.getZ()), e.debugState());
         return true;

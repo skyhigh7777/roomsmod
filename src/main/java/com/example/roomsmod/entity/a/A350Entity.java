@@ -89,7 +89,7 @@ public class A350Entity extends AbyssEnemy {
         setVirtualPos(spot.back().add(in.scale(1.3)).add(0, 0.2, 0));
         Player t = target(level, rs);
         if (t == null) { if (life > 100) close(level, rs, "target gone"); return; }
-        if (life == 1) RoomsDebug.announce(java.util.List.of(t), "A-350：" + com.example.roomsmod.world.section.Sections.formatRoom(rs, fakeRoom) + " の横穴は偽物よ", "A-350 placed fakeRoom={}", fakeRoom);
+        if (life == 1) RoomsDebug.announce(java.util.List.of(t), "A-350：" + com.example.roomsmod.world.section.Sections.formatRoom(rs, fakeRoom) + " の横穴は偽物", "A-350 placed fakeRoom={}", fakeRoom);
         Vec3 p = pv(rs, t);
         double rel = p.y - spot.floorY();
         if (rel < -PASS_BELOW) { close(level, rs, "passed"); return; }

@@ -95,7 +95,7 @@ public abstract class URusher extends VPathWalker {
             }
             case NONE -> {}
         }
-        if (life == 1) RoomsDebug.announce(playersNear(160), vName() + " が来るわ（折り返し " + turns() + " 回）",
+        if (life == 1) RoomsDebug.announce(playersNear(160), vName() + " が来る（折り返し " + turns() + " 回）",
                 "{} telegraph noise={} rush={} turns={} rooms {}->{}", vName(), spawnNoise(), rushNoise(), turns(), startRoom, endRoom);
         if (super.holdTick(level)) return true;
         if (pause > 0) { pause--; return true; }

@@ -205,7 +205,7 @@ public class Placeholder65535Entity extends PlaceholderEntity {
             if (!m.pos().equals(LockerManager.getSpotPos(p))) continue;
             RoomsDamage.hurt(this, p, KILL_DAMAGE);
             kills++;
-            RoomsDebug.log(p, name + ": 隠れ場所で見つかったわ", "{} check {} at {} killed player={}", name, m.locker() ? "locker" : "table", m.pos(), p.getGameProfile().getName());
+            RoomsDebug.log(p, name + ": 隠れ場所で見つかった", "{} check {} at {} killed player={}", name, m.locker() ? "locker" : "table", m.pos(), p.getGameProfile().getName());
         }
         RoomsDebug.log("{} check {}/{} {} room={} at {} kills={}", name, index + 1, marks.size(), m.locker() ? "locker" : "table", m.room(), m.pos(), kills);
     }

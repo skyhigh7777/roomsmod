@@ -46,7 +46,7 @@ public class GKChimeEntity extends GKTimedEntity {
     public boolean owns(BlockPos p) { return bell != null && bell.equals(p); }
 
     public void rung(ServerLevel level, Player p) {
-        RoomsDebug.log(p, "S-25: ベルを鳴らしたわ、去っていく", "S-25 rung by {} at phase={}", p.getGameProfile().getName(), phase);
+        RoomsDebug.log(p, "S-25: ベルを鳴らした、去っていく", "S-25 rung by {} at phase={}", p.getGameProfile().getName(), phase);
         GKUtil.actionbar(GKUtil.players(level, this, startRoom, 24), Component.translatable("message.roomsmod.gk_chime_ok"));
         leave("bell rung");
     }
@@ -56,7 +56,7 @@ public class GKChimeEntity extends GKTimedEntity {
         phase++;
         List<Player> ps = GKUtil.players(level, this, startRoom, 24);
         if (phase % 40 == 1) level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_CHIME_APPROACH.get(), SoundSource.HOSTILE, 2.0f, 1.0f);
-        if (phase == 1) for (Player p : ps) RoomsDebug.log(p, "S-25: ベルが現れたわ（" + TIME / 20 + "秒）", "S-25 telegraph room={} bell={}", startRoom, bell);
+        if (phase == 1) for (Player p : ps) RoomsDebug.log(p, "S-25: ベルが現れた（" + TIME / 20 + "秒）", "S-25 telegraph room={} bell={}", startRoom, bell);
         if (phase <= TELEGRAPH) return;
         int left = TELEGRAPH + TIME - phase;
         if (left % 20 == 0) GKUtil.actionbar(ps, Component.translatable("message.roomsmod.gk_chime_ring", left / 20));

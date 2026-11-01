@@ -237,22 +237,22 @@ public final class LobbyPanels {
     }
 
     static void go(ServerLevel level, ServerPlayer player) {
-        if (RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
+        if (RoomsTravel.busy()) { player.displayClientMessage(com.example.roomsmod.util.RoomsMsg.barDeny("部屋を生成中。完了まで待機"), true); return; }
         String s = section; int n = selectedRoom();
         RoomsState rs = RoomsState.get(level);
         if (rs.isSectionLocked(s)) { player.displayClientMessage(Component.translatable("message.roomsmod.section_locked", s.toUpperCase(java.util.Locale.ROOT)), true); return; }
         rs.setChain(s); // 選んだセクションから、500部屋ごとに次のセクションへ
         RoomsDebug.log(player, "ロビーパネル GO: " + label(), "lobby panel go by {} section={} room={} table={}", player.getGameProfile().getName(), s, n, rs.sections);
-        if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return; }
+        if (com.example.roomsmod.world.RoomsTravel.busy()) { player.displayClientMessage(com.example.roomsmod.util.RoomsMsg.barDeny("部屋を生成中。完了まで待機"), true); return; }
         RoomsCommands.goToRoom(player, n);
     }
 
     static void deepest(ServerLevel level, ServerPlayer player) {
         RoomsState rs = RoomsState.get(level);
         int d = rs.roomPaths.size() - 1;
-        if (d <= 0) { player.displayClientMessage(Component.literal("まだ部屋がないわ（出口の扉を開けてね）"), true); RoomsDebug.log("lobby panel deepest by {} -> no rooms", player.getGameProfile().getName()); return; }
+        if (d <= 0) { player.displayClientMessage(com.example.roomsmod.util.RoomsMsg.barDeny("部屋が未生成（出口の扉を開けると生成）"), true); RoomsDebug.log("lobby panel deepest by {} -> no rooms", player.getGameProfile().getName()); return; }
         Vec3 v = SafeSpot.find(level, rs, d);
-        if (v == null) { player.displayClientMessage(Component.literal("ワープ先が見つからないわ"), true); RoomsDebug.warn("lobby panel deepest: no safe spot room={}", d); return; }
+        if (v == null) { player.displayClientMessage(com.example.roomsmod.util.RoomsMsg.barDeny("ワープ先が見つからない"), true); RoomsDebug.warn("lobby panel deepest: no safe spot room={}", d); return; }
         player.teleportTo(level, v.x, v.y, v.z, 0, 0);
         RoomsDebug.log(player, "最奥の部屋 " + Sections.formatRoom(rs, d) + " へワープ", "lobby panel deepest by {} -> room={} ({}) at ({}, {}, {})", player.getGameProfile().getName(), d, Sections.formatRoom(rs, d), v.x, v.y, v.z);
     }

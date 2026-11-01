@@ -92,7 +92,7 @@ public class A200Entity extends AbyssEnemy {
         stateTicks++;
         if (life == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.CROSSBOW_LOADING_MIDDLE.value(), SoundSource.HOSTILE, 3.0f, 0.5f);
-            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-200 が下から狙っているわ", "A-200 telegraph aim={} ticks", aimTicks());
+            if (t != null) RoomsDebug.announce(java.util.List.of(t), "A-200 が下から狙っている", "A-200 telegraph aim={} ticks", aimTicks());
         }
         if (t == null || state == State.DONE) { // 撃ち終わった・いなくなった：沈んで消える
             setVirtualPos(v.add(0, -0.4, 0));

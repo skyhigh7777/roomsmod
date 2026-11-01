@@ -98,7 +98,7 @@ public class A50Entity extends AbyssEnemy {
         }
         if (life == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.CHAIN_PLACE, SoundSource.HOSTILE, 3.0f, 0.5f);
-            RoomsDebug.announce(java.util.List.of(t), "A-50 が来るわ（上・" + com.example.roomsmod.world.section.Sections.formatRoom(rs, alcoveRoom) + " の横穴へ）",
+            RoomsDebug.announce(java.util.List.of(t), "A-50 が来る（上・" + com.example.roomsmod.world.section.Sections.formatRoom(rs, alcoveRoom) + " の横穴へ）",
                     "A-50 telegraph alcoveRoom={}", alcoveRoom);
         }
         if (blockers(level)) { letGo(level, t, "A-25 / A-90 / A-180 appeared"); return; }

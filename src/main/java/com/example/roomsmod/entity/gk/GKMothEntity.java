@@ -67,7 +67,7 @@ public class GKMothEntity extends com.example.roomsmod.entity.v.VEntity {
         int spare = p instanceof net.minecraft.server.level.ServerPlayer sp && com.example.roomsmod.economy.Wallet.takeBattery(sp) ? 1
                 : p.getInventory().clearOrCountMatchingItems(s -> s.is(RoomsMod.BATTERY.get()), 1, p.inventoryMenu.getCraftSlots());
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_MOTH_FLUTTER.get(), SoundSource.HOSTILE, 2.5f, 0.5f);
-        RoomsDebug.log(p, "S-10: 電池を吸われたわ（予備 -" + spare + "）", "S-10 stole charge={} spareBatteries={} player={}", before, spare, p.getGameProfile().getName());
+        RoomsDebug.log(p, "S-10: 電池を吸われた（予備 -" + spare + "）", "S-10 stole charge={} spareBatteries={} player={}", before, spare, p.getGameProfile().getName());
         RoomsDamage.hurt(this, p, DAMAGE);
         leave("stole battery");
     }

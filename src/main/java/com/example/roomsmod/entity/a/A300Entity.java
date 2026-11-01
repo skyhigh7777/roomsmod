@@ -94,7 +94,7 @@ public class A300Entity extends AbyssEnemy {
         Vec3 p = pv(rs, t);
         if (life == 1) {
             level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.WARDEN_NEARBY_CLOSE, SoundSource.HOSTILE, 1.5f, 0.6f);
-            RoomsDebug.announce(java.util.List.of(t), "A-300 があなたの影を踏んでいるわ（動き続けて）", "A-300 telegraph appear={} delay={}", appearTicks(), delay());
+            RoomsDebug.announce(java.util.List.of(t), "A-300 があなたの影を踏んでいる（動き続けて）", "A-300 telegraph appear={} delay={}", appearTicks(), delay());
         }
         // 履歴：縦穴の中だけ（横穴の中は入口の手前に収める）
         Vec3 in = clampInner(rs.abyss, p, 0.3);

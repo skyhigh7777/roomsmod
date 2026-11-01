@@ -96,7 +96,7 @@ public class A90Entity extends AbyssEnemy {
         if (!warned && rel < 2 * AbyssRooms.L) {
             warned = true;
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.SCULK_CLICKING, SoundSource.HOSTILE, 3.0f, 0.6f);
-            RoomsDebug.announce(java.util.List.of(t), "A-90 が潜んでいるわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, alcoveRoom) + " の横穴）",
+            RoomsDebug.announce(java.util.List.of(t), "A-90 が潜んでいる（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, alcoveRoom) + " の横穴）",
                     "A-90 telegraph alcoveRoom={} rel={}", alcoveRoom, f(rel));
         }
         switch (state) {

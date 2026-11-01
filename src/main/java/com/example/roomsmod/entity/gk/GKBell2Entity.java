@@ -48,7 +48,7 @@ public class GKBell2Entity extends VPathWalker {
         reversePath();
         level.playSound(null, getX(), getY(), getZ(), RoomsMod.GK_BELL2_BELL.get(), SoundSource.HOSTILE, 3.0f, 0.7f);
         RoomsDebug.log("{} turning back at room {} pause={}", vName(), startRoom, TURN_PAUSE);
-        for (var p : playersNear(160)) RoomsDebug.log(p, vName() + " が折り返すわ（" + TURN_PAUSE / 20.0 + "秒後）", "{} turning back pause={} room={}", vName(), TURN_PAUSE, startRoom);
+        for (var p : playersNear(160)) RoomsDebug.log(p, vName() + " が折り返す（" + TURN_PAUSE / 20.0 + "秒後）", "{} turning back pause={} room={}", vName(), TURN_PAUSE, startRoom);
         return true;
     }
     @Override protected void clientTick() {
