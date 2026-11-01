@@ -20,17 +20,19 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * 電池・包帯・コインの所持数 HUD（ホットバーの右）と、包帯キー（既定 H、押し続けて巻く）。
+ * 所持数 HUD（画面右下、電池・包帯・アドレナリン・お守り・コイン）と、包帯キー（既定 H、押し続けて巻く）・アドレナリンキー（既定 J）。
  */
 @EventBusSubscriber(modid = RoomsMod.MOD_ID, value = Dist.CLIENT)
 public final class WalletClient {
     private WalletClient() {}
 
     public static final KeyMapping BANDAGE_KEY = new KeyMapping("key.roomsmod.bandage", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, "key.categories.roomsmod");
+    /** アドレナリン（既定 J、押した時に1回）。 */
+    public static final KeyMapping ADRENALINE_KEY = new KeyMapping("key.roomsmod.adrenaline", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_J, "key.categories.roomsmod");
     private static boolean wasDown;
 
     @SubscribeEvent
-    public static void onKeys(RegisterKeyMappingsEvent e) { e.register(BANDAGE_KEY); }
+    public static void onKeys(RegisterKeyMappingsEvent e) { e.register(BANDAGE_KEY); e.register(ADRENALINE_KEY); }
 
     @SubscribeEvent
     public static void onTick(ClientTickEvent.Post e) {
@@ -39,11 +41,18 @@ public final class WalletClient {
         if (down != wasDown && mc.getConnection() != null) PacketDistributor.sendToServer(new Wallet.BandagePayload(down));
         wasDown = down;
         while (BANDAGE_KEY.consumeClick()) { /* 押しっぱなしで判定するのでクリックは捨てる */ }
+        boolean adr = false;
+        while (ADRENALINE_KEY.consumeClick()) adr = true;
+        if (adr && mc.player != null && mc.screen == null && mc.getConnection() != null) PacketDistributor.sendToServer(new Wallet.AdrenalinePayload());
+        if (Wallet.clientAdrenalineTicks > 0) Wallet.clientAdrenalineTicks--;
+        if (Wallet.clientAdrenalineCooldown > 0) Wallet.clientAdrenalineCooldown--;
     }
 
     private static ItemStack battery, bandage;
-    private static final ItemStack COIN = new ItemStack(Items.GOLD_NUGGET);
+    private static final ItemStack COIN = new ItemStack(Items.GOLD_NUGGET), ADRENALINE = new ItemStack(Items.SUGAR), CHARM = new ItemStack(Items.TOTEM_OF_UNDYING);
+    private static final int WHITE = 0xFFFFFFFF, FULL = 0xFFE0A040;
 
+    /** 画面右下に縦に並べる（ホットバーと重ならない）。下から コイン・お守り・アドレナリン・包帯・電池。 */
     @SubscribeEvent
     public static void onLayer(RenderGuiLayerEvent.Post e) {
         if (!e.getName().equals(VanillaGuiLayers.HOTBAR)) return;
@@ -52,17 +61,24 @@ public final class WalletClient {
         if (!mc.level.dimension().equals(RoomsCommands.ROOMS_DIMENSION)) return;
         if (battery == null) { battery = new ItemStack(RoomsMod.BATTERY.get()); bandage = new ItemStack(RoomsMod.BANDAGE.get()); }
         GuiGraphics g = e.getGuiGraphics();
-        int x = g.guiWidth() / 2 + 91 + 8, y = g.guiHeight() - 20;
-        if (!mc.player.getOffhandItem().isEmpty() && mc.player.getMainArm() == net.minecraft.world.entity.HumanoidArm.LEFT) x += 29; // オフハンド枠が右に出る時はその外へ
-        x = entry(g, mc, battery, Wallet.label(Wallet.clientBattery, Wallet.MAX_BATTERY), Wallet.full(Wallet.MAX_BATTERY, Wallet.clientBattery) ? 0xFFE0A040 : 0xFFFFFFFF, x, y);
-        x = entry(g, mc, bandage, Wallet.label(Wallet.clientBandage, Wallet.MAX_BANDAGE), Wallet.full(Wallet.MAX_BANDAGE, Wallet.clientBandage) ? 0xFFE0A040 : 0xFFFFFFFF, x, y);
-        entry(g, mc, COIN, String.valueOf(Wallet.clientCoins), 0xFFFFD040, x, y);
+        int right = g.guiWidth() - 4, y = g.guiHeight() - 22;
+        String adr = Wallet.label(Wallet.clientAdrenaline, Wallet.MAX_ADRENALINE);
+        int adrColor = Wallet.full(Wallet.MAX_ADRENALINE, Wallet.clientAdrenaline) ? FULL : WHITE;
+        if (Wallet.clientAdrenalineTicks > 0) { adr += "  " + (Wallet.clientAdrenalineTicks + 19) / 20 + "s"; adrColor = 0xFF60FF60; }
+        else if (Wallet.clientAdrenalineCooldown > 0) { adr += "  CD " + (Wallet.clientAdrenalineCooldown + 19) / 20 + "s"; adrColor = 0xFFA0A0A0; }
+        y = entry(g, mc, COIN, String.valueOf(Wallet.clientCoins), 0xFFFFD040, right, y);
+        y = entry(g, mc, CHARM, Wallet.label(Wallet.clientCharm, Wallet.MAX_CHARM), Wallet.full(Wallet.MAX_CHARM, Wallet.clientCharm) ? FULL : WHITE, right, y);
+        y = entry(g, mc, ADRENALINE, adr, adrColor, right, y);
+        y = entry(g, mc, bandage, Wallet.label(Wallet.clientBandage, Wallet.MAX_BANDAGE), Wallet.full(Wallet.MAX_BANDAGE, Wallet.clientBandage) ? FULL : WHITE, right, y);
+        entry(g, mc, battery, Wallet.label(Wallet.clientBattery, Wallet.MAX_BATTERY), Wallet.full(Wallet.MAX_BATTERY, Wallet.clientBattery) ? FULL : WHITE, right, y);
     }
 
-    private static int entry(GuiGraphics g, Minecraft mc, ItemStack icon, String text, int color, int x, int y) {
-        g.fill(x - 1, y + 1, x + 18 + mc.font.width(text) + 3, y + 19, 0x80000000);
-        g.renderItem(icon, x, y + 2);
-        g.drawString(mc.font, text, x + 18, y + 7, color, true);
-        return x + 18 + mc.font.width(text) + 8;
+    /** 右端 right に揃えて1行（高さ 18）。次の行の y（上）を返す。 */
+    private static int entry(GuiGraphics g, Minecraft mc, ItemStack icon, String text, int color, int right, int y) {
+        int w = 18 + mc.font.width(text) + 3, x = right - w;
+        g.fill(x - 1, y, right, y + 18, 0x80000000);
+        g.renderItem(icon, x, y + 1);
+        g.drawString(mc.font, text, x + 18, y + 5, color, true);
+        return y - 19;
     }
 }

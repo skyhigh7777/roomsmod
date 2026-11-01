@@ -160,5 +160,13 @@
   "message.roomsmod.shop.full": "%sはもう持てない",
   "message.roomsmod.shop.no_coins": "コインが足りない（%2$s 必要・所持 %3$s）",
   "message.roomsmod.shop.bought": "%sを買った（-%s、残り %s コイン）",
-  "message.roomsmod.section_locked": "セクション %s はロックされている"
+  "message.roomsmod.section_locked": "セクション %s はロックされている",
+  "key.roomsmod.adrenaline": "アドレナリンを使う",
+  "shop.roomsmod.adrenaline": "アドレナリン",
+  "shop.roomsmod.charm": "お守り",
+  "message.roomsmod.adrenaline.none": "アドレナリンを持っていない",
+  "message.roomsmod.adrenaline.active": "アドレナリンは効いている最中",
+  "message.roomsmod.adrenaline.cooldown": "アドレナリンはあと%s秒使えない",
+  "message.roomsmod.adrenaline.used": "アドレナリン：%s秒間スタミナが減らない・足が速くなる",
+  "message.roomsmod.charm.used": "お守りが身代わりになった"
 }

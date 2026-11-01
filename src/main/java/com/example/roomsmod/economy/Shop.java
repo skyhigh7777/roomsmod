@@ -12,7 +12,7 @@ public final class Shop {
     private Shop() {}
 
     public enum Product {
-        BATTERY("battery", 15), BANDAGE("bandage", 25);
+        BATTERY("battery", 15), BANDAGE("bandage", 25), ADRENALINE("adrenaline", 60), CHARM("charm", 300);
         public final String key; public final int price;
         Product(String key, int price) { this.key = key; this.price = price; }
     }
@@ -23,6 +23,8 @@ public final class Shop {
         String why = switch (item) {
             case BATTERY -> Wallet.full(Wallet.MAX_BATTERY, w.battery) ? "message.roomsmod.shop.full" : null;
             case BANDAGE -> Wallet.full(Wallet.MAX_BANDAGE, w.bandage) ? "message.roomsmod.shop.full" : null;
+            case ADRENALINE -> Wallet.full(Wallet.MAX_ADRENALINE, w.adrenaline) ? "message.roomsmod.shop.full" : null;
+            case CHARM -> Wallet.full(Wallet.MAX_CHARM, w.charm) ? "message.roomsmod.shop.full" : null;
         };
         if (why == null && w.coins < item.price) why = "message.roomsmod.shop.no_coins";
         if (why != null) {
@@ -34,6 +36,8 @@ public final class Shop {
         switch (item) {
             case BATTERY -> w.battery++;
             case BANDAGE -> w.bandage++;
+            case ADRENALINE -> w.adrenaline++;
+            case CHARM -> w.charm++;
         }
         Wallet.sync(p);
         p.level().playSound(null, p.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 0.6f, 1.3f);

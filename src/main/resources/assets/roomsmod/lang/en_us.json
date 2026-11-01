@@ -175,5 +175,13 @@
   "message.roomsmod.shop.full": "Can't carry more: %s",
   "message.roomsmod.shop.no_coins": "Not enough coins (need %2$s, have %3$s)",
   "message.roomsmod.shop.bought": "Bought %s (-%s, %s coins left)",
-  "message.roomsmod.section_locked": "Section %s is locked"
+  "message.roomsmod.section_locked": "Section %s is locked",
+  "key.roomsmod.adrenaline": "Use Adrenaline",
+  "shop.roomsmod.adrenaline": "Adrenaline",
+  "shop.roomsmod.charm": "Charm",
+  "message.roomsmod.adrenaline.none": "You have no adrenaline",
+  "message.roomsmod.adrenaline.active": "Adrenaline is already active",
+  "message.roomsmod.adrenaline.cooldown": "Adrenaline available in %ss",
+  "message.roomsmod.adrenaline.used": "Adrenaline: no stamina drain and faster movement for %ss",
+  "message.roomsmod.charm.used": "Your charm took the blow"
 }
