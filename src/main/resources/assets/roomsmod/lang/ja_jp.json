@@ -178,5 +178,16 @@
   "message.roomsmod.radar.used": "レーダー：%s秒間、近くの敵を表示（%s体）",
   "message.roomsmod.scanner.none": "スキャナーを持っていない",
   "hud.roomsmod.scanner.title": "スキャン結果",
-  "hud.roomsmod.scanner.none": "近くに反応なし"
+  "hud.roomsmod.scanner.none": "近くに反応なし",
+  "entity.roomsmod.h30": "H-30",
+  "entity.roomsmod.h90": "H-90",
+  "entity.roomsmod.h150": "H-150",
+  "entity.roomsmod.h260": "H-260",
+  "subtitles.roomsmod.h30_drag": "足を引きずる音",
+  "subtitles.roomsmod.h90_step": "静かな足音",
+  "subtitles.roomsmod.h90_check": "カートの音",
+  "subtitles.roomsmod.h150_rustle": "カーテンが揺れる音",
+  "subtitles.roomsmod.h260_rattle": "車輪の音が近づく",
+  "message.roomsmod.h90_gaze": "看護師が視線に気づいている。",
+  "message.roomsmod.h150_alert": "カーテンが動いた。"
 }

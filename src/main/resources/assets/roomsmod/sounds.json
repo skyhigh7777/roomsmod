@@ -246,5 +246,35 @@
       }
     ],
     "subtitle": "subtitles.roomsmod.placeholder_beep"
+  },
+  "h30_drag": {
+    "sounds": [
+      "roomsmod:h30_drag"
+    ],
+    "subtitle": "subtitles.roomsmod.h30_drag"
+  },
+  "h90_step": {
+    "sounds": [
+      "roomsmod:h90_step"
+    ],
+    "subtitle": "subtitles.roomsmod.h90_step"
+  },
+  "h90_check": {
+    "sounds": [
+      "roomsmod:h90_check"
+    ],
+    "subtitle": "subtitles.roomsmod.h90_check"
+  },
+  "h150_rustle": {
+    "sounds": [
+      "roomsmod:h150_rustle"
+    ],
+    "subtitle": "subtitles.roomsmod.h150_rustle"
+  },
+  "h260_rattle": {
+    "sounds": [
+      "roomsmod:h260_rattle"
+    ],
+    "subtitle": "subtitles.roomsmod.h260_rattle"
   }
 }

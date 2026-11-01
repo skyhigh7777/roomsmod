@@ -186,7 +186,8 @@ public final class Sections {
      * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（S の次は A のまま）。/rooms admin section h unlock で解放すると進行表に入る。
      * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
      * 床の包帯がほかより多い（RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE）。
-     * 敵は B / S / U の敵をこの区画の番号で並べ直したもの（確率はやや高め、1回の抽選の上限は GK_MAX_PER_ROLL のまま）。
+     * 敵は H 専用の 4 体（entity/h：H-30 徘徊する患者 / H-90 夜勤の看護師 / H-150 カーテンの陰 / H-260 暴走するストレッチャー）と、
+     * B / S / U の敵をこの区画の番号で並べ直したもの（1回の抽選の上限は GK_MAX_PER_ROLL のまま）。
      */
     public static final SectionTheme H = register(new SectionTheme(
             "h", "H",
@@ -200,23 +201,28 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.45f)),
             2, 2,
             List.of(
-                    // H: H-10〜H-420 にかけて易しい順に解禁。全部解禁時 P(1体以上)≈0.77（B 0.66 / S 0.61 / U 0.54）
-                    reuse(U, "U-20", 10, 0.18f),
+                    // H: H-10〜H-420 にかけて易しい順に解禁。H 専用の敵（H-30 / H-90 / H-150 / H-260）と B / S / U の敵の混在。
+                    // 全部解禁時 P(1体以上)≈0.81（専用の敵を足す前は 0.77。浅いところはほぼ同じ、深いほど少し高い）
+                    reuse(U, "U-20", 10, 0.16f),
                     reuse(B, "B-15", 20, 0.08f),
-                    reuse(GK, "S-45", 35, 0.08f),
-                    reuse(B, "B-30", 50, 0.08f),
-                    reuse(B, "B-20", 60, 0.12f),
-                    reuse(U, "U-60", 80, 0.10f),
-                    reuse(B, "B-70", 100, 0.08f),
-                    reuse(GK, "S-205", 120, 0.07f),
-                    reuse(U, "U-120", 150, 0.08f),
-                    reuse(B, "B-40", 170, 0.09f),
-                    reuse(GK, "S-225", 200, 0.07f),
-                    reuse(B, "B-155", 230, 0.07f),
-                    reuse(U, "U-200", 260, 0.07f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H30, 30, 0.09f),
+                    reuse(GK, "S-45", 35, 0.07f),
+                    reuse(B, "B-30", 50, 0.07f),
+                    reuse(B, "B-20", 60, 0.11f),
+                    reuse(U, "U-60", 80, 0.09f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H90, 90, 0.08f),
+                    reuse(B, "B-70", 100, 0.07f),
+                    reuse(GK, "S-205", 120, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H150, 150, 0.08f),
+                    reuse(U, "U-120", 150, 0.07f),
+                    reuse(B, "B-40", 170, 0.08f),
+                    reuse(GK, "S-225", 200, 0.06f),
+                    reuse(B, "B-155", 230, 0.06f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H260, 260, 0.08f),
+                    reuse(U, "U-200", 260, 0.06f),
                     reuse(B, "B-260", 300, 0.06f),
-                    reuse(GK, "S-245", 340, 0.06f),
-                    reuse(U, "U-300", 380, 0.07f),
+                    reuse(GK, "S-245", 340, 0.05f),
+                    reuse(U, "U-300", 380, 0.06f),
                     reuse(GK, "S-270", 420, 0.05f)),
             new SectionTheme.SignStyle(() -> Blocks.BIRCH_WALL_SIGN, DyeColor.RED, false),
             1, 8));

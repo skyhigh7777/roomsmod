@@ -193,5 +193,16 @@
   "message.roomsmod.radar.used": "Radar: showing nearby enemies for %ss (%s found)",
   "message.roomsmod.scanner.none": "You have no scanner",
   "hud.roomsmod.scanner.title": "Scan results",
-  "hud.roomsmod.scanner.none": "Nothing nearby"
+  "hud.roomsmod.scanner.none": "Nothing nearby",
+  "entity.roomsmod.h30": "H-30",
+  "entity.roomsmod.h90": "H-90",
+  "entity.roomsmod.h150": "H-150",
+  "entity.roomsmod.h260": "H-260",
+  "subtitles.roomsmod.h30_drag": "Shuffling footsteps",
+  "subtitles.roomsmod.h90_step": "Soft footsteps",
+  "subtitles.roomsmod.h90_check": "A cart rattles",
+  "subtitles.roomsmod.h150_rustle": "A curtain rustles",
+  "subtitles.roomsmod.h260_rattle": "Wheels rattle down the hall",
+  "message.roomsmod.h90_gaze": "The nurse notices your gaze.",
+  "message.roomsmod.h150_alert": "The curtain moves."
 }

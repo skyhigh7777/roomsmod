@@ -208,9 +208,33 @@ Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`en
 - Hiding: wall-niche lockers next to the bed (foot side) or a hiding table in place of a bed, alternating sides every 2–3 bays;
   gap ≤ 16 blocks, at least 2 per room, at least one locker. If the ward would overlap an older room, the bed row on that side is dropped (wall at x=7 / x=13).
 - Items: bandages lie in 30% of H rooms (`RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE`, 12% elsewhere). Batteries as usual.
-- Spawns: B / S / U entities re-used with H-local thresholds (`Sections.reuse`): U-20 (H-10) … S-270 (H-420), 17 entries,
-  P(at least one) ≈ 0.77 when all are unlocked (B 0.66, S 0.61, U 0.54). Per-roll cap `GK_MAX_PER_ROLL` (2) like S / B / U / A.
-  U entities count as off-section here (softened). Hard mode uses the combined table as everywhere else (H adds no new names).
+- Spawns: 4 H-only entities (`entity/h`, below) mixed with B / S / U entities re-used with H-local thresholds (`Sections.reuse`).
+  Table (minRoom, chance): U-20 (10, .16), B-15 (20, .08), **H-30 (30, .09)**, S-45 (35, .07), B-30 (50, .07), B-20 (60, .11), U-60 (80, .09),
+  **H-90 (90, .08)**, B-70 (100, .07), S-205 (120, .06), **H-150 (150, .08)**, U-120 (150, .07), B-40 (170, .08), S-225 (200, .06), B-155 (230, .06),
+  **H-260 (260, .08)**, U-200 (260, .06), B-260 (300, .06), S-245 (340, .05), U-300 (380, .06), S-270 (420, .05).
+  P(at least one) by depth (before → after the H entities): H-50 0.36 → 0.39, H-100 0.54 → 0.58, H-200 0.66 → 0.71, H-300 0.73 → 0.78, H-420+ 0.77 → 0.81.
+  Per-roll cap `GK_MAX_PER_ROLL` (2) like S / B / U / A. U entities count as off-section here (softened).
+  Hard mode: the H entities are in `Sections.hardTable()` (they can appear in any non-A section; `homeSection` is `h`) and 3!3!2 can imitate their sounds.
+
+### H entities (`entity/h`)
+All are `VEntity` (no physics, invulnerable, max 100 s like S), billboard textures `textures/entity/h30|h90|h150|h260.png`, sounds `h30_drag`, `h90_step`, `h90_check`,
+`h150_rustle`, `h260_rattle`. Radar / scanner list them like every other MONSTER of this mod (name = `vName()`). `/rooms admin spawn h30|h90|h150|h260`.
+- **H-30** (`HPatientEntity`, wandering patient): bandaged patient in a pale blue gown with an IV stand. `VPathWalker` from one room behind the player to the newest room
+  (follows into new rooms), 0.15 blocks/tick (slower than walking), sometimes stops for 2 s (no movement, no hits). Hits (25) players it can see within 5 blocks
+  (`RusherHits`: hiding or cover saves you). Get ahead of it or hide until it has passed. Category HIDE_REQUIRED. Hard: speed / grace like other walkers.
+- **H-90** (`HNurseEntity`, night nurse): white uniform and cap, dark face. Enters the player's room, walks the path of that room and the next at 0.11 blocks/tick,
+  stopping every 7 blocks for 1.5 s (cart sound), then leaves. Players that are not hiding and visible within 10 blocks are hit (12) and slowed.
+  Hidden players within 9 blocks who keep looking at her (view vector within ~16°) build up a gaze counter (actionbar "The nurse notices your gaze.");
+  at 30 ticks (hard 20) she pulls them out of the hiding spot (`LockerManager.exit`) and hits (30), then leaves. Looking away lowers the counter.
+  Hide and look away. Category HIDE_REQUIRED, exclusion group `h_ward` (never together with H-150).
+- **H-150** (`HCurtainEntity`, behind the curtain): lurks inside a curtain (white / light gray wool, 2 high, open on one side, within 3 blocks of the path) of the newest room
+  (or the player's room); outside H, on a free floor spot near the path. Invisible until it notices you; the curtain rustles now and then.
+  A player who is not hiding within 3 blocks: sprinting = noticed at once, walking = noticed after 0.5 s, crouching = never.
+  Once noticed it shows itself (actionbar "The curtain moves.") and lunges after 1 s (hard 0.7 s): hit (35) + slowness for players within 4.5 blocks it can see from the curtain's open side,
+  unless they are hiding. Players hiding within 2.5 blocks of it are dragged out after 3 s (rustling) and hit (35). Crouch past rustling curtains and do not hide next to them.
+  Uncategorized, exclusion group `h_ward`. 60 s lifetime.
+- **H-260** (`HGurneyEntity`, runaway gurney): sheet-covered stretcher. `URusher` (home section `h`): starts 4 rooms behind with a rattling wheel loop,
+  1.3 blocks/tick with acceleration, bounces once 1 room ahead and runs 3 rooms back (hard +1 bounce). Hide (hit range 20, damage 40). Category HIDE_REQUIRED.
 - Start it: `/rooms admin section h unlock`, then the lobby panel (`H-001` … `H-500`, GO) or `/rooms admin tp h <n>`.
 
 ## F (Flooded area)

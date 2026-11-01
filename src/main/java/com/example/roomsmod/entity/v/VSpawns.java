@@ -61,6 +61,11 @@ public final class VSpawns {
         U120("U-120", "u120", null, RoomsMod.U120),
         U200("U-200", "u200", null, RoomsMod.U200),
         U300("U-300", "u300", null, RoomsMod.U300),
+        // H（Hospital、病棟）区画。H-90 と H-150 は同時に出さない（隠れる／そばに隠れない：要求がぶつかる）
+        H30("H-30", "h30", null, RoomsMod.H30),
+        H90("H-90", "h90", "h_ward", RoomsMod.H90),
+        H150("H-150", "h150", "h_ward", RoomsMod.H150),
+        H260("H-260", "h260", null, RoomsMod.H260),
         // A（Abyss）専用（縦穴でだけ出る）
         A25("A-25", "a25", null, RoomsMod.A25),
         A90("A-90", "a90", null, RoomsMod.A90),
