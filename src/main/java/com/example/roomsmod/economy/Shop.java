@@ -12,7 +12,7 @@ public final class Shop {
     private Shop() {}
 
     public enum Product {
-        BATTERY("battery", 15), BANDAGE("bandage", 25), ADRENALINE("adrenaline", 60), CHARM("charm", 300);
+        BATTERY("battery", 15), BANDAGE("bandage", 25), ADRENALINE("adrenaline", 60), CHARM("charm", 300), RADAR("radar", 100), SCANNER("scanner", 200);
         public final String key; public final int price;
         Product(String key, int price) { this.key = key; this.price = price; }
     }
@@ -25,6 +25,8 @@ public final class Shop {
             case BANDAGE -> Wallet.full(Wallet.MAX_BANDAGE, w.bandage) ? "message.roomsmod.shop.full" : null;
             case ADRENALINE -> Wallet.full(Wallet.MAX_ADRENALINE, w.adrenaline) ? "message.roomsmod.shop.full" : null;
             case CHARM -> Wallet.full(Wallet.MAX_CHARM, w.charm) ? "message.roomsmod.shop.full" : null;
+            case RADAR -> Wallet.full(Wallet.MAX_RADAR, w.radar) ? "message.roomsmod.shop.full" : null;
+            case SCANNER -> Wallet.full(Wallet.MAX_SCANNER, w.scanner) ? "message.roomsmod.shop.full" : null;
         };
         if (why == null && w.coins < item.price) why = "message.roomsmod.shop.no_coins";
         if (why != null) {
@@ -38,6 +40,8 @@ public final class Shop {
             case BANDAGE -> w.bandage++;
             case ADRENALINE -> w.adrenaline++;
             case CHARM -> w.charm++;
+            case RADAR -> w.radar++;
+            case SCANNER -> w.scanner++;
         }
         Wallet.sync(p);
         p.level().playSound(null, p.blockPosition(), SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.BLOCKS, 0.6f, 1.3f);

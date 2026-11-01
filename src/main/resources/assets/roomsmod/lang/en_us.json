@@ -183,5 +183,15 @@
   "message.roomsmod.adrenaline.active": "Adrenaline is already active",
   "message.roomsmod.adrenaline.cooldown": "Adrenaline available in %ss",
   "message.roomsmod.adrenaline.used": "Adrenaline: no stamina drain and faster movement for %ss",
-  "message.roomsmod.charm.used": "Your charm took the blow"
+  "message.roomsmod.charm.used": "Your charm took the blow (invulnerable for %ss)",
+  "key.roomsmod.radar": "Use Radar",
+  "key.roomsmod.scanner": "Use Scanner",
+  "shop.roomsmod.radar": "Radar",
+  "shop.roomsmod.scanner": "Scanner",
+  "message.roomsmod.radar.none": "You have no radar",
+  "message.roomsmod.radar.active": "Radar is already active",
+  "message.roomsmod.radar.used": "Radar: showing nearby enemies for %ss (%s found)",
+  "message.roomsmod.scanner.none": "You have no scanner",
+  "hud.roomsmod.scanner.title": "Scan results",
+  "hud.roomsmod.scanner.none": "Nothing nearby"
 }

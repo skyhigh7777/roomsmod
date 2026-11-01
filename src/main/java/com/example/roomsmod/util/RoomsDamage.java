@@ -56,6 +56,10 @@ public final class RoomsDamage {
 
     /** 実際に体力が減ったか（無敵時間中などは false）。 */
     public static boolean hurt(Entity attacker, Player p, float amount) {
+        if (p instanceof net.minecraft.server.level.ServerPlayer sp && com.example.roomsmod.economy.Charm.isProtected(sp)) {
+            RoomsDebug.log("damage blocked (charm) attacker={} player={} amount={}", attacker.getName().getString(), p.getGameProfile().getName(), amount);
+            return false;
+        }
         float before = p.getHealth();
         boolean ok = p.isCreative() && !p.isSpectator() && p.level().dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)
                 ? hurtCreative(attacker, p, amount) : p.hurt(source(attacker), amount);

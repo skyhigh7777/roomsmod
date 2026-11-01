@@ -168,5 +168,15 @@
   "message.roomsmod.adrenaline.active": "アドレナリンは効いている最中",
   "message.roomsmod.adrenaline.cooldown": "アドレナリンはあと%s秒使えない",
   "message.roomsmod.adrenaline.used": "アドレナリン：%s秒間スタミナが減らない・足が速くなる",
-  "message.roomsmod.charm.used": "お守りが身代わりになった"
+  "message.roomsmod.charm.used": "お守りが身代わりになった（%s秒間 無敵）",
+  "key.roomsmod.radar": "レーダーを使う",
+  "key.roomsmod.scanner": "スキャナーを使う",
+  "shop.roomsmod.radar": "レーダー",
+  "shop.roomsmod.scanner": "スキャナー",
+  "message.roomsmod.radar.none": "レーダーを持っていない",
+  "message.roomsmod.radar.active": "レーダーは作動中",
+  "message.roomsmod.radar.used": "レーダー：%s秒間、近くの敵を表示（%s体）",
+  "message.roomsmod.scanner.none": "スキャナーを持っていない",
+  "hud.roomsmod.scanner.title": "スキャン結果",
+  "hud.roomsmod.scanner.none": "近くに反応なし"
 }

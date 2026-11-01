@@ -29,7 +29,7 @@ import java.util.UUID;
  *   <li>section [id lock|unlock]：セクションの利用可否（既定は PLACEHOLDER だけロック）。ロック中はロビーのパネル・/rooms section で選べない。</li>
  *   <li>wallet &lt;player&gt; [set battery|bandage|coins &lt;n&gt;]：所持数を見る・変える。</li>
  *   <li>run reset [player]：周回の記録を消す（コインは出ない）。</li>
- *   <li>give flashlight | bandage [n] | battery [n] | adrenaline [n] | charm [n] | coins &lt;n&gt;：自分に渡す（電池・包帯・コインは所持数へ、上限まで）。以前の OP 用 /rooms give から移動。</li>
+ *   <li>give flashlight | bandage [n] | battery [n] | adrenaline [n] | charm [n] | radar [n] | scanner [n] | coins &lt;n&gt;：自分に渡す（電池・包帯・コインは所持数へ、上限まで）。以前の OP 用 /rooms give から移動。</li>
  *   <li>tp &lt;section&gt; &lt;room&gt;：そのセクションのその部屋へ（ロビー作り直し＝GO と同じ。ロックを無視、自分の周回の記録は消す）。</li>
  * </ul>
  */
@@ -57,7 +57,7 @@ public final class AdminCommands {
                     .executes(ctx -> showWallet(ctx.getSource(), EntityArgument.getPlayer(ctx, "player")))
                     .then(Commands.literal("set")
                         .then(Commands.argument("what", StringArgumentType.word())
-                            .suggests((c, b) -> SharedSuggestionProvider.suggest(new String[]{"battery", "bandage", "adrenaline", "charm", "coins"}, b))
+                            .suggests((c, b) -> SharedSuggestionProvider.suggest(new String[]{"battery", "bandage", "adrenaline", "charm", "radar", "scanner", "coins"}, b))
                             .then(Commands.argument("n", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setWallet(ctx.getSource(), EntityArgument.getPlayer(ctx, "player"),
                                         StringArgumentType.getString(ctx, "what"), IntegerArgumentType.getInteger(ctx, "n"))))))))
@@ -80,6 +80,10 @@ public final class AdminCommands {
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveExtra(ctx.getSource(), "adrenaline", IntegerArgumentType.getInteger(ctx, "count")))))
                 .then(Commands.literal("charm").executes(ctx -> giveExtra(ctx.getSource(), "charm", 1))
                     .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveExtra(ctx.getSource(), "charm", IntegerArgumentType.getInteger(ctx, "count")))))
+                .then(Commands.literal("radar").executes(ctx -> giveExtra(ctx.getSource(), "radar", 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveExtra(ctx.getSource(), "radar", IntegerArgumentType.getInteger(ctx, "count")))))
+                .then(Commands.literal("scanner").executes(ctx -> giveExtra(ctx.getSource(), "scanner", 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveExtra(ctx.getSource(), "scanner", IntegerArgumentType.getInteger(ctx, "count")))))
                 .then(Commands.literal("coins")
                     .then(Commands.argument("count", IntegerArgumentType.integer(-1000000, 1000000)).executes(ctx -> giveCoins(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("tp")
@@ -119,7 +123,7 @@ public final class AdminCommands {
     private static int showWallet(CommandSourceStack src, ServerPlayer p) {
         Wallet w = Wallet.of(p);
         src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info(p.getGameProfile().getName() + ": 電池 " + Wallet.label(w.battery, Wallet.MAX_BATTERY)
-                + "  包帯 " + Wallet.label(w.bandage, Wallet.MAX_BANDAGE) + "  アドレナリン " + Wallet.label(w.adrenaline, Wallet.MAX_ADRENALINE) + "  お守り " + Wallet.label(w.charm, Wallet.MAX_CHARM) + "  コイン " + w.coins
+                + "  包帯 " + Wallet.label(w.bandage, Wallet.MAX_BANDAGE) + "  アドレナリン " + Wallet.label(w.adrenaline, Wallet.MAX_ADRENALINE) + "  お守り " + Wallet.label(w.charm, Wallet.MAX_CHARM) + "  レーダー " + Wallet.label(w.radar, Wallet.MAX_RADAR) + "  スキャナー " + Wallet.label(w.scanner, Wallet.MAX_SCANNER) + "  コイン " + w.coins
                 + "  周回 start=" + w.runStart + " furthest=" + w.runFurthest + " hit=" + w.runHit), false);
         return 1;
     }
@@ -131,8 +135,10 @@ public final class AdminCommands {
             case "bandage" -> w.bandage = Math.min(n, Wallet.space(Wallet.MAX_BANDAGE, 0));
             case "adrenaline" -> w.adrenaline = Math.min(n, Wallet.space(Wallet.MAX_ADRENALINE, 0));
             case "charm" -> w.charm = Math.min(n, Wallet.space(Wallet.MAX_CHARM, 0));
+            case "radar" -> w.radar = Math.min(n, Wallet.space(Wallet.MAX_RADAR, 0));
+            case "scanner" -> w.scanner = Math.min(n, Wallet.space(Wallet.MAX_SCANNER, 0));
             case "coins", "coin" -> w.coins = n;
-            default -> { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("battery / bandage / adrenaline / charm / coins のどれか")); return 0; }
+            default -> { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("battery / bandage / adrenaline / charm / radar / scanner / coins のどれか")); return 0; }
         }
         Wallet.sync(p);
         RoomsDebug.info("admin: wallet {} {}={} by {}", p.getGameProfile().getName(), what, n, src.getTextName());
@@ -195,15 +201,19 @@ public final class AdminCommands {
     }
 
 
-    /** アドレナリン・お守りを所持数へ（上限まで）。 */
+    /** アドレナリン・お守り・レーダー・スキャナーを所持数へ（上限まで）。 */
     private static int giveExtra(CommandSourceStack src, String what, int n) throws CommandSyntaxException {
         ServerPlayer p = src.getPlayerOrException();
         Wallet w = Wallet.of(p);
-        boolean adr = what.equals("adrenaline");
-        int add = Math.min(n, adr ? Wallet.space(Wallet.MAX_ADRENALINE, w.adrenaline) : Wallet.space(Wallet.MAX_CHARM, w.charm));
-        if (adr) w.adrenaline += add; else w.charm += add;
+        int add;
+        String label;
+        switch (what) {
+            case "adrenaline" -> { add = Math.min(n, Wallet.space(Wallet.MAX_ADRENALINE, w.adrenaline)); w.adrenaline += add; label = Wallet.label(w.adrenaline, Wallet.MAX_ADRENALINE); }
+            case "charm" -> { add = Math.min(n, Wallet.space(Wallet.MAX_CHARM, w.charm)); w.charm += add; label = Wallet.label(w.charm, Wallet.MAX_CHARM); }
+            case "radar" -> { add = Math.min(n, Wallet.space(Wallet.MAX_RADAR, w.radar)); w.radar += add; label = Wallet.label(w.radar, Wallet.MAX_RADAR); }
+            default -> { add = Math.min(n, Wallet.space(Wallet.MAX_SCANNER, w.scanner)); w.scanner += add; label = Wallet.label(w.scanner, Wallet.MAX_SCANNER); }
+        }
         Wallet.sync(p);
-        String label = adr ? Wallet.label(w.adrenaline, Wallet.MAX_ADRENALINE) : Wallet.label(w.charm, Wallet.MAX_CHARM);
         src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("shop.roomsmod." + what).append(" +" + add + " (" + label + ")")), false);
         return add;
     }

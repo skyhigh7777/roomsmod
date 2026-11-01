@@ -46,13 +46,15 @@ public final class WalletClient {
         if (adr && mc.player != null && mc.screen == null && mc.getConnection() != null) PacketDistributor.sendToServer(new Wallet.AdrenalinePayload());
         if (Wallet.clientAdrenalineTicks > 0) Wallet.clientAdrenalineTicks--;
         if (Wallet.clientAdrenalineCooldown > 0) Wallet.clientAdrenalineCooldown--;
+        if (Wallet.clientCharmProtect > 0) Wallet.clientCharmProtect--;
     }
 
     private static ItemStack battery, bandage;
-    private static final ItemStack COIN = new ItemStack(Items.GOLD_NUGGET), ADRENALINE = new ItemStack(Items.SUGAR), CHARM = new ItemStack(Items.TOTEM_OF_UNDYING);
+    private static final ItemStack COIN = new ItemStack(Items.GOLD_NUGGET), ADRENALINE = new ItemStack(Items.SUGAR), CHARM = new ItemStack(Items.TOTEM_OF_UNDYING),
+            RADAR = new ItemStack(Items.COMPASS), SCANNER = new ItemStack(Items.SPYGLASS);
     private static final int WHITE = 0xFFFFFFFF, FULL = 0xFFE0A040;
 
-    /** 画面右下に縦に並べる（ホットバーと重ならない）。下から コイン・お守り・アドレナリン・包帯・電池。 */
+    /** 画面右下に縦に並べる（ホットバーと重ならない）。下から コイン・スキャナー・レーダー・お守り・アドレナリン・包帯・電池。 */
     @SubscribeEvent
     public static void onLayer(RenderGuiLayerEvent.Post e) {
         if (!e.getName().equals(VanillaGuiLayers.HOTBAR)) return;
@@ -67,7 +69,15 @@ public final class WalletClient {
         if (Wallet.clientAdrenalineTicks > 0) { adr += "  " + (Wallet.clientAdrenalineTicks + 19) / 20 + "s"; adrColor = 0xFF60FF60; }
         else if (Wallet.clientAdrenalineCooldown > 0) { adr += "  CD " + (Wallet.clientAdrenalineCooldown + 19) / 20 + "s"; adrColor = 0xFFA0A0A0; }
         y = entry(g, mc, COIN, String.valueOf(Wallet.clientCoins), 0xFFFFD040, right, y);
-        y = entry(g, mc, CHARM, Wallet.label(Wallet.clientCharm, Wallet.MAX_CHARM), Wallet.full(Wallet.MAX_CHARM, Wallet.clientCharm) ? FULL : WHITE, right, y);
+        String charm = Wallet.label(Wallet.clientCharm, Wallet.MAX_CHARM);
+        int charmColor = Wallet.full(Wallet.MAX_CHARM, Wallet.clientCharm) ? FULL : WHITE;
+        if (Wallet.clientCharmProtect > 0) { charm += "  " + (Wallet.clientCharmProtect + 19) / 20 + "s"; charmColor = 0xFFFFE070; } // お守りの無敵の残り
+        String radar = Wallet.label(Wallet.clientRadar, Wallet.MAX_RADAR);
+        int radarColor = Wallet.full(Wallet.MAX_RADAR, Wallet.clientRadar) ? FULL : WHITE;
+        if (GadgetsClient.radarTicksLeft() > 0) { radar += "  " + (GadgetsClient.radarTicksLeft() + 19) / 20 + "s"; radarColor = 0xFF7FE0FF; }
+        y = entry(g, mc, SCANNER, Wallet.label(Wallet.clientScanner, Wallet.MAX_SCANNER), Wallet.full(Wallet.MAX_SCANNER, Wallet.clientScanner) ? FULL : WHITE, right, y);
+        y = entry(g, mc, RADAR, radar, radarColor, right, y);
+        y = entry(g, mc, CHARM, charm, charmColor, right, y);
         y = entry(g, mc, ADRENALINE, adr, adrColor, right, y);
         y = entry(g, mc, bandage, Wallet.label(Wallet.clientBandage, Wallet.MAX_BANDAGE), Wallet.full(Wallet.MAX_BANDAGE, Wallet.clientBandage) ? FULL : WHITE, right, y);
         entry(g, mc, battery, Wallet.label(Wallet.clientBattery, Wallet.MAX_BATTERY), Wallet.full(Wallet.MAX_BATTERY, Wallet.clientBattery) ? FULL : WHITE, right, y);

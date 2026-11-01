@@ -662,6 +662,7 @@ public final class AbyssRooms {
 
     /** 引き止める（vy：縦の速さ、ticks：この tick 数だけ有効。毎 tick 呼び直して延ばす）。見張り（止まっている判定）は引き止め中は数えない。 */
     public static void hold(ServerPlayer sp, float vy, int ticks) {
+        if (com.example.roomsmod.economy.Charm.isProtected(sp)) { if (isHeld(sp)) release(sp); return; } // お守りの無敵中はつかまれない
         UUID id = sp.getUUID();
         HELD.put(id, sp.serverLevel().getGameTime() + ticks);
         Float prev = HELD_VY.put(id, vy);

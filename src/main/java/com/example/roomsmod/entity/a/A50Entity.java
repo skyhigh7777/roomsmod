@@ -132,6 +132,7 @@ public class A50Entity extends AbyssEnemy {
             }
             case HOLD -> {
                 if (!(t instanceof ServerPlayer sp)) { letGo(level, t, "not a server player"); return; }
+                if (com.example.roomsmod.economy.Charm.isProtected(sp)) { letGo(level, t, "charm protection"); return; }
                 thread(level, rs, t, 6);
                 if (safe || HidingRules.isHiding(t)) { letGo(level, t, "target reached an alcove"); return; }
                 if (stateTicks > 5 && !canSeeVirtual(t)) { letGo(level, t, "line of sight broken"); return; }

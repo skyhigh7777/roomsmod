@@ -48,7 +48,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     /** 所持数の上限（UNLIMITED = なし）。以前は 10 / 5。 */
     public static final int MAX_BATTERY = UNLIMITED, MAX_BANDAGE = UNLIMITED;
     /** アドレナリン・お守りの上限。 */
-    public static final int MAX_ADRENALINE = 8, MAX_CHARM = 1;
+    public static final int MAX_ADRENALINE = 8, MAX_CHARM = 1, MAX_RADAR = 3, MAX_SCANNER = 10;
 
     /** あと何個入るか。 */
     public static int space(int max, int cur) { return max < 0 ? Integer.MAX_VALUE - Math.max(0, cur) : Math.max(0, max - cur); }
@@ -59,6 +59,8 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     public int battery, bandage;
     /** アドレナリン・お守り（売店で買う。生還では残り、死亡でなくなる）。 */
     public int adrenaline, charm;
+    /** レーダー・スキャナー（売店で買う。生還でも死亡でも残る）。 */
+    public int radar, scanner;
     public long coins;
     /** 周回（RoomsState.epoch）。違えば下の記録はリセット。 */
     public int runEpoch = Integer.MIN_VALUE;
@@ -70,7 +72,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     public CompoundTag serializeNBT(HolderLookup.Provider p) {
         CompoundTag t = new CompoundTag();
         t.putInt("battery", battery); t.putInt("bandage", bandage); t.putLong("coins", coins);
-        t.putInt("adrenaline", adrenaline); t.putInt("charm", charm);
+        t.putInt("adrenaline", adrenaline); t.putInt("charm", charm); t.putInt("radar", radar); t.putInt("scanner", scanner);
         t.putInt("runEpoch", runEpoch); t.putInt("runStart", runStart); t.putInt("runFurthest", runFurthest); t.putBoolean("runHit", runHit);
         return t;
     }
@@ -78,7 +80,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     @Override
     public void deserializeNBT(HolderLookup.Provider p, CompoundTag t) {
         battery = t.getInt("battery"); bandage = t.getInt("bandage"); coins = t.getLong("coins");
-        adrenaline = t.getInt("adrenaline"); charm = t.getInt("charm");
+        adrenaline = t.getInt("adrenaline"); charm = t.getInt("charm"); radar = t.getInt("radar"); scanner = t.getInt("scanner");
         runEpoch = t.contains("runEpoch") ? t.getInt("runEpoch") : Integer.MIN_VALUE;
         runStart = t.contains("runStart") ? t.getInt("runStart") : -1;
         runFurthest = t.contains("runFurthest") ? t.getInt("runFurthest") : -1;
@@ -94,14 +96,16 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
             () -> AttachmentType.serializable(Wallet::new).copyOnDeath().build());
 
     /** サーバー → クライアント：所持数。 */
-    public record SyncPayload(int battery, int bandage, long coins, int adrenaline, int charm, int adrenalineTicks, int adrenalineCooldown) implements CustomPacketPayload {
+    public record SyncPayload(int battery, int bandage, long coins, int adrenaline, int charm, int adrenalineTicks, int adrenalineCooldown, int radar, int scanner, int charmProtect) implements CustomPacketPayload {
         public static final Type<SyncPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "wallet"));
         public static final StreamCodec<ByteBuf, SyncPayload> STREAM_CODEC = StreamCodec.of((buf, m) -> {
             ByteBufCodecs.VAR_INT.encode(buf, m.battery()); ByteBufCodecs.VAR_INT.encode(buf, m.bandage()); ByteBufCodecs.VAR_LONG.encode(buf, m.coins());
             ByteBufCodecs.VAR_INT.encode(buf, m.adrenaline()); ByteBufCodecs.VAR_INT.encode(buf, m.charm());
             ByteBufCodecs.VAR_INT.encode(buf, m.adrenalineTicks()); ByteBufCodecs.VAR_INT.encode(buf, m.adrenalineCooldown());
+            ByteBufCodecs.VAR_INT.encode(buf, m.radar()); ByteBufCodecs.VAR_INT.encode(buf, m.scanner()); ByteBufCodecs.VAR_INT.encode(buf, m.charmProtect());
         }, buf -> new SyncPayload(ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_LONG.decode(buf),
-                ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf)));
+                ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf),
+                ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf), ByteBufCodecs.VAR_INT.decode(buf)));
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
@@ -122,14 +126,21 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     /** クライアント側の表示用。 */
     public static int clientBattery, clientBandage;
     public static long clientCoins;
-    public static int clientAdrenaline, clientCharm, clientAdrenalineTicks, clientAdrenalineCooldown;
+    public static int clientAdrenaline, clientCharm, clientAdrenalineTicks, clientAdrenalineCooldown, clientRadar, clientScanner, clientCharmProtect;
 
     public static void init(IEventBus modBus) {
         ATTACHMENTS.register(modBus);
         modBus.addListener((RegisterPayloadHandlersEvent e) -> e.registrar("1")
                 .playToClient(SyncPayload.TYPE, SyncPayload.STREAM_CODEC,
                         (msg, ctx) -> ctx.enqueueWork(() -> { clientBattery = msg.battery(); clientBandage = msg.bandage(); clientCoins = msg.coins();
-                            clientAdrenaline = msg.adrenaline(); clientCharm = msg.charm(); clientAdrenalineTicks = msg.adrenalineTicks(); clientAdrenalineCooldown = msg.adrenalineCooldown(); }))
+                            clientAdrenaline = msg.adrenaline(); clientCharm = msg.charm(); clientAdrenalineTicks = msg.adrenalineTicks(); clientAdrenalineCooldown = msg.adrenalineCooldown();
+                            clientRadar = msg.radar(); clientScanner = msg.scanner(); clientCharmProtect = msg.charmProtect(); }))
+                .playToServer(Gadgets.UsePayload.TYPE, Gadgets.UsePayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Gadgets.use(sp, msg.kind()); }))
+                .playToClient(Gadgets.RadarPayload.TYPE, Gadgets.RadarPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> com.example.roomsmod.client.GadgetsClient.radar(msg)))
+                .playToClient(Gadgets.ScanPayload.TYPE, Gadgets.ScanPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> com.example.roomsmod.client.GadgetsClient.scan(msg)))
                 .playToServer(AdrenalinePayload.TYPE, AdrenalinePayload.STREAM_CODEC,
                         (msg, ctx) -> ctx.enqueueWork(() -> { if (ctx.player() instanceof ServerPlayer sp) Adrenaline.use(sp); }))
                 .playToServer(BandagePayload.TYPE, BandagePayload.STREAM_CODEC,
@@ -140,7 +151,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
 
     public static void sync(ServerPlayer p) {
         Wallet w = of(p);
-        PacketDistributor.sendToPlayer(p, new SyncPayload(w.battery, w.bandage, w.coins, w.adrenaline, w.charm, Adrenaline.activeTicks(p), Adrenaline.cooldownTicks(p)));
+        PacketDistributor.sendToPlayer(p, new SyncPayload(w.battery, w.bandage, w.coins, w.adrenaline, w.charm, Adrenaline.activeTicks(p), Adrenaline.cooldownTicks(p), w.radar, w.scanner, Charm.protectTicks(p)));
     }
 
     /** 電池を1本使う（あれば true）。 */
@@ -237,7 +248,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
         if (!(e.getEntity() instanceof ServerPlayer sp) || e.isCanceled()) return;
         if (!sp.level().dimension().equals(RoomsCommands.ROOMS_DIMENSION)) return;
         Wallet w = of(sp);
-        w.battery = 0; w.bandage = 0; w.adrenaline = 0; w.charm = 0;
+        w.battery = 0; w.bandage = 0; w.adrenaline = 0; w.charm = 0; // レーダー・スキャナーは残る
         sync(sp);
     }
 }

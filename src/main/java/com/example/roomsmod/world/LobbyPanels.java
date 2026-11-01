@@ -30,7 +30,7 @@ import java.util.List;
  *       [区画] [−] 表示 [＋] [GO]。区画は登録済みセクションを順に巡回（スニークで逆順）、番号は STEPS を巡回。
  *       GO で「/rooms section &lt;s&gt; 1」＋「/rooms to &lt;n&gt;」と同じ（ロビー再生成＝全員の進行がリセット）。
  *       選択はサーバーで共有（看板1枚に表示されるため）。</li>
- *   <li>右の壁（x=0）：売店（economy.Shop）。電池・包帯・アドレナリン・お守りをコインで買う。</li>
+ *   <li>右の壁（x=0）：売店（economy.Shop）。電池・包帯・アドレナリン・お守り・レーダー・スキャナーをコインで買う。</li>
  *   <li>出口扉側の壁（z=31, x=14）：いちばん奥の生成済み部屋の番号を表示し、右クリックでそこへワープ（進行はリセットしない）。</li>
  * </ul>
  * パネルのブロックと看板は壊せず、部屋ディメンションのブロック操作禁止の例外（DoorEventHandler）。
@@ -42,7 +42,7 @@ public final class LobbyPanels {
     public static final int[] STEPS = {1, 50, 100, 150, 200, 250, 300, 400, 500};
     static final BlockPos ORIGIN = RoomsLayout.LOBBY_ORIGIN;
 
-    enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD, SHOP_BATTERY, SHOP_BANDAGE, SHOP_ADRENALINE, SHOP_CHARM }
+    enum Kind { SECTION, MINUS, PLUS, GO, DEEPEST, LABEL, HARD, SHOP_BATTERY, SHOP_BANDAGE, SHOP_ADRENALINE, SHOP_CHARM, SHOP_RADAR, SHOP_SCANNER }
 
     // 左の壁: ボタンは壁の中（x=19, y=2）、看板は壁の手前（x=18）
     static final int LX = RoomsLayout.LOBBY_WIDTH - 1, BY = 2;
@@ -50,7 +50,7 @@ public final class LobbyPanels {
     /** ハードモードの切り替え（左の壁、スタート選択から少し離す）。 */
     static final int Z_HARD = 24;
     /** 売店（右の壁 x=0、柱 z=7/13/19 を避ける）。ボタンは壁の中、看板は x=1。値段は economy.Shop。 */
-    static final int SX = 0, Z_SHOP_BATTERY = 14, Z_SHOP_BANDAGE = 15, Z_SHOP_ADRENALINE = 17, Z_SHOP_CHARM = 18;
+    static final int SX = 0, Z_SHOP_BATTERY = 10, Z_SHOP_BANDAGE = 11, Z_SHOP_ADRENALINE = 12, Z_SHOP_CHARM = 14, Z_SHOP_RADAR = 15, Z_SHOP_SCANNER = 16;
     // 正面（扉側）: 扉は x=10 なので x=14（扉の両脇 x=9..11 から離す）
     static final int FZ = 31, FX = 14;
 
@@ -71,7 +71,8 @@ public final class LobbyPanels {
 
     static List<BlockPos> buttons() {
         return List.of(at(LX, BY, Z_SECTION), at(LX, BY, Z_MINUS), at(LX, BY, Z_PLUS), at(LX, BY, Z_GO), at(FX, BY, FZ), at(LX, BY, Z_HARD),
-                at(SX, BY, Z_SHOP_BATTERY), at(SX, BY, Z_SHOP_BANDAGE), at(SX, BY, Z_SHOP_ADRENALINE), at(SX, BY, Z_SHOP_CHARM));
+                at(SX, BY, Z_SHOP_BATTERY), at(SX, BY, Z_SHOP_BANDAGE), at(SX, BY, Z_SHOP_ADRENALINE), at(SX, BY, Z_SHOP_CHARM),
+                at(SX, BY, Z_SHOP_RADAR), at(SX, BY, Z_SHOP_SCANNER));
     }
     static List<BlockPos> signs() {
         List<BlockPos> l = new ArrayList<>();
@@ -79,7 +80,7 @@ public final class LobbyPanels {
         l.add(at(LX - 1, BY, Z_DISPLAY));
         l.add(at(FX, BY + 1, FZ - 1));
         l.add(at(LX - 1, BY + 1, Z_HARD));
-        for (int z : new int[]{Z_SHOP_BATTERY, Z_SHOP_BANDAGE, Z_SHOP_ADRENALINE, Z_SHOP_CHARM}) l.add(at(SX + 1, BY + 1, z));
+        for (int z : new int[]{Z_SHOP_BATTERY, Z_SHOP_BANDAGE, Z_SHOP_ADRENALINE, Z_SHOP_CHARM, Z_SHOP_RADAR, Z_SHOP_SCANNER}) l.add(at(SX + 1, BY + 1, z));
         return l;
     }
 
@@ -98,6 +99,8 @@ public final class LobbyPanels {
             if (p.getZ() == Z_SHOP_BANDAGE) return Kind.SHOP_BANDAGE;
             if (p.getZ() == Z_SHOP_ADRENALINE) return Kind.SHOP_ADRENALINE;
             if (p.getZ() == Z_SHOP_CHARM) return Kind.SHOP_CHARM;
+            if (p.getZ() == Z_SHOP_RADAR) return Kind.SHOP_RADAR;
+            if (p.getZ() == Z_SHOP_SCANNER) return Kind.SHOP_SCANNER;
         }
         if (p.getX() == FX && (p.getZ() == FZ || p.getZ() == FZ - 1)) return Kind.DEEPEST;
         return null;
@@ -127,10 +130,14 @@ public final class LobbyPanels {
         place(level, at(SX, BY, Z_SHOP_BANDAGE), Blocks.WHITE_WOOL.defaultBlockState());
         place(level, at(SX, BY, Z_SHOP_ADRENALINE), Blocks.RED_CONCRETE.defaultBlockState());
         place(level, at(SX, BY, Z_SHOP_CHARM), Blocks.AMETHYST_BLOCK.defaultBlockState());
+        place(level, at(SX, BY, Z_SHOP_RADAR), Blocks.LIGHT_BLUE_CONCRETE.defaultBlockState());
+        place(level, at(SX, BY, Z_SHOP_SCANNER), Blocks.CYAN_CONCRETE.defaultBlockState());
         sign(level, at(SX + 1, BY + 1, Z_SHOP_BATTERY), Direction.EAST, "SHOP", "電池 BATTERY", com.example.roomsmod.economy.Shop.Product.BATTERY.price + " COIN", "");
         sign(level, at(SX + 1, BY + 1, Z_SHOP_BANDAGE), Direction.EAST, "SHOP", "包帯 BANDAGE", com.example.roomsmod.economy.Shop.Product.BANDAGE.price + " COIN", "");
         sign(level, at(SX + 1, BY + 1, Z_SHOP_ADRENALINE), Direction.EAST, "SHOP", "アドレナリン", "ADRENALINE", com.example.roomsmod.economy.Shop.Product.ADRENALINE.price + " COIN");
         sign(level, at(SX + 1, BY + 1, Z_SHOP_CHARM), Direction.EAST, "SHOP", "お守り CHARM", com.example.roomsmod.economy.Shop.Product.CHARM.price + " COIN", "最大 " + com.example.roomsmod.economy.Wallet.MAX_CHARM);
+        sign(level, at(SX + 1, BY + 1, Z_SHOP_RADAR), Direction.EAST, "SHOP", "レーダー RADAR", com.example.roomsmod.economy.Shop.Product.RADAR.price + " COIN", "最大 " + com.example.roomsmod.economy.Wallet.MAX_RADAR);
+        sign(level, at(SX + 1, BY + 1, Z_SHOP_SCANNER), Direction.EAST, "SHOP", "スキャナー", "SCANNER", com.example.roomsmod.economy.Shop.Product.SCANNER.price + " COIN");
         refreshSelection(level);
         refreshDeepest(level);
         refreshHard(level);
@@ -218,6 +225,8 @@ public final class LobbyPanels {
             case SHOP_BANDAGE -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.BANDAGE);
             case SHOP_ADRENALINE -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.ADRENALINE);
             case SHOP_CHARM -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.CHARM);
+            case SHOP_RADAR -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.RADAR);
+            case SHOP_SCANNER -> com.example.roomsmod.economy.Shop.buy(player, com.example.roomsmod.economy.Shop.Product.SCANNER);
             case HARD -> {
                 boolean on = !RoomsState.get(level).hardMode;
                 level.playSound(null, player.blockPosition(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.BLOCKS, 0.6f, on ? 0.7f : 1.2f);
