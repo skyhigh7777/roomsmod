@@ -108,35 +108,6 @@ public class RoomsCommands {
     }
 
     /** ロビー（/rooms enter と同じ地点）へ送る。ロビーは毎回生成し直す（従来どおり）。 */
-    /** 所持数（Wallet）へ。上限を超えた分は渡さない。 */
-    private static int giveBandage(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        var p = src.getPlayerOrException();
-        var w = com.example.roomsmod.economy.Wallet.of(p);
-        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BANDAGE - w.bandage);
-        w.bandage += Math.max(0, add);
-        com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + w.bandage + "/" + com.example.roomsmod.economy.Wallet.MAX_BANDAGE + ")")), false);
-        return Math.max(0, add);
-    }
-
-    private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        var p = src.getPlayerOrException();
-        var w = com.example.roomsmod.economy.Wallet.of(p);
-        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BATTERY - w.battery);
-        w.battery += Math.max(0, add);
-        com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + w.battery + "/" + com.example.roomsmod.economy.Wallet.MAX_BATTERY + ")")), false);
-        return Math.max(0, add);
-    }
-
-    private static int giveCoins(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        var p = src.getPlayerOrException();
-        var w = com.example.roomsmod.economy.Wallet.of(p);
-        w.coins = Math.max(0, w.coins + n);
-        com.example.roomsmod.economy.Wallet.sync(p);
-        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("COIN " + (n >= 0 ? "+" : "") + n + " → " + w.coins), false);
-        return 1;
-    }
 
     /** ロビーを作り直して部屋 1..target を生成し、最後の部屋の安全な床へワープ（/rooms to とロビーの GO パネル）。
      *  生成は数 tick に分けて行う（RoomsTravel）。 */
@@ -209,19 +180,6 @@ public class RoomsCommands {
                     ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info("Roomsデバッグ: " + (com.example.roomsmod.util.RoomsDebug.isEnabled() ? "ON" : "OFF")), false);
                     return 1;
                 })))
-            .then(Commands.literal("give")
-                .requires(src -> src.hasPermission(2))
-                .then(Commands.literal("flashlight").executes(ctx -> {
-                    ctx.getSource().getPlayerOrException().getInventory().add(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS));
-                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(Component.translatable("item.roomsmod.flashlight")), false);
-                    return 1;
-                }))
-                .then(Commands.literal("bandage").executes(ctx -> giveBandage(ctx.getSource(), 1))
-                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBandage(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
-                .then(Commands.literal("battery").executes(ctx -> giveBattery(ctx.getSource(), 1))
-                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
-                .then(Commands.literal("coins")
-                    .then(Commands.argument("count", IntegerArgumentType.integer(-1000000, 1000000)).executes(ctx -> giveCoins(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("spawn")
                 .requires(src -> src.hasPermission(2))
                 .then(Commands.literal("b20").executes(ctx -> spawnRusher(ctx.getSource(), false)))

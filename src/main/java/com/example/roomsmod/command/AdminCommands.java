@@ -29,6 +29,7 @@ import java.util.UUID;
  *   <li>section [id lock|unlock]：セクションの利用可否（既定は PLACEHOLDER だけロック）。ロック中はロビーのパネル・/rooms section で選べない。</li>
  *   <li>wallet &lt;player&gt; [set battery|bandage|coins &lt;n&gt;]：所持数を見る・変える。</li>
  *   <li>run reset [player]：周回の記録を消す（コインは出ない）。</li>
+ *   <li>give flashlight | bandage [n] | battery [n] | coins &lt;n&gt;：自分に渡す（電池・包帯・コインは所持数へ、上限まで）。以前の OP 用 /rooms give から移動。</li>
  *   <li>tp &lt;section&gt; &lt;room&gt;：そのセクションのその部屋へ（ロビー作り直し＝GO と同じ。ロックを無視、自分の周回の記録は消す）。</li>
  * </ul>
  */
@@ -65,6 +66,18 @@ public final class AdminCommands {
                     .executes(ctx -> resetRun(ctx.getSource(), ctx.getSource().getPlayerOrException()))
                     .then(Commands.argument("player", EntityArgument.player())
                         .executes(ctx -> resetRun(ctx.getSource(), EntityArgument.getPlayer(ctx, "player"))))))
+            .then(Commands.literal("give")
+                .then(Commands.literal("flashlight").executes(ctx -> {
+                    ctx.getSource().getPlayerOrException().getInventory().add(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS));
+                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.flashlight")), false);
+                    return 1;
+                }))
+                .then(Commands.literal("bandage").executes(ctx -> giveBandage(ctx.getSource(), 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBandage(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
+                .then(Commands.literal("battery").executes(ctx -> giveBattery(ctx.getSource(), 1))
+                    .then(Commands.argument("count", IntegerArgumentType.integer(1, 64)).executes(ctx -> giveBattery(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count")))))
+                .then(Commands.literal("coins")
+                    .then(Commands.argument("count", IntegerArgumentType.integer(-1000000, 1000000)).executes(ctx -> giveCoins(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "count"))))))
             .then(Commands.literal("tp")
                 .then(Commands.argument("section", StringArgumentType.word())
                     .suggests((c, b) -> SharedSuggestionProvider.suggest(Sections.ids(), b))
@@ -144,4 +157,35 @@ public final class AdminCommands {
         RoomsDebug.info("admin: tp {} -> section {} room {}", p.getGameProfile().getName(), id, room);
         return RoomsCommands.goToRoom(p, room) ? 1 : 0;
     }
+
+    /** 所持数（Wallet）へ。上限を超えた分は渡さない。 */
+    private static int giveBandage(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var p = src.getPlayerOrException();
+        var w = com.example.roomsmod.economy.Wallet.of(p);
+        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BANDAGE - w.bandage);
+        w.bandage += Math.max(0, add);
+        com.example.roomsmod.economy.Wallet.sync(p);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.bandage").append(" +" + Math.max(0, add) + " (" + w.bandage + "/" + com.example.roomsmod.economy.Wallet.MAX_BANDAGE + ")")), false);
+        return Math.max(0, add);
+    }
+
+    private static int giveBattery(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var p = src.getPlayerOrException();
+        var w = com.example.roomsmod.economy.Wallet.of(p);
+        int add = Math.min(n, com.example.roomsmod.economy.Wallet.MAX_BATTERY - w.battery);
+        w.battery += Math.max(0, add);
+        com.example.roomsmod.economy.Wallet.sync(p);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(net.minecraft.network.chat.Component.translatable("item.roomsmod.battery").append(" +" + Math.max(0, add) + " (" + w.battery + "/" + com.example.roomsmod.economy.Wallet.MAX_BATTERY + ")")), false);
+        return Math.max(0, add);
+    }
+
+    private static int giveCoins(CommandSourceStack src, int n) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var p = src.getPlayerOrException();
+        var w = com.example.roomsmod.economy.Wallet.of(p);
+        w.coins = Math.max(0, w.coins + n);
+        com.example.roomsmod.economy.Wallet.sync(p);
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("COIN " + (n >= 0 ? "+" : "") + n + " → " + w.coins), false);
+        return 1;
+    }
+
 }
