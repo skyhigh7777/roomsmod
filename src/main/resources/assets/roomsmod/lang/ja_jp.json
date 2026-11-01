@@ -157,9 +157,7 @@
   "message.roomsmod.run.ended": "周回終了 %s → %s（%s部屋）：+%s コイン",
   "shop.roomsmod.battery": "電池",
   "shop.roomsmod.bandage": "包帯",
-  "shop.roomsmod.flashlight": "懐中電灯",
   "message.roomsmod.shop.full": "%sはもう持てない",
-  "message.roomsmod.shop.have_flashlight": "懐中電灯はもう持っている",
   "message.roomsmod.shop.no_coins": "コインが足りない（%2$s 必要・所持 %3$s）",
   "message.roomsmod.shop.bought": "%sを買った（-%s、残り %s コイン）",
   "message.roomsmod.section_locked": "セクション %s はロックされている"

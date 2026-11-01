@@ -172,9 +172,7 @@
   "message.roomsmod.run.ended": "Run over %s → %s (%s rooms): +%s coins",
   "shop.roomsmod.battery": "Battery",
   "shop.roomsmod.bandage": "Bandage",
-  "shop.roomsmod.flashlight": "Flashlight",
   "message.roomsmod.shop.full": "Can't carry more: %s",
-  "message.roomsmod.shop.have_flashlight": "You already have a flashlight",
   "message.roomsmod.shop.no_coins": "Not enough coins (need %2$s, have %3$s)",
   "message.roomsmod.shop.bought": "Bought %s (-%s, %s coins left)",
   "message.roomsmod.section_locked": "Section %s is locked"
