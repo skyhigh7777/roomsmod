@@ -124,8 +124,11 @@ public class RoomGenerator {
             }
         }
         // 扉側は天井埋め込みのシーランタン（以前のグロウストーン天窓と同程度の位置）
-        for (int cx : new int[]{5, width - 1 - 5}) for (int cz : new int[]{23, 27})
+        // 扉側の半分（天窓のない側）は x=5 / 10 / width-6 の3列（中心 x=10 で左右対称）。中央の列は扉へ光が漏れないよう z=24 まで
+        for (int cx : new int[]{5, width - 1 - 5}) for (int cz : new int[]{20, 24, 28})
             level.setBlockAndUpdate(origin.offset(cx, height, cz), Blocks.SEA_LANTERN.defaultBlockState());
+        for (int cz : new int[]{20, 24})
+            level.setBlockAndUpdate(origin.offset(width / 2, height, cz), Blocks.SEA_LANTERN.defaultBlockState());
     }
 
     /**
