@@ -432,10 +432,8 @@ public final class Sections {
      */
     /** ハードモードの抽選表にだけ入るエンティティ（どのセクションにも属さない）。 */
     private static final List<SectionTheme.RusherSpawn> HARD_ONLY = List.of(
-            vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.E332, 1, 0.05f),
-            // PLACEHOLDER 区画の敵（区画自体の表は空のまま）。PLACEHOLDER-2147483648 は入れない
-            vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.PLACEHOLDER_32767, 1, 0.05f),
-            vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.PLACEHOLDER_65535, 1, 0.05f));
+            // PLACEHOLDER の敵（32767 / 65535 / 2147483648）はどの抽選表にも入れない：3!3!2 の召喚（E332Entity.summonPool）と /rooms admin spawn だけで出る
+            vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.E332, 1, 0.05f));
 
     /**
      * ギミック系（謎解き・決まった動き方を求める敵）：ハードモードでもホームのセクションの部屋にしか出さない（名前 → セクション id）。

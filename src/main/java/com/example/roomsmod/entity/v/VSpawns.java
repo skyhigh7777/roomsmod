@@ -93,7 +93,7 @@ public final class VSpawns {
         A1000("A-1000", "a1000", null, RoomsMod.A1000),
         // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
         E332("3!3!2", "mimic", null, RoomsMod.E332),
-        // PLACEHOLDER（テスト用）区画：区画の表は空。32767 / 65535 はハードの抽選表（Sections.HARD_ONLY）にだけ入る。2147483648 は /rooms spawn と 3!3!2 のみ
+        // PLACEHOLDER（テスト用）区画：区画の表は空。どの抽選表（通常・ハード）にも入らない：3!3!2 の召喚（E332Entity.summonPool）と /rooms admin spawn だけ
         PLACEHOLDER_32767("PLACEHOLDER-32767", "placeholder32767", null, RoomsMod.PLACEHOLDER_32767),
         PLACEHOLDER_65535("PLACEHOLDER-65535", "placeholder65535", null, RoomsMod.PLACEHOLDER_65535),
         PLACEHOLDER_2147483648("PLACEHOLDER-2147483648", "placeholder2147483648", null, RoomsMod.PLACEHOLDER_2147483648),

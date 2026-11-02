@@ -203,8 +203,9 @@ Rooms (`world/PlaceholderRooms.java`): an 11x11 floor with no walls and no ceili
 Progression still uses the normal exit door: a free-standing door frame (two pillars + lintel, for the number sign) stands just past the +Z edge.
 Fall protection: invisible barriers (3 high) around the floor edge, skipping cells occupied by the previous room's door/wall
 and the door frame. Light comes from invisible `minecraft:light` blocks.
-Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`entity/placeholder/PlaceholderEntity`) only spawn via
-`/rooms spawn placeholder32767|placeholder65535|placeholder2147483648`; `PLACEHOLDER-65535` and `PLACEHOLDER-2147483648` stand still in the middle of the player's room
+Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`entity/placeholder/PlaceholderEntity`) are in no door roll
+(normal or hard, `Sections.hardTable` no longer has them); they only appear when 3!3!2 summons them (`E332Entity.summonPool`) or via
+`/rooms admin spawn placeholder32767|placeholder65535|placeholder2147483648`; `PLACEHOLDER-65535` and `PLACEHOLDER-2147483648` stand still in the middle of the player's room
 (no AI, no damage, no sound) and despawn after the usual 2-minute cap. `PLACEHOLDER-32767` has its own behaviour
 (`Placeholder32767Entity`, see the class javadoc; state is saved in NBT, positions snap without client interpolation). Graphics: single-colour squares (red / green / blue).
 
