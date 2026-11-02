@@ -150,6 +150,13 @@ public final class VSpawns {
         int room = playerRoom(rs, player);
         // A の縦穴：通常は A 専用の敵だけ、ハードは縦に追ってこられる種類だけ（コマンドは制限なし）
         if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, room, k.display)) return false;
+        // ギミック系はホームのセクションでだけ（3!3!2 の召喚など抽選表の外から呼ばれても。コマンドは制限なし）
+        if (!com.example.roomsmod.world.AbyssSpace.commandSpawn()
+                && com.example.roomsmod.world.section.Sections.gimmickBlocked(rs, room, k.display)
+                && com.example.roomsmod.world.section.Sections.gimmickBlocked(rs, Math.min(room + 1, rs.roomPaths.size() - 1), k.display)) {
+            RoomsDebug.log("{} spawn blocked: gimmick type outside its home section (room {})", k.display, RoomTracker.format(rs, room));
+            return false;
+        }
         VEntity e = k.type.get().create(level);
         if (e == null) { RoomsDebug.warn("{} spawn failed: create returned null", k.display); return false; }
         if (e.targetsOpenedRoom()) room = Math.min(room + 1, rs.roomPaths.size() - 1);

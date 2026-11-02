@@ -240,6 +240,8 @@ public class DoorEventHandler {
         } else if (hard) { // A 専用の敵は縦穴でしか動けないので、ほかのセクションのハード抽選には入れない
             var t2 = new java.util.ArrayList<com.example.roomsmod.world.section.SectionTheme.RusherSpawn>();
             for (var r : table) if (!com.example.roomsmod.world.AbyssSpace.allowedInAbyss(level, r.name())) t2.add(r);
+            // ギミック系はホームのセクションでだけ（Sections.HOME_ONLY）
+            t2.removeIf(r -> com.example.roomsmod.world.section.Sections.gimmickBlocked(rs, room, r.name()));
             table = t2;
         }
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定

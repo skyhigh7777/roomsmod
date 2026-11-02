@@ -190,6 +190,10 @@ Constants in `world/HardMode.java`: max 3 per door roll, spawn chance x1.5 (capp
 (B-20/B-40 too), entities that turn around get one more turnaround (B-40, BRusher rebounds, S-300, U-60, U-300), and when a rusher
 finishes its run there is a 25% chance of another roll on the next tick (`HardMode.chainReroll`). The buffs are fixed at spawn time
 (`hardSpawn`, saved). Category/exclusion rules (`SpawnCategories`, e.g. S-270 KEEP_MOVING) are unchanged.
+Gimmick types stay in their home section even in hard mode (`Sections.HOME_ONLY`, checked in the door roll and in `VSpawns.spawn`,
+so 3!3!2 summons obey it too; `/rooms admin spawn` is not restricted): S-10, S-25, S-45, S-65, S-85, S-105, S-125, S-145, S-165,
+S-185, S-205, S-270 (S); B-30, B-70, B-110, B-155, B-205 (B); V-100, V25-BUFFED (V); F-5 (F). Chasers / rushers / path walkers
+(B-20, B-40, the B rushers, B-260, B-290, S-225, S-245, S-300, V-10, V-25-T/L, V-50, all U, H, F-35, F-100, F-200) still mix.
 
 ## PLACEHOLDER (test only)
 `Sections.PLACEHOLDER` (id `placeholder`, rooms `PLACEHOLDER-001`) is listed in `Sections.TEST_ONLY`: it is not in `ORDER`

@@ -437,6 +437,32 @@ public final class Sections {
             vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.PLACEHOLDER_32767, 1, 0.05f),
             vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.PLACEHOLDER_65535, 1, 0.05f));
 
+    /**
+     * ギミック系（謎解き・決まった動き方を求める敵）：ハードモードでもホームのセクションの部屋にしか出さない（名前 → セクション id）。
+     * 隠れる・逃げるで避けるふつうの追いかけ型（ラッシャー・経路を歩く敵）はハードの合同表でほかのセクションにも出る。
+     * 通常モードはもともと各セクションの表だけなので変わらない。コマンド（/rooms admin spawn）は制限しない。
+     */
+    private static final Map<String, String> HOME_ONLY = Map.ofEntries(
+            // S：ベル・スピーカー・通行証・小テスト・偽の扉・扉を閉める・巻き戻し・ロッカーの擬態・校内放送・見つめない・影（動き続ける）・懐中電灯
+            Map.entry("S-10", "s"), Map.entry("S-25", "s"), Map.entry("S-45", "s"), Map.entry("S-65", "s"), Map.entry("S-85", "s"),
+            Map.entry("S-105", "s"), Map.entry("S-125", "s"), Map.entry("S-145", "s"), Map.entry("S-165", "s"), Map.entry("S-185", "s"),
+            Map.entry("S-205", "s"), Map.entry("S-270", "s"),
+            // B：動くな（B-30 / B-70）・ウィンドウを閉じる（B-110）・扉に噛みつく（B-155）・欠片を拾う（B-205）
+            Map.entry("B-30", "b"), Map.entry("B-70", "b"), Map.entry("B-110", "b"), Map.entry("B-155", "b"), Map.entry("B-205", "b"),
+            // V：窓の覗き魔（しゃがむ・止まる）・指示どおりの隠れ場所（V25-BUFFED）
+            Map.entry("V-100", "v"), Map.entry("V25-BUFFED", "v"),
+            // F：音を立てない（F-5）
+            Map.entry("F-5", "f"));
+
+    /** name がギミック系ならホームのセクション id、でなければ null。 */
+    public static String homeOnly(String name) { return HOME_ONLY.get(name); }
+
+    /** name（ギミック系）を部屋 room に出してはいけないか（room のセクションがホームでない）。 */
+    public static boolean gimmickBlocked(RoomsState rs, int room, String name) {
+        String h = HOME_ONLY.get(name);
+        return h != null && !h.equals(canonical(forRoom(rs, room).id()));
+    }
+
     public static List<SectionTheme.RusherSpawn> hardTable() {
         List<SectionTheme.RusherSpawn> out = new java.util.ArrayList<>();
         java.util.Set<String> seen = new java.util.HashSet<>();
