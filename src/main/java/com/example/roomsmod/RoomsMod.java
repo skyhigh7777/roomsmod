@@ -229,6 +229,7 @@ public class RoomsMod {
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Wallet.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Bandaging.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.RoomsRun.class);
+        NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.RoomsRecords.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Adrenaline.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Charm.class);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Gadgets.class);

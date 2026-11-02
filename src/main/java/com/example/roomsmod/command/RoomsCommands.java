@@ -137,6 +137,12 @@ public class RoomsCommands {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("rooms")
             .then(AdminCommands.build())
+            .then(Commands.literal("record")
+                .executes(ctx -> showRecord(ctx.getSource(), null))
+                .then(Commands.literal("top").executes(ctx -> showTop(ctx.getSource())))
+                .then(Commands.argument("player", com.mojang.brigadier.arguments.StringArgumentType.word())
+                    .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(recordNames(c.getSource()), b))
+                    .executes(ctx -> showRecord(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "player")))))
             .then(Commands.literal("restart")
                 .executes(ctx -> com.example.roomsmod.economy.RoomsRun.restart(ctx.getSource().getPlayerOrException()) ? 1 : 0))
             .then(Commands.literal("hard")
@@ -149,6 +155,42 @@ public class RoomsCommands {
                     return on ? 1 : 0;
                 })))
         );
+    }
+
+    /** 記録のある人＋オンラインの人の名前（補完用）。 */
+    static java.util.List<String> recordNames(CommandSourceStack src) {
+        java.util.Set<String> out = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (var e : com.example.roomsmod.economy.RoomsRecords.get(src.getServer()).all()) if (e.name != null && !e.name.isEmpty()) out.add(e.name);
+        out.addAll(java.util.Arrays.asList(src.getServer().getPlayerNames()));
+        return new java.util.ArrayList<>(out);
+    }
+
+    /** 名前（記録の最後の名前、なければオンラインの人）から記録を探す。 */
+    static com.example.roomsmod.economy.RoomsRecords.Entry findRecord(CommandSourceStack src, String name) {
+        var db = com.example.roomsmod.economy.RoomsRecords.get(src.getServer());
+        ServerPlayer online = src.getServer().getPlayerList().getPlayerByName(name);
+        if (online != null) return db.find(online.getUUID());
+        return db.findByName(name);
+    }
+
+    /** /rooms record [player]（誰でも）。 */
+    private static int showRecord(CommandSourceStack src, String name) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        com.example.roomsmod.economy.RoomsRecords.Entry e;
+        String who;
+        if (name == null) {
+            ServerPlayer p = src.getPlayerOrException();
+            who = p.getGameProfile().getName();
+            e = com.example.roomsmod.economy.RoomsRecords.get(src.getServer()).find(p.getUUID());
+        } else { who = name; e = findRecord(src, name); }
+        if (e == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(who + " の記録はまだない")); return 0; }
+        for (var line : com.example.roomsmod.economy.RoomsRecords.describe(e)) src.sendSuccess(() -> line, false);
+        return 1;
+    }
+
+    /** /rooms record top（誰でも）。 */
+    private static int showTop(CommandSourceStack src) {
+        for (var line : com.example.roomsmod.economy.RoomsRecords.get(src.getServer()).ranking(10)) src.sendSuccess(() -> line, false);
+        return 1;
     }
 
     private static int setHard(CommandSourceStack src, boolean on) {

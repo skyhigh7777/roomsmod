@@ -295,3 +295,14 @@ All are `VEntity` (no physics, invulnerable, max 100 s), billboard textures `tex
   **Tables do not protect** from it: water floods under them (`HidingRules` exposure `FUndertowEntity.floodsTable`, within 6 blocks even without line of sight). Hide in a locker.
   Category HIDE_REQUIRED.
 - Start it: `/rooms admin section f unlock`, then the lobby panel (`F-001` … `F-500`, GO) or `/rooms admin tp f <n>`.
+
+## Player records (`economy/RoomsRecords.java`)
+
+Per-player progress records, stored in the overworld SavedData `roomsmod_records` keyed by UUID (with last known name, so offline
+players can be listed). Normal and hard mode are separate. Each mode keeps: deepest room (section + local label, ORDER depth from
+`Sections.absoluteDepth`, global index at the time, epoch ms), deepest per section, run count, and deepest no-hit survived run.
+Depth is compared by `absoluteDepth` (stable across section tables); sections not in ORDER (PLACEHOLDER) are not recorded.
+Only legit progress counts: `Wallet.runFurthest > runStart` (WALK_TOLERANCE jumps restart the run) and not `runNoPay`
+(admin `to` / `tp` / `deepest`). Updated every 5 ticks from `RoomsRun.onTick`; runs and no-hit counted in `RoomsRun.settle`.
+"自己ベスト更新：X-NNN" shows on the actionbar once per new section entered beyond the previous best, and in chat at settle.
+Commands: `/rooms record`, `/rooms record <player>`, `/rooms record top`, `/rooms admin record reset <player>`.

@@ -144,12 +144,14 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 
 ## コマンド
 
-`/rooms` 以下のコマンドです。公開は `restart` と `hard status` の2つだけで、それ以外は `/rooms admin`（オーナーの Minecraft アカウントのみ。サーバーコンソール・OP・コマンドブロック・`/execute as` は不可）です。
+`/rooms` 以下のコマンドです。公開は `restart`・`hard status`・`record` だけで、それ以外は `/rooms admin`（オーナーの Minecraft アカウントのみ。サーバーコンソール・OP・コマンドブロック・`/execute as` は不可）です。
 
 | コマンド | 権限 | 内容 |
 |---|---|---|
 | `/rooms restart` | 全員 | 周回のやり直し：開始の部屋から 5 部屋以内ならコインなし（所持品はそのまま）でロビーへ戻る（ロビーを作り直し）。部屋ディメンションの外からはロビーへ移動するだけ |
 | `/rooms hard status` | 全員 | ハードモードの状態を表示 |
+| `/rooms record` / `record <player>` | 全員 | 到達記録（通常・ハード別：最深の部屋と日時、セクション別の最深、周回数、ノーヒット生還の最深）。オフラインの人も名前で見られます |
+| `/rooms record top` | 全員 | 最深ランキング（通常・ハード別、上位 10 人） |
 | `/rooms admin to <1-500>` | オーナーのみ | ロビーから部屋 N まで生成してワープ（進行をリセット） |
 | `/rooms admin deepest` | オーナーのみ | 自分がこれまでに入ったいちばん深い部屋へ（生成済みならそこへワープ、なければそのセクションから作り直し） |
 | `/rooms admin tp <section> <部屋>` | オーナーのみ | 指定セクションの指定部屋まで作り直してワープ（ロック無視） |
@@ -161,6 +163,9 @@ Roblox Rooms 系エクスペリエンスを参考にした試作Modです。
 | `/rooms admin give flashlight` / `battery [n]` / `bandage [n]` / `adrenaline [n]` / `charm [n]` / `radar [n]` / `scanner [n]` / `coins <n>` | オーナーのみ | 自分に渡す（所持数へ） |
 | `/rooms admin wallet <player> [set <種類> <n>]` | オーナーのみ | 所持数を見る・変える |
 | `/rooms admin run reset [player]` | オーナーのみ | 周回の記録を消す（コインなし） |
+| `/rooms admin record reset <player>` | オーナーのみ | そのプレイヤーの到達記録を消す（オフラインの人も名前で） |
+
+到達記録は周回中に歩いて進んだ部屋だけを数えます（`/rooms admin to`・`tp`・`deepest` で始めた周回や、ワープ・tp で飛んだ分は数えません）。記録を超えて新しいセクションに入った時と、周回の終わり（生還・死亡）に「自己ベスト更新：A-612」と表示します。記録はワールドに保存されます（`data/roomsmod_records.dat`）。
 
 `/rooms admin spawn` の id：`b20` `b40` `b15` `b30` `b50` `b70` `b90` `b110` `b130` `b155` `b180` `b205` `b230` `b260` `b290`
  `v10` `v25t` `v25l` `v25buffed`（`v25buffed table` / `v25buffed locker`）`v100` `v50`

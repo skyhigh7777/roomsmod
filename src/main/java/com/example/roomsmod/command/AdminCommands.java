@@ -29,6 +29,7 @@ import java.util.UUID;
  *   <li>section [id lock|unlock]：セクションの利用可否（既定は PLACEHOLDER・H・F がロック）。ロック中はロビーのパネル・/rooms section で選べない。H・F はロック中は進行表にも入らない（解放で S → H → F → A）。</li>
  *   <li>wallet &lt;player&gt; [set battery|bandage|coins &lt;n&gt;]：所持数を見る・変える。</li>
  *   <li>run reset [player]：周回の記録を消す（コインは出ない）。</li>
+ *   <li>record reset &lt;player&gt;：到達記録（RoomsRecords、オフラインの人も名前で）を消す。</li>
  *   <li>give flashlight | bandage [n] | battery [n] | adrenaline [n] | charm [n] | radar [n] | scanner [n] | coins &lt;n&gt;：自分に渡す（電池・包帯・コインは所持数へ、上限まで）。以前の OP 用 /rooms give から移動。</li>
  *   <li>deepest：自分のいちばん深い部屋（Wallet.deepSection / deepLocal、ORDER の通しの深さで比べる、周回・死亡をまたいで残る）へ。
  *       今の部屋の並びにその部屋が生成済みならそこの安全な床へワープ（進行はそのまま）、なければ tp と同じくそのセクションから作り直してワープ。</li>
@@ -65,6 +66,11 @@ public final class AdminCommands {
                             .then(Commands.argument("n", IntegerArgumentType.integer(0))
                                 .executes(ctx -> setWallet(ctx.getSource(), EntityArgument.getPlayer(ctx, "player"),
                                         StringArgumentType.getString(ctx, "what"), IntegerArgumentType.getInteger(ctx, "n"))))))))
+            .then(Commands.literal("record")
+                .then(Commands.literal("reset")
+                    .then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((c, b) -> SharedSuggestionProvider.suggest(RoomsCommands.recordNames(c.getSource()), b))
+                        .executes(ctx -> resetRecord(ctx.getSource(), StringArgumentType.getString(ctx, "player"))))))
             .then(Commands.literal("run")
                 .then(Commands.literal("reset")
                     .executes(ctx -> resetRun(ctx.getSource(), ctx.getSource().getPlayerOrException()))
@@ -155,6 +161,17 @@ public final class AdminCommands {
         Wallet.of(p).resetRun(RoomsState.get(lv).epoch);
         RoomsDebug.info("admin: run reset {} by {}", p.getGameProfile().getName(), src.getTextName());
         src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(p.getGameProfile().getName() + " の周回の記録を消した（コインなし）"), false);
+        return 1;
+    }
+
+    private static int resetRecord(CommandSourceStack src, String name) {
+        var e = RoomsCommands.findRecord(src, name);
+        if (e == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(name + " の記録はない")); return 0; }
+        com.example.roomsmod.economy.RoomsRecords.get(src.getServer()).remove(e.id);
+        ServerPlayer online = src.getServer().getPlayerList().getPlayer(e.id);
+        if (online != null) com.example.roomsmod.economy.RoomsRecords.forget(online);
+        RoomsDebug.info("admin: record reset {} ({}) by {}", e.name, e.id, src.getTextName());
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(e.name + " の到達記録を消した"), false);
         return 1;
     }
 

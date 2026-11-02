@@ -94,6 +94,7 @@ public final class RoomsRun {
         if (depth > 0 && depth > (w.deepSection.isEmpty() ? 0 : Sections.absoluteDepth(w.deepSection, w.deepLocal))) {
             w.deepSection = sec; w.deepLocal = local;
         }
+        RoomsRecords.observe(p, rs, w); // 到達記録（管理ワープ・ジャンプは数えない）
     }
 
     /** 1 tick にこの部屋数までの移動は歩いた（落ちた）ものとして数える。これより大きい移動はワープ＝開始をそこにし直す。 */
@@ -137,6 +138,7 @@ public final class RoomsRun {
     public static void adminTeleport(ServerPlayer p) {
         Wallet w = Wallet.of(p);
         w.runNoPay = true;
+        RoomsRecords.forget(p);
         RoomsDebug.log("run marked no-pay (admin teleport) player={}", p.getGameProfile().getName());
     }
 
@@ -174,6 +176,8 @@ public final class RoomsRun {
         int bat = survived ? w.battery : 0, band = survived ? w.bandage : 0;
         CoinFormula.Result r = CoinFormula.compute(rs, w.runStart, w.runFurthest, !w.runHit, survived, rs.hardMode, bat, band);
         boolean noPay = w.runNoPay;
+        RoomsRecords.onSettle(p, rs, w, survived); // 到達記録・周回数（noPay の周回は数えない）
+        if (survived && !w.runHit && !noPay && w.runFurthest > w.runStart) RoomsRecords.onNoHitClear(p, rs, w);
         if (noPay) { bat = 0; band = 0; r = new CoinFormula.Result(r.rooms(), r.base(), r.multiplier(), 0, 0); } // 管理ワープの周回はコインなし（換金もしない）
         w.runNoPay = false;
         if (survived && !noPay) { w.battery = 0; w.bandage = 0; } // 生還時は残りの電池・包帯をコインに換える（消費）
@@ -226,6 +230,7 @@ public final class RoomsRun {
         RoomsDebug.log("run restart player={} start={} furthest={} room={} (no coins)", p.getGameProfile().getName(), w.runStart, w.runFurthest, idx);
         w.resetRun(Integer.MIN_VALUE); // 精算しない
         w.runNoPay = false;
+        RoomsRecords.forget(p);
         boolean ok = RoomsCommands.sendToLobby(p);
         if (ok) p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.ok("周回をやり直した（コインなし）"));
         return ok;
