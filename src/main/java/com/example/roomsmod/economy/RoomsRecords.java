@@ -44,6 +44,22 @@ public final class RoomsRecords extends SavedData {
         static Best load(CompoundTag t) { return new Best(t.getString("s"), t.getInt("l"), t.getInt("d"), t.getInt("g"), t.getLong("t")); }
     }
 
+    /** セクションの 001 から始めた周回の記録：そのセクションで届いた最深のセクション内番号と、001〜最後の部屋まで行った（達成）回数。 */
+    public static final class FromOne {
+        public int best;
+        public long time;
+        public int clears;
+        CompoundTag save() { CompoundTag t = new CompoundTag(); t.putInt("best", best); t.putLong("t", time); t.putInt("clears", clears); return t; }
+        static FromOne load(CompoundTag t) { FromOne f = new FromOne(); f.best = t.getInt("best"); f.time = t.getLong("t"); f.clears = t.getInt("clears"); return f; }
+    }
+
+    /** 1回の周回で通しで進んだ部屋数（runFurthest - runStart）と、どこからどこまで（表示用の部屋名、開始がロビーなら "LOBBY"）。 */
+    public record Streak(int rooms, String from, String to, long time) {
+        public String label() { return from + " → " + to + "（" + rooms + "部屋）"; }
+        CompoundTag save() { CompoundTag t = new CompoundTag(); t.putInt("rooms", rooms); t.putString("from", from); t.putString("to", to); t.putLong("t", time); return t; }
+        static Streak load(CompoundTag t) { return new Streak(t.getInt("rooms"), t.getString("from"), t.getString("to"), t.getLong("t")); }
+    }
+
     /** 通常またはハードの記録。 */
     public static final class Mode {
         public Best deepest;
@@ -51,7 +67,11 @@ public final class RoomsRecords extends SavedData {
         public int runs;
         /** セクション id → そのセクションの最深。 */
         public final Map<String, Best> perSection = new LinkedHashMap<>();
-        boolean empty() { return deepest == null && noHit == null && runs == 0 && perSection.isEmpty(); }
+        /** セクション id → そのセクションの 001 から始めた周回の記録。 */
+        public final Map<String, FromOne> fromOne = new LinkedHashMap<>();
+        /** いちばん長い通し（どこから始めてもよい）。 */
+        public Streak streak;
+        boolean empty() { return deepest == null && noHit == null && runs == 0 && perSection.isEmpty() && fromOne.isEmpty() && streak == null; }
         CompoundTag save() {
             CompoundTag t = new CompoundTag();
             if (deepest != null) t.put("deepest", deepest.save());
@@ -60,6 +80,10 @@ public final class RoomsRecords extends SavedData {
             CompoundTag ps = new CompoundTag();
             perSection.forEach((k, v) -> ps.put(k, v.save()));
             t.put("sections", ps);
+            CompoundTag fo = new CompoundTag();
+            fromOne.forEach((k, v) -> fo.put(k, v.save()));
+            t.put("fromOne", fo);
+            if (streak != null) t.put("streak", streak.save());
             return t;
         }
         static Mode load(CompoundTag t) {
@@ -69,6 +93,10 @@ public final class RoomsRecords extends SavedData {
             m.runs = t.getInt("runs");
             CompoundTag ps = t.getCompound("sections");
             for (String k : ps.getAllKeys()) m.perSection.put(k, Best.load(ps.getCompound(k)));
+            // 以下は後から足した項目（古いデータにはない＝空のまま）
+            CompoundTag fo = t.getCompound("fromOne");
+            for (String k : fo.getAllKeys()) m.fromOne.put(k, FromOne.load(fo.getCompound(k)));
+            if (t.contains("streak")) m.streak = Streak.load(t.getCompound("streak"));
             return m;
         }
     }
@@ -130,7 +158,10 @@ public final class RoomsRecords extends SavedData {
         }
         return r;
     }
-    private static void copy(Mode from, Mode to) { to.deepest = from.deepest; to.noHit = from.noHit; to.runs = from.runs; to.perSection.putAll(from.perSection); }
+    private static void copy(Mode from, Mode to) {
+        to.deepest = from.deepest; to.noHit = from.noHit; to.runs = from.runs; to.perSection.putAll(from.perSection);
+        to.fromOne.putAll(from.fromOne); to.streak = from.streak;
+    }
 
     // ===================== 周回中の更新（RoomsRun から） =====================
 
@@ -147,6 +178,52 @@ public final class RoomsRecords extends SavedData {
         int local = Sections.localRoom(rs, room), depth = Sections.absoluteDepth(sec, local);
         if (depth <= 0 || local < 1) return null;
         return new Best(sec, local, depth, room, System.currentTimeMillis());
+    }
+
+    /** 周回を始めた部屋（ロビーから＝0 なら最初の部屋 1）。 */
+    private static int startRoom(Wallet w) { return Math.max(w.runStart, 1); }
+
+    /** 周回がセクションの 001 から始まっていれば、そのセクション id（ORDER にあるものだけ）。でなければ null。 */
+    private static String fromOneSection(RoomsState rs, Wallet w) {
+        int s0 = startRoom(w);
+        String sec = Sections.canonical(Sections.forRoom(rs, s0).id());
+        if (!Sections.ORDER.contains(sec) || Sections.localRoom(rs, s0) != 1) return null;
+        return sec;
+    }
+
+    /** start のセクションの最後の部屋のセクション内番号（次のセクションの手前。次がなければ部屋数）。A（終わりなし）は -1。 */
+    private static int maxLocal(RoomsState rs, int start, String sec) {
+        if ("a".equals(sec)) return -1;
+        int secStart = Sections.sectionStart(rs, start), next = Integer.MAX_VALUE;
+        for (RoomsState.SectionStart x : rs.sections) if (x.startRoom() > secStart && x.startRoom() < next) next = x.startRoom();
+        return next == Integer.MAX_VALUE ? Sections.length(sec) : Sections.localRoom(rs, next - 1);
+    }
+
+    /** 001 からの周回で、開始セクションの中で届いた最深のセクション内番号（先のセクションへ抜けていれば最後の部屋）。 */
+    private static int fromOneReached(RoomsState rs, Wallet w, String sec) {
+        int f = w.runFurthest, s0 = startRoom(w);
+        if (Sections.sectionStart(rs, f) == Sections.sectionStart(rs, s0)) return Sections.localRoom(rs, f);
+        int max = maxLocal(rs, s0, sec);
+        return max > 0 ? max : Sections.localRoom(rs, f);
+    }
+
+    /** 001 からの記録と最長の通しを今の runFurthest で更新（達成回数は精算で）。変わったら true。 */
+    private static boolean updateRunRecords(RoomsState rs, Wallet w, Mode m) {
+        boolean changed = false;
+        String sec = fromOneSection(rs, w);
+        if (sec != null) {
+            int reached = fromOneReached(rs, w, sec);
+            FromOne fo = m.fromOne.get(sec);
+            if (fo == null) { fo = new FromOne(); m.fromOne.put(sec, fo); changed = true; }
+            if (reached > fo.best) { fo.best = reached; fo.time = System.currentTimeMillis(); changed = true; }
+        }
+        int rooms = w.runFurthest - w.runStart;
+        if (rooms > 0 && (m.streak == null || rooms > m.streak.rooms())) {
+            String from = w.runStart == 0 ? "LOBBY" : Sections.formatRoom(rs, w.runStart);
+            m.streak = new Streak(rooms, from, Sections.formatRoom(rs, w.runFurthest), System.currentTimeMillis());
+            changed = true;
+        }
+        return changed;
     }
 
     /** 5 tick ごと（RoomsRun.onTick）：runFurthest が記録を超えたら更新。記録を超えて新しいセクションに入ったらその時に1回通知。 */
@@ -179,6 +256,7 @@ public final class RoomsRecords extends SavedData {
                 p.displayClientMessage(Component.literal("自己ベスト更新：" + b.label() + (rs.hardMode ? "（HARD）" : "")).withStyle(ChatFormatting.GOLD), true);
             }
         }
+        if (updateRunRecords(rs, w, m)) changed = true;
         if (changed) db.setDirty();
     }
 
@@ -199,6 +277,18 @@ public final class RoomsRecords extends SavedData {
             Best ps = m.perSection.get(b.section());
             if (ps == null || b.local() > ps.local()) m.perSection.put(b.section(), b);
             if (m.deepest == null || b.depth() > m.deepest.depth()) m.deepest = b;
+        }
+        updateRunRecords(rs, w, m);
+        // 001〜最後の部屋まで行った（達成）：1周回につき1回（A は終わりがないので数えない）
+        String sec = fromOneSection(rs, w);
+        if (sec != null) {
+            int max = maxLocal(rs, startRoom(w), sec);
+            if (max > 0 && fromOneReached(rs, w, sec) >= max) {
+                FromOne fo = m.fromOne.computeIfAbsent(sec, k -> new FromOne());
+                fo.clears++;
+                p.sendSystemMessage(RoomsMsg.ok(Sections.byId(sec).formatRoom(1) + "〜" + Sections.byId(sec).formatRoom(max) + " 達成（" + fo.clears + "回目）" + (rs.hardMode ? "（HARD）" : "")));
+                RoomsDebug.log("record: {} cleared section {} from 001 (clears={}, hard={})", e.name, sec, fo.clears, rs.hardMode);
+            }
         }
         m.runs++;
         db.setDirty();
@@ -252,6 +342,54 @@ public final class RoomsRecords extends SavedData {
         List<String> secs = new ArrayList<>();
         for (String id : Sections.ORDER) { Best b = m.perSection.get(id); if (b != null) secs.add(b.label()); }
         if (!secs.isEmpty()) out.add(Component.literal("    セクション別 " + String.join(" / ", secs)).withStyle(ChatFormatting.GRAY));
+        List<String> fo = new ArrayList<>();
+        for (String id : Sections.ORDER) { FromOne f = m.fromOne.get(id); if (f != null && f.best > 0) fo.add(fromOneText(id, f)); }
+        if (!fo.isEmpty()) out.add(Component.literal("    001から " + String.join(" / ", fo)).withStyle(ChatFormatting.GRAY));
+        if (m.streak != null)
+            out.add(Component.literal("    最長の通し " + m.streak.label() + "（" + when(m.streak.time()) + "）").withStyle(ChatFormatting.GRAY));
+    }
+
+    /** "V-312" / "B-300（達成 2回）"（A は達成なし）。 */
+    private static String fromOneText(String sec, FromOne f) {
+        return Sections.byId(sec).formatRoom(f.best) + ("a".equals(sec) ? "" : "（達成 " + f.clears + "回）");
+    }
+
+    /** /rooms record top &lt;section&gt;：そのセクションの 001 から始めた周回の最深（同じなら達成回数、先に到達した人）。通常・ハード別。 */
+    public List<MutableComponent> rankingFromOne(String sec, int n) {
+        String c = Sections.canonical(sec);
+        String name = Sections.byId(c).formatRoom(1).replace("-001", "");
+        List<MutableComponent> out = new ArrayList<>();
+        for (boolean hard : new boolean[]{false, true}) {
+            out.add(RoomsMsg.info((hard ? "ハード" : "通常") + " " + name + "-001 スタート ランキング"));
+            List<Entry> list = new ArrayList<>();
+            for (Entry e : entries.values()) { FromOne f = e.mode(hard).fromOne.get(c); if (f != null && f.best > 0) list.add(e); }
+            list.sort(Comparator.<Entry>comparingInt(e -> -e.mode(hard).fromOne.get(c).best)
+                    .thenComparingInt(e -> -e.mode(hard).fromOne.get(c).clears)
+                    .thenComparingLong(e -> e.mode(hard).fromOne.get(c).time));
+            if (list.isEmpty()) out.add(Component.literal("  記録なし").withStyle(ChatFormatting.GRAY));
+            for (int i = 0; i < Math.min(n, list.size()); i++)
+                out.add(Component.literal("  " + (i + 1) + ". " + list.get(i).name + "  " + fromOneText(c, list.get(i).mode(hard).fromOne.get(c)))
+                        .withStyle(i == 0 ? ChatFormatting.GOLD : ChatFormatting.WHITE));
+        }
+        return out;
+    }
+
+    /** /rooms record top streak：1周回で通しで進んだ部屋数（同じなら先に到達した人）。通常・ハード別。 */
+    public List<MutableComponent> rankingStreak(int n) {
+        List<MutableComponent> out = new ArrayList<>();
+        for (boolean hard : new boolean[]{false, true}) {
+            out.add(RoomsMsg.info((hard ? "ハード" : "通常") + " 最長の通しランキング"));
+            List<Entry> list = new ArrayList<>();
+            for (Entry e : entries.values()) if (e.mode(hard).streak != null) list.add(e);
+            list.sort(Comparator.<Entry>comparingInt(e -> -e.mode(hard).streak.rooms()).thenComparingLong(e -> e.mode(hard).streak.time()));
+            if (list.isEmpty()) out.add(Component.literal("  記録なし").withStyle(ChatFormatting.GRAY));
+            for (int i = 0; i < Math.min(n, list.size()); i++) {
+                Streak st = list.get(i).mode(hard).streak;
+                out.add(Component.literal("  " + (i + 1) + ". " + list.get(i).name + "  " + st.rooms() + "部屋  " + st.from() + " → " + st.to())
+                        .withStyle(i == 0 ? ChatFormatting.GOLD : ChatFormatting.WHITE));
+            }
+        }
+        return out;
     }
 
     /** /rooms record top：通常・ハードそれぞれ最深の上位 n 人（同じ深さは先に到達した人が上）。 */

@@ -139,7 +139,11 @@ public class RoomsCommands {
             .then(AdminCommands.build())
             .then(Commands.literal("record")
                 .executes(ctx -> showRecord(ctx.getSource(), null))
-                .then(Commands.literal("top").executes(ctx -> showTop(ctx.getSource())))
+                .then(Commands.literal("top").executes(ctx -> showTop(ctx.getSource()))
+                    .then(Commands.argument("kind", com.mojang.brigadier.arguments.StringArgumentType.word())
+                        .suggests((c, b) -> { java.util.List<String> o = new java.util.ArrayList<>(com.example.roomsmod.world.section.Sections.ORDER); o.add("streak");
+                            return net.minecraft.commands.SharedSuggestionProvider.suggest(o, b); })
+                        .executes(ctx -> showTopKind(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "kind")))))
                 .then(Commands.argument("player", com.mojang.brigadier.arguments.StringArgumentType.word())
                     .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(recordNames(c.getSource()), b))
                     .executes(ctx -> showRecord(ctx.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(ctx, "player")))))
@@ -190,6 +194,18 @@ public class RoomsCommands {
     /** /rooms record top（誰でも）。 */
     private static int showTop(CommandSourceStack src) {
         for (var line : com.example.roomsmod.economy.RoomsRecords.get(src.getServer()).ranking(10)) src.sendSuccess(() -> line, false);
+        return 1;
+    }
+
+    /** /rooms record top &lt;section|streak&gt;（誰でも）。 */
+    private static int showTopKind(CommandSourceStack src, String kind) {
+        var db = com.example.roomsmod.economy.RoomsRecords.get(src.getServer());
+        String k = com.example.roomsmod.world.section.Sections.canonical(kind);
+        java.util.List<net.minecraft.network.chat.MutableComponent> lines;
+        if ("streak".equals(k)) lines = db.rankingStreak(10);
+        else if (com.example.roomsmod.world.section.Sections.ORDER.contains(k)) lines = db.rankingFromOne(k, 10);
+        else { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("セクション（" + String.join(" / ", com.example.roomsmod.world.section.Sections.ORDER) + "）か streak を指定")); return 0; }
+        for (var line : lines) src.sendSuccess(() -> line, false);
         return 1;
     }
 

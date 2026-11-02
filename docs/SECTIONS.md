@@ -305,4 +305,12 @@ Depth is compared by `absoluteDepth` (stable across section tables); sections no
 Only legit progress counts: `Wallet.runFurthest > runStart` (WALK_TOLERANCE jumps restart the run) and not `runNoPay`
 (admin `to` / `tp` / `deepest`). Updated every 5 ticks from `RoomsRun.onTick`; runs and no-hit counted in `RoomsRun.settle`.
 "自己ベスト更新：X-NNN" shows on the actionbar once per new section entered beyond the previous best, and in chat at settle.
-Commands: `/rooms record`, `/rooms record <player>`, `/rooms record top`, `/rooms admin record reset <player>`.
+From-001 records (`Mode.fromOne`, per ORDER section): only runs whose start room (lobby start = room 1) is that section's local 001.
+Keeps the deepest local room reached inside that section (a run that leaves the section counts as its last room) and `clears`,
+the number of runs that reached the section's last room (counted once per run at settle). A is endless, so A keeps only the
+deepest, with no clear count. A run from V-001 that continues into B counts for V only.
+Longest streak (`Mode.streak`, any start): the most rooms in one run (`runFurthest - runStart`) with from/to labels
+("LOBBY" when started from the lobby), e.g. `A-500 → A-1199（699部屋）`. Same legitimacy rules; normal and hard separate.
+Older saves have no `fromOne` / `streak` keys; those start empty and the existing records are kept.
+Commands: `/rooms record`, `/rooms record <player>`, `/rooms record top`, `/rooms record top <v|b|u|s|h|f|a>` (from-001 ranking),
+`/rooms record top streak` (streak ranking), `/rooms admin record reset <player>`.
