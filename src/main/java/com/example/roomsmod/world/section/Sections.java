@@ -452,7 +452,12 @@ public final class Sections {
             // V：窓の覗き魔（しゃがむ・止まる）・指示どおりの隠れ場所（V25-BUFFED）
             Map.entry("V-100", "v"), Map.entry("V25-BUFFED", "v"),
             // F：音を立てない（F-5）
-            Map.entry("F-5", "f"));
+            Map.entry("F-5", "f"),
+            // A：縦穴専用の敵は全部 A だけ（3!3!2 の召喚でもほかのセクションには出さない）
+            Map.entry("A-25", "a"), Map.entry("A-50", "a"), Map.entry("A-90", "a"), Map.entry("A-130", "a"), Map.entry("A-180", "a"),
+            Map.entry("A-200", "a"), Map.entry("A-250", "a"), Map.entry("A-300", "a"), Map.entry("A-350", "a"), Map.entry("A-450", "a"),
+            Map.entry("A-525", "a"), Map.entry("A-600", "a"), Map.entry("A-666", "a"), Map.entry("A-750", "a"), Map.entry("A-800", "a"),
+            Map.entry("A-1000", "a"));
 
     /** name がギミック系ならホームのセクション id、でなければ null。 */
     public static String homeOnly(String name) { return HOME_ONLY.get(name); }
