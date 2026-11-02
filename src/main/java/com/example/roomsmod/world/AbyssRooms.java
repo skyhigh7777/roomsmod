@@ -731,6 +731,15 @@ public final class AbyssRooms {
     private static final Map<UUID, Integer> STILL = new HashMap<>();
     /** 見張り：この tick 数止まっていたら列を片付けて中心へ寄せる、さらにこの tick 数で強制的に 1 周。 */
     static final int STALL_CLEAR_TICKS = 40, STALL_LOOP_TICKS = 100;
+    /**
+     * 1 周のテレポートの返事待ち（プレイヤー → テレポートした game time）。PlayerTickEvent の中でテレポートすると、
+     * バニラ（ServerGamePacketListenerImpl.tick）が tick の終わりにサーバー側の位置を tick の初めの位置へ戻すので、
+     * クライアントが返事をするまでサーバーからは「まだ層2にいる」ように見える。その間に次の 1 周をすると相対テレポートが
+     * クライアントで積み重なって（+L が何回も）ふたの上へ飛び出す。返事が来る（層1へ上がったのが見える）まで次の 1 周はしない。
+     */
+    private static final Map<UUID, Long> PENDING = new HashMap<>();
+    /** 返事待ちの上限（tick）。これを過ぎたら待つのをやめる（バニラは 20 tick で絶対位置のテレポートを送り直す）。 */
+    static final int PENDING_TICKS = 40;
 
     /** サーバー → クライアント：縦穴の中にいるか（落下速度の上限）。 */
     public record AbyssPayload(boolean active) implements CustomPacketPayload {
@@ -778,7 +787,14 @@ public final class AbyssRooms {
             setActive(sp, false);
             if (HELD.containsKey(id)) release(sp);
             ROOM.remove(id); LAST.remove(id); STILL.remove(id);
+            if (s != null && !sp.isSpectator()) rescueFromRoof(sp, s, pos);
             return;
+        }
+        Long pend = PENDING.get(id);
+        if (pend != null) {
+            // 返事待ち：層1へ上がった（返事が来た）か、待ちすぎたら解除。それまでは 1 周も見張りもしない
+            if (pos.y >= s.loopY() || sp.serverLevel().getGameTime() - pend > PENDING_TICKS) PENDING.remove(id);
+            else { setActive(sp, true); sp.fallDistance = 0; STILL.remove(id); return; }
         }
         Long heldUntil = HELD.get(id);
         if (heldUntil != null && sp.serverLevel().getGameTime() > heldUntil) { RoomsDebug.log("abyss hold expired player={}", sp.getGameProfile().getName()); release(sp); }
@@ -858,6 +874,7 @@ public final class AbyssRooms {
         }
         // 位置・向き・速度はそのまま、L ブロック上へ（相対テレポート）
         sp.connection.teleport(sp.getX(), sp.getY() + L, sp.getZ(), sp.getYRot(), sp.getXRot(), EnumSet.allOf(RelativeMovement.class));
+        PENDING.put(id, level.getGameTime()); // クライアントの返事まで次の 1 周はしない（相対テレポートの積み重なり防止）
         sp.fallDistance = 0;
         LAST.put(id, sp.position());
         ROOM.put(id, next);
@@ -888,6 +905,26 @@ public final class AbyssRooms {
         com.example.roomsmod.event.DoorEventHandler.onRoomAdvanced(level, rs, sp, next);
     }
 
+    /**
+     * 縦穴のてっぺんのふたの上に出てしまった（テレポートの積み重なり等）プレイヤーを、縦穴の層1の上端へ戻す。
+     * ふたの真上（縦穴の水平範囲、ふたから 48 ブロック以内、足の下のふたのブロックがある）のときだけ。クリエイティブ・飛行中は除く。
+     */
+    private static void rescueFromRoof(ServerPlayer sp, Shaft s, Vec3 pos) {
+        if (sp.getAbilities().instabuild || sp.getAbilities().flying) return;
+        if (!AbyssSpace.inColumn(s, pos.x, pos.z) || pos.y < s.capY() + 1 || pos.y > s.capY() + 48) return;
+        ServerLevel level = sp.serverLevel();
+        if (level.getBlockState(new BlockPos((int) Math.floor(pos.x), s.capY(), (int) Math.floor(pos.z))).isAir()) return;
+        UUID id = sp.getUUID();
+        Long pend = PENDING.get(id);
+        if (pend != null && level.getGameTime() - pend <= PENDING_TICKS) return;
+        Vec3 c = safeColumnPoint(s, s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, sp.getBbWidth() / 2 + 0.05);
+        sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
+        sp.setDeltaMovement(0, -MAX_FALL, 0);
+        sp.fallDistance = 0;
+        PENDING.put(id, level.getGameTime());
+        RoomsDebug.warn("abyss rescue player={} was on the shaft roof at {} -> back into the shaft at {}", sp.getGameProfile().getName(), pos, c);
+    }
+
     /** 縦穴の中では落下ダメージなし。 */
     @SubscribeEvent
     public static void onFall(LivingFallEvent event) {
@@ -899,7 +936,7 @@ public final class AbyssRooms {
     @SubscribeEvent
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         UUID id = event.getEntity().getUUID();
-        ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id); STILL.remove(id); HELD.remove(id); HELD_VY.remove(id);
+        ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id); STILL.remove(id); HELD.remove(id); HELD_VY.remove(id); PENDING.remove(id);
     }
 
     @SubscribeEvent
