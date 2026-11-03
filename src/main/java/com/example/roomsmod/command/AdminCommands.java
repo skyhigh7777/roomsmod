@@ -87,6 +87,9 @@ public final class AdminCommands {
                     .then(Commands.literal("here").executes(ctx -> orbPlace(ctx.getSource(), true))))
                 .then(Commands.literal("remove").executes(ctx -> orbRemove(ctx.getSource()))))
             .then(Commands.literal("deepest").executes(ctx -> deepest(ctx.getSource())))
+            .then(Commands.literal("skip")
+                .then(Commands.argument("n", IntegerArgumentType.integer(1, 2000))
+                    .executes(ctx -> skip(ctx.getSource(), IntegerArgumentType.getInteger(ctx, "n")))))
             .then(Commands.literal("section")
                 .executes(ctx -> listSections(ctx.getSource()))
                 .then(Commands.argument("id", StringArgumentType.word())
@@ -226,6 +229,39 @@ public final class AdminCommands {
         com.example.roomsmod.economy.RoomsRun.adminTeleport(p); // この周回はコインなし
         RoomsDebug.info("admin: tp {} -> section {} room {}", p.getGameProfile().getName(), id, room);
         return RoomsCommands.goToRoom(p, room) ? 1 : 0;
+    }
+
+    /**
+     * /rooms admin skip &lt;n&gt;：今いる部屋から n 部屋先へ（セクションの境目もそのまま越える。今の進行表のまま、ロックは見ない）。
+     * もう生成済みの部屋ならそこへワープ、まだなら /rooms admin to と同じくロビーから作り直してワープ。管理ワープなのでこの周回は記録・コインなし。
+     */
+    private static int skip(CommandSourceStack src, int n) throws CommandSyntaxException {
+        ServerPlayer p = src.getPlayerOrException();
+        ServerLevel lv = rooms(src);
+        if (lv == null) return 0;
+        if (com.example.roomsmod.world.RoomsTravel.busy()) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("部屋を生成中。完了まで待機")); return 0; }
+        RoomsState rs = RoomsState.get(lv);
+        int cur = 0;
+        if (p.level() == lv) {
+            int i = com.example.roomsmod.event.RoomTracker.roomIndexAt(rs, p.blockPosition());
+            cur = i >= 0 ? i : 0;
+            if (rs.abyss != null && rs.abyss.contains(p.position())) cur = com.example.roomsmod.world.AbyssRooms.roomOf(p, Math.max(cur, rs.currentRoom));
+        }
+        int target = cur + n;
+        String from = cur <= 0 ? "LOBBY" : Sections.formatRoom(rs, cur), to = Sections.formatRoom(rs, target);
+        Wallet.of(p).resetRun(Integer.MIN_VALUE); // 今の周回は精算しない
+        com.example.roomsmod.economy.RoomsRun.adminTeleport(p); // 管理ワープ：記録・コインなし
+        RoomsDebug.info("admin: skip {} +{}: {} ({}) -> {} ({})", p.getGameProfile().getName(), n, cur, from, target, to);
+        if (target < rs.roomPaths.size()) {
+            net.minecraft.world.phys.Vec3 v = com.example.roomsmod.world.SafeSpot.find(lv, rs, target);
+            if (v != null) {
+                p.teleportTo(lv, v.x, v.y, v.z, p.getYRot(), p.getXRot());
+                src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(from + " → " + to + "（" + n + " 部屋先、生成済み）"), false);
+                return 1;
+            }
+        }
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(from + " → " + to + "（" + n + " 部屋先）を生成してワープ"), false);
+        return RoomsCommands.goToRoom(p, target) ? 1 : 0;
     }
 
     /** 所持数（Wallet）へ。上限を超えた分は渡さない。 */
