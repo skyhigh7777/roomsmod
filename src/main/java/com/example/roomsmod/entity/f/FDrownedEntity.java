@@ -29,7 +29,7 @@ import java.util.UUID;
  * 横をすり抜けるのは難しい。隠れてやり過ごす。
  */
 public class FDrownedEntity extends VPathWalker {
-    public static final double SPEED = 0.13, HIT_RANGE = 4.0, AURA_RANGE = 6.0;
+    public static final double SPEED = 0.17, HIT_RANGE = 4.0, AURA_RANGE = 6.0;
     public static final int GRACE = 60, ROOMS_BEHIND = 2, AURA_EVERY = 10, AURA_TICKS = 30;
     public static final float DAMAGE = 30f;
     private final Set<UUID> told = new HashSet<>();
