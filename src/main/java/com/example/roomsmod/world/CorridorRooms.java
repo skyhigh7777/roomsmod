@@ -24,7 +24,7 @@ import java.util.Random;
  *   <li>奥行き（内寸）：SHORT 24 / STD 36 / LONG 52 / VLONG 72（VLONG は U-250 以降）</li>
  *   <li>見た目：PLAIN / PILLARED（両側に柱、陰に入れる）/ ALCOVE（壁の窪みのロッカーが多い）/ DIM（照明が少ない）</li>
  * </ul>
- * 隠れ場所は壁を窪ませたロッカー（壁の位置に置く）と、壁際のテーブル。通路の真ん中 3 マス（x=9..11）は常に空ける。
+ * 隠れ場所は壁を窪ませたロッカー（壁の位置に置く）と、壁際のテーブル。どの部屋にもロッカーとテーブルが最低 1 つずつ。通路の真ん中 3 マス（x=9..11）は常に空ける。
  * どの地点からも隠れ場所まで MAX_HIDE_GAP ブロック以内、1部屋に最低 MIN_HIDES 個。
  * 部屋はすべて +Z に一直線に並ぶので、既存の部屋と重なることはない。
  */
@@ -112,11 +112,20 @@ final class CorridorRooms {
         while (zs.size() < MIN_HIDES) zs.add(Math.max(3, Math.min(d - 2, zs.get(zs.size() - 1) + 6)));
         boolean left = rand.nextBoolean();
         int lockers = 0, tables = 0;
-        for (int hz : zs) {
+        // 種類は先に全部決める。1部屋に最低1つはロッカー、最低1つはテーブル（ロッカーを調べる敵 V-25-L などがハードで U にも出るので、
+        // テーブルのない部屋だと隠れ場所がなくなる。以前は 1 つずつ抽選（U はテーブル 20%）だけで、2 か所の部屋の約 6 割にテーブルがなかった）
+        List<SectionTheme.HidingType> types = new ArrayList<>();
+        for (int i = 0; i < zs.size(); i++) types.add(pick(theme, rand.nextFloat()));
+        if (!types.contains(SectionTheme.HidingType.TABLE)) types.set(rand.nextInt(types.size()), SectionTheme.HidingType.TABLE);
+        if (!types.contains(SectionTheme.HidingType.LOCKER)) {
+            int i = rand.nextInt(types.size());
+            if (types.size() > 1 && java.util.Collections.frequency(types, SectionTheme.HidingType.TABLE) == 1 && types.get(i) == SectionTheme.HidingType.TABLE) i = (i + 1) % types.size();
+            types.set(i, SectionTheme.HidingType.LOCKER);
+        }
+        for (int idx = 0; idx < zs.size(); idx++) {
+            int hz = zs.get(idx);
             if (hideZ.contains(hz)) hz++;
-            SectionTheme.HidingType t = pick(theme, rand.nextFloat());
-            // 1部屋に最低1つはロッカー
-            if (t == SectionTheme.HidingType.TABLE && lockers == 0 && hz == zs.get(zs.size() - 1)) t = SectionTheme.HidingType.LOCKER;
+            SectionTheme.HidingType t = types.get(idx);
             if (t == SectionTheme.HidingType.LOCKER) {
                 int wx = left ? EX - HALF - 1 : EX + HALF + 1;
                 RoomGenerator.placeHidingSpot(l, o.offset(wx, 1, hz), left ? Direction.EAST : Direction.WEST);
