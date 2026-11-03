@@ -16,15 +16,15 @@ import net.minecraft.world.phys.Vec3;
 /**
  * 回復のオーブ（ワールドスポーン地点の少し先に 1 つ、{@link HealingOrb} が置く）。光る球（ClientSetup の HealingOrbRenderer、上下にゆっくり揺れる）。
  * <ul>
- *   <li>体が {@value #RANGE} ブロック以内（オーブの中心から体の一番近い点まで）のプレイヤーを {@value #INTERVAL} tick ごとに {@value #HEAL} 回復（1.5 秒で 0.5 ハート）。</li>
+ *   <li>体が {@value #RANGE} ブロック以内（オーブの中心から体の一番近い点まで）のプレイヤーを {@value #INTERVAL} tick ごとに {@value #HEAL} 回復（1 秒で 10 = ハート 5 個）。</li>
  *   <li>壊せない・倒せない：当たり判定なし、ダメージ・押し出し・爆発・重力なし（/kill と管理コマンドだけで消える）。</li>
  *   <li>保存された「今のオーブ」の UUID と違うオーブは、読み込まれた時点で自分で消える（置き直し・二重の防止）。</li>
  * </ul>
  */
 public class HealingOrbEntity extends Entity {
     public static final double RANGE = 2.0;
-    public static final int INTERVAL = 30;
-    public static final float HEAL = 1.0f;
+    public static final int INTERVAL = 10;
+    public static final float HEAL = 5.0f;
 
     public HealingOrbEntity(EntityType<? extends HealingOrbEntity> type, Level level) {
         super(type, level);
