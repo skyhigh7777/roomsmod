@@ -257,10 +257,16 @@ public class RoomsMod {
             com.example.roomsmod.util.RoomsDebug.setEnabled(false);
             var lvl = e.getServer().getLevel(RoomsCommands.ROOMS_DIMENSION);
             if (lvl != null) com.example.roomsmod.world.RoomsState.get(lvl);
+            com.example.roomsmod.entity.orb.HealingOrb.ensure(e.getServer()); // 回復のオーブ（まだ置いていなければ 1 回だけ）
         });
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppedEvent e) ->
             com.example.roomsmod.util.RoomsDebug.setEnabled(false));
     }
+
+    /** 回復のオーブ（ワールドスポーン地点の少し先、entity/orb）。 */
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.orb.HealingOrbEntity>> HEALING_ORB = ENTITIES.register("healing_orb",
+            () -> EntityType.Builder.<com.example.roomsmod.entity.orb.HealingOrbEntity>of(com.example.roomsmod.entity.orb.HealingOrbEntity::new, MobCategory.MISC)
+                    .sized(0.6f, 0.6f).clientTrackingRange(8).updateInterval(20).fireImmune().build("healing_orb"));
 
     // B 区画
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.b.BGrinEntity>> B_GRIN = ENTITIES.register("b_grin",

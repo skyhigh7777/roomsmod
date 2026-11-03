@@ -47,9 +47,45 @@ public final class AdminCommands {
         return src.source instanceof ServerPlayer sp && sp == src.getEntity() && OWNER.equals(sp.getUUID());
     }
 
+    // ---- 回復のオーブ（オーバーワールドに 1 つ） ----
+    private static int orbInfo(CommandSourceStack src) {
+        var ow = src.getServer().overworld();
+        String at = com.example.roomsmod.entity.orb.HealingOrb.describe(ow);
+        src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("回復のオーブ（オーバーワールド）：" + at + "　ワールドスポーン " + ow.getSharedSpawnPos().toShortString()), false);
+        return 1;
+    }
+
+    private static int orbPlace(CommandSourceStack src, boolean here) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        var ow = src.getServer().overworld();
+        net.minecraft.core.BlockPos at = null;
+        if (here) {
+            ServerPlayer p = src.getPlayerOrException();
+            if (p.level() != ow) { src.sendFailure(net.minecraft.network.chat.Component.literal("オーバーワールドで使ってください")); return 0; }
+            at = p.blockPosition();
+        }
+        net.minecraft.core.BlockPos placed = com.example.roomsmod.entity.orb.HealingOrb.place(ow, at);
+        if (placed == null) { src.sendFailure(net.minecraft.network.chat.Component.literal("置けませんでした")); return 0; }
+        src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("回復のオーブを置きました：" + placed.toShortString()), false);
+        RoomsDebug.info("admin: healing orb placed at {} by {}", placed, src.getTextName());
+        return 1;
+    }
+
+    private static int orbRemove(CommandSourceStack src) {
+        boolean had = com.example.roomsmod.entity.orb.HealingOrb.remove(src.getServer().overworld());
+        src.sendSuccess(() -> net.minecraft.network.chat.Component.literal(had ? "回復のオーブを消しました（自動では置き直しません。戻すなら /rooms admin orb place）" : "オーブはありません"), false);
+        RoomsDebug.info("admin: healing orb removed by {}", src.getTextName());
+        return 1;
+    }
+
     public static LiteralArgumentBuilder<CommandSourceStack> build() {
         return RoomsCommands.adminSubtrees(Commands.literal("admin")
             .requires(AdminCommands::isOwner)
+            .then(Commands.literal("orb")
+                .executes(ctx -> orbInfo(ctx.getSource()))
+                .then(Commands.literal("place")
+                    .executes(ctx -> orbPlace(ctx.getSource(), false))
+                    .then(Commands.literal("here").executes(ctx -> orbPlace(ctx.getSource(), true))))
+                .then(Commands.literal("remove").executes(ctx -> orbRemove(ctx.getSource()))))
             .then(Commands.literal("deepest").executes(ctx -> deepest(ctx.getSource())))
             .then(Commands.literal("section")
                 .executes(ctx -> listSections(ctx.getSource()))
