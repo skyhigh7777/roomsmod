@@ -137,6 +137,7 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
     protected void serverTick(ServerLevel level) {
         RoomsState rs = RoomsState.get(level);
         if (glowTicks > 0) glowTicks--;
+        PlaceholderFog.heartbeat(level, this, target(level), tickCount); // 青い霧（近くのプレイヤー）
         if (phase == 2) { fadeTick(level); return; }
 
         ServerPlayer p = target(level);
@@ -275,6 +276,7 @@ public class Placeholder2147483648Entity extends PlaceholderEntity {
     @Override
     public void onRemovedFromLevel() {
         clearBar();
+        if (level() instanceof ServerLevel sl) PlaceholderFog.clear(sl); // 青い霧を消す（クライアントは心拍が止まっても自分で消す）
         super.onRemovedFromLevel();
     }
 

@@ -224,6 +224,7 @@ public class RoomsMod {
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.DebugNoDeath.class);
         com.example.roomsmod.stamina.Stamina.init(modEventBus);
         com.example.roomsmod.world.AbyssRooms.init(modEventBus);
+        com.example.roomsmod.entity.placeholder.PlaceholderFog.init(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.stamina.Stamina.class);
         com.example.roomsmod.economy.Wallet.init(modEventBus);
         NeoForge.EVENT_BUS.register(com.example.roomsmod.economy.Wallet.class);
