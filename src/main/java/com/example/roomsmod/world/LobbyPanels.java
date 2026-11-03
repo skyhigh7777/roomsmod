@@ -115,7 +115,7 @@ public final class LobbyPanels {
     // ===================== 生成 =====================
 
     /** パネル・売店の配置の版。配置を変えたら上げる（既存ワールドのロビーも ensure で作り直される）。2 = 売店 6 品（2026-11-01）。 */
-    public static final int LAYOUT_VERSION = 3; // 3: スキャナーの看板を 10 個パックに
+    public static final int LAYOUT_VERSION = 4; // 3: スキャナーの看板を 10 個パックに、4: スキャナー・レーダーを 1 個ずつの値段に
 
     /**
      * 既存ワールドのロビー（jar 更新前に作られたもの）でもパネル・売店を今の配置にする。ロビーにプレイヤーがいる時に呼ぶ（RoomsRun）。
@@ -166,7 +166,7 @@ public final class LobbyPanels {
         sign(level, at(SX + 1, BY + 1, Z_SHOP_ADRENALINE), Direction.EAST, "SHOP", "アドレナリン", "ADRENALINE", com.example.roomsmod.economy.Shop.Product.ADRENALINE.price + " COIN");
         sign(level, at(SX + 1, BY + 1, Z_SHOP_CHARM), Direction.EAST, "SHOP", "お守り CHARM", com.example.roomsmod.economy.Shop.Product.CHARM.price + " COIN", "最大 " + com.example.roomsmod.economy.Wallet.MAX_CHARM);
         sign(level, at(SX + 1, BY + 1, Z_SHOP_RADAR), Direction.EAST, "SHOP", "レーダー RADAR", com.example.roomsmod.economy.Shop.Product.RADAR.price + " COIN", "最大 " + com.example.roomsmod.economy.Wallet.MAX_RADAR);
-        sign(level, at(SX + 1, BY + 1, Z_SHOP_SCANNER), Direction.EAST, "SHOP", "スキャナー x" + com.example.roomsmod.economy.Shop.Product.SCANNER.pack, "SCANNER x" + com.example.roomsmod.economy.Shop.Product.SCANNER.pack, com.example.roomsmod.economy.Shop.Product.SCANNER.price + " COIN");
+        sign(level, at(SX + 1, BY + 1, Z_SHOP_SCANNER), Direction.EAST, "SHOP", "スキャナー SCANNER", com.example.roomsmod.economy.Shop.Product.SCANNER.price + " COIN", "最大 " + com.example.roomsmod.economy.Wallet.MAX_SCANNER);
         refreshSelection(level);
         refreshDeepest(level);
         refreshHard(level);

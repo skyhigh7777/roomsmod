@@ -48,7 +48,7 @@ public final class Wallet implements INBTSerializable<CompoundTag> {
     /** 所持数の上限（UNLIMITED = なし）。以前は 10 / 5。 */
     public static final int MAX_BATTERY = UNLIMITED, MAX_BANDAGE = UNLIMITED;
     /** アドレナリン・お守りの上限。 */
-    public static final int MAX_ADRENALINE = 8, MAX_CHARM = 1, MAX_RADAR = 3, MAX_SCANNER = 10;
+    public static final int MAX_ADRENALINE = 8, MAX_CHARM = 1, MAX_RADAR = 6, MAX_SCANNER = 10;
 
     /** あと何個入るか。 */
     public static int space(int max, int cur) { return max < 0 ? Integer.MAX_VALUE - Math.max(0, cur) : Math.max(0, max - cur); }

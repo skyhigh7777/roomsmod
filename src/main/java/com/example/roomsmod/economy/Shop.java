@@ -12,8 +12,8 @@ public final class Shop {
     private Shop() {}
 
     public enum Product {
-        BATTERY("battery", 15), BANDAGE("bandage", 25), ADRENALINE("adrenaline", 60), CHARM("charm", 300), RADAR("radar", 100), SCANNER("scanner", 200, 10);
-        /** pack = 1回の購入で増える数（スキャナーは 10 個パック。上限を超える分は切り捨て、値段はそのまま）。 */
+        BATTERY("battery", 15), BANDAGE("bandage", 25), ADRENALINE("adrenaline", 60), CHARM("charm", 300), RADAR("radar", 150), SCANNER("scanner", 90);
+        /** pack = 1回の購入で増える数（今はどれも 1 個ずつ。スキャナー 90・レーダー 150 コイン／個）。 */
         public final String key; public final int price, pack;
         Product(String key, int price) { this(key, price, 1); }
         Product(String key, int price, int pack) { this.key = key; this.price = price; this.pack = pack; }
@@ -32,7 +32,11 @@ public final class Shop {
         };
         if (why == null && w.coins < item.price) why = "message.roomsmod.shop.no_coins";
         if (why != null) {
-            p.displayClientMessage(Component.translatable(why, name, item.price, w.coins).withStyle(ChatFormatting.RED), true);
+            int max = switch (item) {
+                case BATTERY -> Wallet.MAX_BATTERY; case BANDAGE -> Wallet.MAX_BANDAGE; case ADRENALINE -> Wallet.MAX_ADRENALINE;
+                case CHARM -> Wallet.MAX_CHARM; case RADAR -> Wallet.MAX_RADAR; case SCANNER -> Wallet.MAX_SCANNER;
+            };
+            p.displayClientMessage(Component.translatable(why, name, item.price, w.coins, max).withStyle(ChatFormatting.RED), true);
             p.level().playSound(null, p.blockPosition(), SoundEvents.VILLAGER_NO, SoundSource.BLOCKS, 0.5f, 1.0f);
             return;
         }
@@ -44,7 +48,7 @@ public final class Shop {
             case ADRENALINE -> w.adrenaline++;
             case CHARM -> w.charm++;
             case RADAR -> w.radar++;
-            case SCANNER -> w.scanner = Math.min(w.scanner + item.pack, Wallet.MAX_SCANNER); // 上限 10 で頭打ち（1 個でも空きがあれば買える、値段は 200 のまま）
+            case SCANNER -> w.scanner = Math.min(w.scanner + item.pack, Wallet.MAX_SCANNER); // 1 個ずつ（上限で頭打ち）
         }
         if (item.pack > 1) name = name.copy().append(" x" + (w.scanner - before));
         Wallet.sync(p);
