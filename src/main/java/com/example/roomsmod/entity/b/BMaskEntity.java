@@ -19,7 +19,7 @@ public class BMaskEntity extends BMotionWatcher {
     @Override protected float damage() { return 20f; }
     @Override protected SoundEvent cue() { return SoundEvents.WITCH_CELEBRATE; }
     @Override protected int cueInterval() { return 30; }
-    @Override protected String chatStart() { return "B-30 が笑っているわ（予告 2.5秒）"; }
+    @Override protected String chatStart() { return "B-30 が笑っている（予告 2.5秒）"; }
     @Override protected Vector3f glitchColor() { return new Vector3f(0.75f, 0.2f, 0.9f); }
     @Override protected boolean violates(Player p) {
         Vec3 m = moved(p);

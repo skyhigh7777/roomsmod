@@ -51,11 +51,12 @@ public final class DebugNoDeath {
         boolean void_ = src.is(DamageTypes.FELL_OUT_OF_WORLD) || sp.getY() < sp.level().getMinBuildHeight();
         if (void_) rescue(sp);
         String amount = dmg == null ? "?" : String.format("%.1f", dmg);
-        sp.sendSystemMessage(Component.literal("[Debug] 死亡を回避したわ（原因: " + cause + ", ダメージ " + amount + (void_ ? "、奈落から戻したわ" : "") + "）"));
+        sp.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.debug("死亡を回避した（原因: " + cause + ", ダメージ " + amount + (void_ ? "、奈落から戻した" : "") + "）"));
         RoomsDebug.log("debug no-death player={} cause={} damage={} void={} pos={}", sp.getGameProfile().getName(), cause, amount, void_, sp.blockPosition());
     }
 
     static String causeName(DamageSource src) {
+        if (src instanceof com.example.roomsmod.util.NamedDamageSource n) return n.enemyName().getString();
         if (src.getEntity() != null) return src.getEntity().getName().getString();
         if (src.getDirectEntity() != null) return src.getDirectEntity().getName().getString();
         return src.getMsgId();
@@ -83,7 +84,7 @@ public final class DebugNoDeath {
     static int nearestRoomXZ(RoomsState rs, double x, double z) {
         int best = -1; double bd = Double.MAX_VALUE;
         for (int r = 0; r < rs.generatedRooms.size(); r++)
-            for (var b : rs.generatedRooms.get(r)) {
+            for (var b : rs.boxes(r)) {
                 double dx = Math.max(0, Math.max(b.minX() - x, x - b.maxX() - 1)), dz = Math.max(0, Math.max(b.minZ() - z, z - b.maxZ() - 1));
                 double d = dx * dx + dz * dz;
                 if (d < bd) { bd = d; best = r; }

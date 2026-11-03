@@ -21,6 +21,8 @@ public class RoomsState extends SavedData {
     private static final String NAME = "roomsmod_state";
 
     public int currentRoom = 0;
+    /** 進行表を作り直した回数（reset ごとに +1、保存する）。出現した時と違えば、その敵の部屋番号はもう別の部屋（VEntity が消える）。 */
+    public int epoch = 0;
     /** 現在の部屋の出口扉（下半分）。これを開けたときだけ次の部屋を生成する。 */
     public BlockPos expectedExitDoor = null;
     public final Set<BlockPos> generatedDoors = new HashSet<>();
@@ -28,12 +30,81 @@ public class RoomsState extends SavedData {
     public final List<List<BoundingBox>> generatedRooms = new ArrayList<>();
     /** 部屋ごとの経路（入口→折れ点→出口扉、床+1）。generatedRoomsと同じindex。 */
     public final List<List<BlockPos>> roomPaths = new ArrayList<>();
-    /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。既定は A のみ。 */
+    /** セクションの開始表（部屋番号 startRoom 以降が themeId）。startRoom 昇順。 */
     /** ハードモード：全セクションのエンティティがどの部屋でも出る（サーバー共有・セーブに保存）。 */
     public boolean hardMode = false;
-    public final List<SectionStart> sections = new ArrayList<>(List.of(new SectionStart("b", 0)));
+    /** ロビーのパネル・売店の配置の版（LobbyPanels.LAYOUT_VERSION と違えば作り直す）。 */
+    public int panelsVersion = 0;
+    /** 既定は V → B → U → S → A（各セクションの長さ、V はロビー 0 から）。H は既定でロックなので入らない（解放すると S → H → A）。 */
+    public final List<SectionStart> sections = new ArrayList<>(com.example.roomsmod.world.section.Sections.fixedChain(com.example.roomsmod.world.section.Sections.firstId()));
 
     public record SectionStart(String themeId, int startRoom) {}
+
+    /** セクションの利用可否の上書き（オーナー専用 /rooms admin section）。既定は Sections.LOCKED_BY_DEFAULT（PLACEHOLDER と H）だけロック。 */
+    public final java.util.Set<String> lockedSections = new java.util.TreeSet<>(), unlockedSections = new java.util.TreeSet<>();
+
+    public boolean isSectionLocked(String id) {
+        String c = com.example.roomsmod.world.section.Sections.canonical(id);
+        if (lockedSections.contains(c)) return true;
+        return com.example.roomsmod.world.section.Sections.LOCKED_BY_DEFAULT.contains(c) && !unlockedSections.contains(c);
+    }
+
+    /** 進行表で飛ばすセクション：既定でロックのセクション（H）がロック中の時だけ。ほかのセクションは手でロックしても進行表に残る（選べなくなるだけ）。 */
+    public boolean outOfProgression(String id) {
+        return com.example.roomsmod.world.section.Sections.isLockedByDefault(id) && isSectionLocked(id);
+    }
+
+    public void setSectionLocked(String id, boolean locked) {
+        String c = com.example.roomsmod.world.section.Sections.canonical(id);
+        lockedSections.remove(c); unlockedSections.remove(c);
+        boolean def = com.example.roomsmod.world.section.Sections.LOCKED_BY_DEFAULT.contains(c);
+        if (locked && !def) lockedSections.add(c);
+        if (!locked && def) unlockedSections.add(c);
+        setDirty();
+        if (def && com.example.roomsmod.world.section.Sections.ORDER.contains(c)) relinkProgression((locked ? "lock " : "unlock ") + c);
+    }
+
+    /**
+     * 今のセクションより後ろの進行表を、今のロックに合わせてつなぎ直す（H を解放したら S → H → A、ロックしたら S → A）。
+     * 生成済みの部屋（と currentRoom）の番号・セクションが変わる時は何もしない（例：もう A に入っている周回で H を解放）。
+     */
+    public boolean relinkProgression(String why) {
+        if (sections.isEmpty()) return false;
+        int last = Math.max(generatedRooms.size() - 1, currentRoom);
+        SectionStart cur = sections.get(0);
+        for (SectionStart s : sections) if (s.startRoom() <= last) cur = s;
+        if (!com.example.roomsmod.world.section.Sections.ORDER.contains(com.example.roomsmod.world.section.Sections.canonical(cur.themeId()))) return false;
+        List<SectionStart> now = new ArrayList<>();
+        for (SectionStart s : sections) if (s.startRoom() < cur.startRoom()) now.add(s);
+        now.addAll(com.example.roomsmod.world.section.Sections.chainFrom(cur.themeId(), cur.startRoom(), this::outOfProgression));
+        if (now.equals(sections)) return false;
+        List<SectionStart> was = new ArrayList<>(sections);
+        List<String> before = new ArrayList<>();
+        for (int i = 0; i <= last; i++) before.add(com.example.roomsmod.world.section.Sections.formatRoom(this, i));
+        sections.clear(); sections.addAll(now);
+        for (int i = 0; i <= last; i++)
+            if (!before.get(i).equals(com.example.roomsmod.world.section.Sections.formatRoom(this, i))) {
+                RoomsDebug.info("section table kept ({}): room {} would change {} -> {}", why, i, before.get(i), com.example.roomsmod.world.section.Sections.formatRoom(this, i));
+                sections.clear(); sections.addAll(was);
+                return false;
+            }
+        setDirty();
+        RoomsDebug.info("section table relinked ({}): {} -> {}", why, was, sections);
+        return true;
+    }
+
+    /** セクション表の形式。2 = 進行順 V → B → U → S → A（S は旧 GK、A は Abyss）。 */
+    public static final int SECTIONS_VERSION = 2;
+
+    /** A（Abyss）区画の縦穴（AbyssRooms）。まだ作っていなければ null。ロビー生成（reset）で消える。 */
+    public com.example.roomsmod.world.AbyssRooms.Shaft abyss = null;
+
+    /** 片付け待ちの古い部屋の範囲（余白込み）。RoomsCleanup が数 tick に分けて空気に戻す。途中で止まっても続きから（保存する）。 */
+    public final List<BoundingBox> pendingClear = new ArrayList<>();
+    /** 片付けで壊してはいけない範囲（作り直したロビーと出口のふた）。 */
+    public final List<BoundingBox> pendingProtect = new ArrayList<>();
+    /** y=1 時代（5a089f2 より前）のロビーの跡を片付けたか（1回だけ）。 */
+    public boolean legacyLobbyCleared = false;
 
     /** セクションを追加（startRoom 昇順に並べる）。 */
     public void addSection(String themeId, int startRoom) {
@@ -41,6 +112,23 @@ public class RoomsState extends SavedData {
         sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(themeId), startRoom));
         sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
         setDirty();
+    }
+
+    /** セクション表を first から始まる固定長の進行（Sections.fixedChain）にする。 */
+    public void setChain(String firstId) {
+        sections.clear();
+        sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(firstId, this::outOfProgression));
+        setDirty();
+        RoomsDebug.log("section table set to fixed chain from {}: {}", firstId, sections);
+    }
+
+    /** 部屋 start 以降を id から始まる固定長の進行に置き換える（それより前はそのまま）。/rooms section 用。 */
+    public void chainFrom(String id, int start) {
+        sections.removeIf(s -> s.startRoom() >= start);
+        sections.addAll(com.example.roomsmod.world.section.Sections.chainFrom(id, start, this::outOfProgression));
+        sections.sort(java.util.Comparator.comparingInt(SectionStart::startRoom));
+        setDirty();
+        RoomsDebug.log("section table chained from {} at {}: {}", id, start, sections);
     }
 
     public static RoomsState get(ServerLevel level) {
@@ -55,8 +143,45 @@ public class RoomsState extends SavedData {
         generatedDoors.clear();
         generatedRooms.clear();
         roomPaths.clear();
+        abyss = null;
+        epoch++;
+        migrateSectionLengths("reset");
         setDirty();
     }
+
+    /**
+     * 旧仕様（全セクション 500 部屋）の進行表を今の長さ（B=300 等）に作り直す。
+     * 生成済みの部屋（と currentRoom）の番号・セクションが新旧で全部同じ時だけ（＝まだ B-300 を越えていない）。
+     * 越えている周回は番号がずれるのでそのまま（次のロビー作り直しで移行）。
+     */
+    public boolean migrateSectionLengths(String why) {
+        List<SectionStart> now = com.example.roomsmod.world.section.Sections.migratedChain(sections);
+        if (now == null) return false;
+        List<SectionStart> was = new ArrayList<>(sections);
+        int last = Math.max(generatedRooms.size() - 1, currentRoom);
+        sections.clear(); sections.addAll(now);
+        List<String> after = new ArrayList<>();
+        for (int i = 0; i <= last; i++) after.add(com.example.roomsmod.world.section.Sections.formatRoom(this, i));
+        sections.clear(); sections.addAll(was);
+        for (int i = 0; i <= last; i++)
+            if (!after.get(i).equals(com.example.roomsmod.world.section.Sections.formatRoom(this, i))) {
+                RoomsDebug.log("section table kept legacy lengths ({}): room {} would change {} -> {}", why, i, com.example.roomsmod.world.section.Sections.formatRoom(this, i), after.get(i));
+                return false;
+            }
+        sections.clear(); sections.addAll(now);
+        setDirty();
+        RoomsDebug.log("section table migrated to current lengths ({}): {} -> {}", why, was, sections);
+        return true;
+    }
+
+    /** 部屋 room の範囲（なければ空。進行表のリセット後に古い番号で呼ばれても落ちない）。 */
+    public List<BoundingBox> boxes(int room) { return room >= 0 && room < generatedRooms.size() ? generatedRooms.get(room) : List.of(); }
+
+    /** 部屋 room の経路（なければ空）。 */
+    public List<BlockPos> path(int room) { return room >= 0 && room < roomPaths.size() ? roomPaths.get(room) : List.of(); }
+
+    /** 部屋 room が今の進行表にあるか。 */
+    public boolean hasRoom(int room) { return room >= 0 && room < generatedRooms.size(); }
 
     public void addRoom(List<BoundingBox> boxes, List<BlockPos> path) {
         generatedRooms.add(new ArrayList<>(boxes));
@@ -89,7 +214,9 @@ public class RoomsState extends SavedData {
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
         tag.putBoolean("debug", RoomsDebug.isEnabled());
         tag.putBoolean("hardMode", hardMode);
+        tag.putInt("panelsVersion", panelsVersion);
         tag.putInt("currentRoom", currentRoom);
+        tag.putInt("epoch", epoch);
         if (expectedExitDoor != null) tag.putLong("expectedExitDoor", expectedExitDoor.asLong());
         ListTag doors = new ListTag();
         for (BlockPos p : generatedDoors) doors.add(LongTag.valueOf(p.asLong()));
@@ -118,15 +245,42 @@ public class RoomsState extends SavedData {
             secs.add(c);
         }
         tag.put("sections", secs);
+        ListTag lk = new ListTag(), ul = new ListTag();
+        for (String id : lockedSections) lk.add(net.minecraft.nbt.StringTag.valueOf(id));
+        for (String id : unlockedSections) ul.add(net.minecraft.nbt.StringTag.valueOf(id));
+        tag.put("lockedSections", lk); tag.put("unlockedSections", ul);
+        if (abyss != null) tag.put("abyss", abyss.save());
+        tag.put("pendingClear", boxesTag(pendingClear));
+        tag.put("pendingProtect", boxesTag(pendingProtect));
+        tag.putBoolean("legacyLobbyCleared", legacyLobbyCleared);
+        tag.putBoolean("sectionsFixed", true);
+        tag.putInt("sectionsVersion", SECTIONS_VERSION);
         RoomsDebug.log("state saved: currentRoom={}, rooms={}, doors={}, expectedExitDoor={}", currentRoom, generatedRooms.size(), generatedDoors.size(), expectedExitDoor);
         return tag;
+    }
+
+    private static ListTag boxesTag(List<BoundingBox> list) {
+        ListTag l = new ListTag();
+        for (BoundingBox b : list) l.add(new net.minecraft.nbt.IntArrayTag(new int[]{b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ()}));
+        return l;
+    }
+
+    private static void readBoxes(CompoundTag tag, String key, List<BoundingBox> out) {
+        for (Tag t : tag.getList(key, Tag.TAG_INT_ARRAY)) {
+            int[] a = ((net.minecraft.nbt.IntArrayTag) t).getAsIntArray();
+            if (a.length == 6) out.add(new BoundingBox(a[0], a[1], a[2], a[3], a[4], a[5]));
+        }
     }
 
     public static RoomsState load(CompoundTag tag, HolderLookup.Provider registries) {
         RoomsState s = new RoomsState();
         try {
+        readBoxes(tag, "pendingClear", s.pendingClear);
+        readBoxes(tag, "pendingProtect", s.pendingProtect);
+        s.legacyLobbyCleared = tag.getBoolean("legacyLobbyCleared");
         RoomsDebug.setEnabled(tag.getBoolean("debug"));
         s.currentRoom = tag.getInt("currentRoom");
+        s.epoch = tag.getInt("epoch");
         if (tag.contains("expectedExitDoor")) s.expectedExitDoor = BlockPos.of(tag.getLong("expectedExitDoor"));
         for (Tag t : tag.getList("generatedDoors", Tag.TAG_LONG)) s.generatedDoors.add(BlockPos.of(((LongTag) t).getAsLong()));
         for (Tag t : tag.getList("generatedRooms", Tag.TAG_LIST)) {
@@ -143,14 +297,32 @@ public class RoomsState extends SavedData {
             s.roomPaths.add(path);
         }
         s.hardMode = tag.getBoolean("hardMode");
+        s.panelsVersion = tag.getInt("panelsVersion");
+        for (Tag t : tag.getList("lockedSections", Tag.TAG_STRING)) s.lockedSections.add(t.getAsString());
+        for (Tag t : tag.getList("unlockedSections", Tag.TAG_STRING)) s.unlockedSections.add(t.getAsString());
+        if (tag.contains("abyss")) s.abyss = com.example.roomsmod.world.AbyssRooms.Shaft.load(tag.getCompound("abyss"));
         if (tag.contains("sections")) {
             s.sections.clear();
             for (Tag t : tag.getList("sections", Tag.TAG_COMPOUND)) {
                 CompoundTag c = (CompoundTag) t;
-                s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(c.getString("theme")), c.getInt("start")));
+                String theme = c.getString("theme");
+                // version 1 以前の "a" は B の旧名（今の "a" は Abyss）
+                if (tag.getInt("sectionsVersion") < 2 && "a".equalsIgnoreCase(theme)) theme = "b";
+                s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.canonical(theme), c.getInt("start")));
             }
-            if (s.sections.isEmpty()) s.sections.add(new SectionStart("b", 0));
+            if (s.sections.isEmpty()) s.sections.add(new SectionStart(com.example.roomsmod.world.section.Sections.firstId(), 0));
+            if (!tag.getBoolean("sectionsFixed") || tag.getInt("sectionsVersion") < SECTIONS_VERSION) {
+                // 旧形式（長さ固定なし、または進行順が V → B → U → S → A になる前）：
+                // 開始セクション（通し番号 1 までに始まる最後のもの）から今の固定長の進行に作り直す
+                String first = com.example.roomsmod.world.section.Sections.firstId();
+                for (SectionStart sec : s.sections) if (sec.startRoom() <= 1) first = sec.themeId();
+                List<SectionStart> old = new ArrayList<>(s.sections);
+                s.sections.clear();
+                s.sections.addAll(com.example.roomsmod.world.section.Sections.fixedChain(first, s::outOfProgression));
+                RoomsDebug.log("state migrated section table {} -> {}", old, s.sections);
+            }
         }
+        s.migrateSectionLengths("load"); // 旧 500 長の表：まだ B-300 を越えていなければ今の長さに
         } catch (RuntimeException e) {
             RoomsDebug.error("failed to load RoomsState", e);
         }

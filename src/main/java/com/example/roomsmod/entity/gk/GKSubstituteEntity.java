@@ -26,7 +26,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 
-/** GK-105：偽の扉。壁の元のブロックを保存して戻すので、どのセクションの部屋でも使える。 */
+/** S-105：偽の扉。壁の元のブロックを保存して戻すので、どのセクションの部屋でも使える。 */
 public class GKSubstituteEntity extends VEntity {
     public static final int LIFE = 20 * 60;
     public static final float DAMAGE = 10f;
@@ -35,7 +35,7 @@ public class GKSubstituteEntity extends VEntity {
     /** 扉を置く前の壁ブロック（下・上）。どのセクションの部屋でも元に戻せるように保存する。 */
     private BlockState wallLower = null, wallUpper = null;
     public GKSubstituteEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-105"; }
+    @Override public String vName() { return "S-105"; }
     @Override protected int maxLifeTicks() { return Math.min(LIFE, GKEntity.MAX_LIFE_TICKS); }
 
     @Override public boolean targetsOpenedRoom() { return true; }
@@ -48,11 +48,12 @@ public class GKSubstituteEntity extends VEntity {
     protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) {
         startRoom = playerRoom;
         if (playerRoom < 1 || playerRoom >= rs.generatedRooms.size()) return null;
-        List<BlockPos> path = rs.roomPaths.get(playerRoom);
+        List<BlockPos> path = rs.path(playerRoom);
+        if (path.isEmpty()) return null;
         int y = path.get(0).getY();
         BlockPos entrance = path.get(0), exit = path.get(path.size() - 1);
         List<Object[]> cand = new ArrayList<>();
-        for (BoundingBox b : rs.generatedRooms.get(playerRoom))
+        for (BoundingBox b : rs.boxes(playerRoom))
             for (int side = 0; side < 2; side++) {
                 int x = side == 0 ? b.minX() : b.maxX();
                 Direction in = side == 0 ? Direction.EAST : Direction.WEST;
@@ -66,7 +67,7 @@ public class GKSubstituteEntity extends VEntity {
                     cand.add(new Object[]{w, in});
                 }
             }
-        if (cand.isEmpty()) { RoomsDebug.log("GK-105 spawn skipped: no wall spot in room {}", playerRoom); return null; }
+        if (cand.isEmpty()) { RoomsDebug.log("S-105 spawn skipped: no wall spot in room {}", playerRoom); return null; }
         Object[] c = cand.get(level.random.nextInt(cand.size()));
         door = (BlockPos) c[0];
         Direction in = (Direction) c[1];
@@ -77,7 +78,7 @@ public class GKSubstituteEntity extends VEntity {
         BlockPos at = door.relative(in);
         setPos(at.getX() + 0.5, at.getY(), at.getZ() + 0.5);
         level.playSound(null, door, RoomsMod.GK_SUBSTITUTE_CREAK.get(), SoundSource.HOSTILE, 2.0f, 0.8f);
-        RoomsDebug.log("GK-105 fake door at {} facing {}", door, in.getOpposite());
+        RoomsDebug.log("S-105 fake door at {} facing {}", door, in.getOpposite());
         return at;
     }
 
@@ -91,7 +92,7 @@ public class GKSubstituteEntity extends VEntity {
 
     public void trigger(ServerLevel level, Player p) {
         level.playSound(null, door, RoomsMod.GK_SUBSTITUTE_CREAK.get(), SoundSource.HOSTILE, 2.5f, 0.5f);
-        RoomsDebug.log(p, "GK-105: 偽の扉だったわ", "GK-105 fake door opened {} player={} creative={}", door, p == null ? "?" : p.getGameProfile().getName(), p != null && p.isCreative());
+        RoomsDebug.log(p, "S-105: 偽の扉だった", "S-105 fake door opened {} player={} creative={}", door, p == null ? "?" : p.getGameProfile().getName(), p != null && p.isCreative());
         if (p != null) {
             com.example.roomsmod.util.RoomsDamage.hurt(this, p, DAMAGE);
             p.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 60));
@@ -106,12 +107,12 @@ public class GKSubstituteEntity extends VEntity {
         // 自分の偽の扉（閉じた暗いオークの扉）だけを壁に戻す。本物の扉（出口・生成済み）は絶対に上書きしない
         var st = sl.getBlockState(door);
         boolean real = rs.generatedDoors.contains(door) || door.equals(rs.expectedExitDoor) || (st.getBlock() instanceof DoorBlock && st.getValue(DoorBlock.OPEN));
-        if (real) RoomsDebug.warn("GK-105 restore skipped: {} is a real/open door", door);
+        if (real) RoomsDebug.warn("S-105 restore skipped: {} is a real/open door", door);
         else if (st.is(Blocks.DARK_OAK_DOOR)) {
             sl.setBlock(door.above(), wallUpper != null ? wallUpper : Blocks.WHITE_TERRACOTTA.defaultBlockState(), 2 | 16);
             sl.setBlock(door, wallLower != null ? wallLower : Blocks.STRIPPED_DARK_OAK_WOOD.defaultBlockState(), 2 | 16);
             sl.sendBlockUpdated(door, sl.getBlockState(door), sl.getBlockState(door), 3);
-            RoomsDebug.log("GK-105 fake door removed at {}", door);
+            RoomsDebug.log("S-105 fake door removed at {}", door);
         }
     }
 

@@ -22,13 +22,14 @@ import java.util.List;
  * 状態は RoomsState（SavedData）に永続化。リセットはロビー生成（/rooms enter, /rooms to）時のみ。
  */
 public class DoorEventHandler {
-    public static final int baseFloorY = 1;
+    /** ロビーの床の y（RoomsLayout.LOBBY_Y。未使用だが互換のため残す）。 */
+    public static final int baseFloorY = com.example.roomsmod.world.RoomsLayout.LOBBY_Y;
     /** B-20 が出現する、プレイヤーから何部屋後ろか。 */
     public static final int A20_ROOMS_BEHIND = 10;
     /** GK 区画で1回の抽選で出る最大数。 */
     public static final int GK_MAX_PER_ROLL = 2;
     /** ハードモードの1回の抽選（扉1枚）で出る最大数。 */
-    public static final int HARD_MAX_PER_ROLL = 2;
+    public static final int HARD_MAX_PER_ROLL = com.example.roomsmod.world.HardMode.MAX_PER_ROLL;
 
     // ラッシャー出現率（調整用）
     // 出現する部屋・確率は SectionTheme.rushers()（Sections.B）
@@ -49,7 +50,7 @@ public class DoorEventHandler {
             if (s0.getBlock() instanceof DoorBlock && s0.getValue(DoorBlock.OPEN)) {
                 BlockPos dp = s0.getValue(DoorBlock.HALF) == DoubleBlockHalf.UPPER ? event.getPos().below() : event.getPos();
                 if (com.example.roomsmod.entity.gk.GKDoorTricks.closableOpenDoor(event.getLevel(), dp)) {
-                    // GK-125 が見張る扉だけは閉められる（サーバーで閉める）
+                    // S-125 が見張る扉だけは閉められる（サーバーで閉める）
                     event.setCanceled(true);
                     if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND && event.getLevel() instanceof ServerLevel sl)
                         com.example.roomsmod.entity.gk.GKDoorTricks.onDoorClick(sl, RoomsState.get(sl), event.getEntity(), dp);
@@ -61,7 +62,7 @@ public class DoorEventHandler {
                     // 詰み防止：開いているのに次の部屋ができていない出口扉（生成失敗・扉だけ開いた等）は、もう一度生成を試す
                     if (dp.equals(rs0.expectedExitDoor)) {
                         rs0.generatedDoors.remove(dp);
-                        RoomsDebug.log(event.getEntity(), "開いた出口扉の先に部屋がないので生成し直すわ", "door click pos={} -> open exit door without next room: retry generation", dp);
+                        RoomsDebug.log(event.getEntity(), "出口扉の先に部屋がないため再生成", "door click pos={} -> open exit door without next room: retry generation", dp);
                         advanceThroughExitDoor(sl, rs0, event.getEntity(), dp, "stuck open exit door retry");
                         return;
                     }
@@ -71,11 +72,11 @@ public class DoorEventHandler {
                         if (ds.getBlock() instanceof DoorBlock db && ds.getValue(DoorBlock.OPEN)) {
                             sl.setBlock(dp, ds.setValue(DoorBlock.OPEN, false), 10);
                             sl.playSound(null, dp, db.type().doorClose(), net.minecraft.sounds.SoundSource.BLOCKS, 1.0f, sl.getRandom().nextFloat() * 0.1f + 0.9f);
-                            RoomsDebug.log(event.getEntity(), "扉を閉めたわ", "door click pos={} -> closed (inner door, not a generated exit)", dp);
+                            RoomsDebug.log(event.getEntity(), "扉を閉めた", "door click pos={} -> closed (inner door, not a generated exit)", dp);
                             return;
                         }
                     }
-                    RoomsDebug.log(event.getEntity(), "扉は開いたままよ", "door click pos={} -> cancelled (already open)", event.getPos());
+                    RoomsDebug.log(event.getEntity(), "扉は開いたまま", "door click pos={} -> cancelled (already open)", event.getPos());
                 }
                 return;
             }
@@ -83,7 +84,7 @@ public class DoorEventHandler {
         // 部屋ディメンションでは、Mod 自身の操作できるブロック（ロッカー・隠れテーブル・まだ閉じている扉）以外の右クリックを全て取り消す
         //（作業台・かまど・チェスト・樽・金床・ベッド・トラップドア・フェンスゲート・音符ブロック等の GUI や操作を防ぐ）。両手・サーバー/クライアント両方。
         if (event.getLevel().dimension().equals(RoomsCommands.ROOMS_DIMENSION) && !isAllowedInteraction(event.getLevel().getBlockState(event.getPos()))) {
-            if (event.getItemStack().getItem() instanceof com.example.roomsmod.item.FlashlightItem) {
+            if (event.getItemStack().getItem() instanceof com.example.roomsmod.item.FlashlightItem || event.getItemStack().getItem() instanceof com.example.roomsmod.item.LobbyReturnItem) {
                 // 懐中電灯：ブロックの操作だけ禁止して、アイテムの使用（ON/OFF）は通す
                 event.setUseBlock(net.neoforged.neoforge.common.util.TriState.FALSE);
                 return;
@@ -141,13 +142,20 @@ public class DoorEventHandler {
             event.setCanceled(true);
             RoomsDebug.log("lobby panel break cancelled pos={} player={}", event.getPos(), event.getPlayer().getGameProfile().getName());
         }
+        // 部屋ディメンションではクリエイティブ以外はブロックを壊せない（扉・壁などを壊して進むのを防ぐ）
+        else if (event.getLevel() instanceof net.minecraft.world.level.Level l2
+                && l2.dimension().equals(com.example.roomsmod.command.RoomsCommands.ROOMS_DIMENSION)
+                && !event.getPlayer().isCreative()) {
+            event.setCanceled(true);
+            RoomsDebug.log("rooms block break cancelled (not creative) pos={} player={}", event.getPos(), event.getPlayer().getGameProfile().getName());
+        }
     }
 
     public static boolean isAllowedInteraction(BlockState s) {
         var b = s.getBlock();
         return b instanceof com.example.roomsmod.block.LockerBlock
                 || b instanceof com.example.roomsmod.block.HidingTableBlock
-                || b instanceof net.minecraft.world.level.block.BellBlock // GK-25 のベル
+                || b instanceof net.minecraft.world.level.block.BellBlock // S-25 のベル
                 || b instanceof DoorBlock;
     }
 
@@ -186,17 +194,28 @@ public class DoorEventHandler {
             rs.generatedDoors.remove(doorPos); // もう一度クリックすれば再試行できるように
             return false;
         }
-        if (player != null) RoomsDebug.log(player, "次の部屋を生成したわ（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
+        if (player != null) RoomsDebug.log(player, "次の部屋を生成した（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, room) + "）",
             "{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
         else RoomsDebug.log("{} pos={} -> generated room {} at {}", by, doorPos, room, nextOrigin);
 
-        if (rs.hardMode) com.example.roomsmod.world.HardMode.announceRoom(level, rs, room);
         try {
             rollRushers(level, rs, player, room);
         } catch (RuntimeException e) {
             RoomsDebug.error("rusher spawn failed", e);
         }
         return true;
+    }
+
+    /**
+     * 扉以外で次の部屋へ進んだとき（A の縦穴の1周）：扉を通ったときと同じく、ハードの告知と出現抽選をする。
+     * 部屋の生成（RoomGenerator.generateNextRoom）は呼び出し側で済ませておく。
+     */
+    public static void onRoomAdvanced(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room) {
+        try {
+            rollRushers(level, rs, player, room);
+        } catch (RuntimeException e) {
+            RoomsDebug.error("rusher spawn failed", e);
+        }
     }
 
     /**
@@ -209,15 +228,31 @@ public class DoorEventHandler {
 
     /** forceAll=true は全種類を当たり扱い（minRoom は無視しない）。テスト用。 */
     public static void rollRushers(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player, int room, boolean forceAll) {
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("rusher roll room={} skipped: PLACEHOLDER-2147483648 alive", room); return; }
         var theme = com.example.roomsmod.world.section.Sections.forRoom(rs, room);
         boolean hard = rs.hardMode;
-        var table = hard ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        // A（Abyss）は床・扉のない縦穴：ハードでも A の表（A 専用の敵）だけ。確率の倍率・1回の上限・連鎖などハードの強化はそのまま
+        var table = hard && theme != com.example.roomsmod.world.section.Sections.A ? com.example.roomsmod.world.section.Sections.hardTable() : theme.rushers();
+        if (theme == com.example.roomsmod.world.section.Sections.A) {
+            var t2 = new java.util.ArrayList<com.example.roomsmod.world.section.SectionTheme.RusherSpawn>();
+            for (var r : table) if (com.example.roomsmod.world.AbyssSpace.allowedInAbyss(level, r.name())) t2.add(r);
+            table = t2;
+        } else if (hard) { // A 専用の敵は縦穴でしか動けないので、ほかのセクションのハード抽選には入れない
+            var t2 = new java.util.ArrayList<com.example.roomsmod.world.section.SectionTheme.RusherSpawn>();
+            for (var r : table) if (!com.example.roomsmod.world.AbyssSpace.allowedInAbyss(level, r.name())) t2.add(r);
+            // ギミック系はホームのセクションでだけ（Sections.HOME_ONLY）
+            t2.removeIf(r -> com.example.roomsmod.world.section.Sections.gimmickBlocked(rs, room, r.name()));
+            table = t2;
+        }
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
-            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < r.chance() || forceAll);
+            float chance = hard ? Math.min(1f, r.chance() * com.example.roomsmod.world.HardMode.CHANCE_MUL) : r.chance(); // ハード：確率 x HardMode.CHANCE_MUL
+            if (hard && com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.NAME.equals(r.name()))
+                chance *= com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.HARD_CHANCE_MUL; // ハード：この敵だけ大きく下げる
+            hit[k] = local >= r.minRoom() && (level.random.nextFloat() < chance || forceAll);
         }
         StringBuilder sb = new StringBuilder();
         for (int k = 0; k < table.size(); k++) {
@@ -261,8 +296,9 @@ public class DoorEventHandler {
                 }
             }
         }
-        // GK は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
-        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B) {
+        // S / B / U / H / F / A は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
+        if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U
+                || theme == com.example.roomsmod.world.section.Sections.H || theme == com.example.roomsmod.world.section.Sections.F || theme == com.example.roomsmod.world.section.Sections.A) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);
@@ -296,9 +332,11 @@ public class DoorEventHandler {
 
     public static boolean spawnA40(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return false;
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-40 spawn blocked: PLACEHOLDER-2147483648 alive"); return false; }
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-40")) return false;
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
-        List<BlockPos> startPath = rs.roomPaths.get(startIndex);
+        List<BlockPos> startPath = rs.path(startIndex);
         if (startPath.isEmpty()) { RoomsDebug.warn("B-40 spawn skipped: empty path at room index {}", startIndex); return false; }
         com.example.roomsmod.entity.A40Entity a40 = RoomsMod.A40.get().create(level);
         if (a40 == null) { RoomsDebug.warn("B-40 spawn failed: entity create returned null"); return false; }
@@ -307,20 +345,23 @@ public class DoorEventHandler {
         a40.setPos(x, y, z);
         a40.setStartRoom(startIndex);
         a40.setRoomsBack(com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
+        a40.setHard(rs.hardMode);
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a40, new net.minecraft.world.level.ChunkPos(start));
         if (!level.addFreshEntity(a40)) { RoomsDebug.warn("B-40 spawn failed: addFreshEntity returned false"); return false; }
         RoomsDebug.log(player,
-            "B-40が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + ")",
+            "B-40 が出現した（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, startIndex) + "、X=" + String.format("%.0f", x) + ", Z=" + String.format("%.0f", z) + "）",
             "B-40 spawn roomIndex={} pos=({}, {}, {}) roomsBack={}", startIndex, x, y, z, com.example.roomsmod.entity.A40Entity.DEFAULT_ROOMS_BACK);
         return true;
     }
 
     public static void spawnA20(ServerLevel level, RoomsState rs, net.minecraft.world.entity.player.Player player) {
         if (rs.roomPaths.isEmpty()) return;
+        if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(level)) { RoomsDebug.log("B-20 spawn blocked: PLACEHOLDER-2147483648 alive"); return; }
+        if (com.example.roomsmod.world.AbyssSpace.blockSpawn(level, rs, player, rs.currentRoom, "B-20")) return;
         // プレイヤーがいるのは直前の部屋（index = room - 1）。そこから約N部屋後ろ。
         int playerRoomIndex = Math.max(0, rs.roomPaths.size() - 2);
         int startIndex = Math.max(0, playerRoomIndex - A20_ROOMS_BEHIND);
-        List<BlockPos> startPath = rs.roomPaths.get(startIndex);
+        List<BlockPos> startPath = rs.path(startIndex);
         if (startPath.isEmpty()) { RoomsDebug.warn("B-20 spawn skipped: empty path at room index {}", startIndex); return; }
         A20Entity a20 = RoomsMod.A20.get().create(level);
         if (a20 == null) { RoomsDebug.warn("B-20 spawn failed: entity create returned null"); return; }
@@ -328,14 +369,15 @@ public class DoorEventHandler {
         double spawnX = start.getX() + 0.5, spawnY = start.getY(), spawnZ = start.getZ() + 0.5;
         a20.setPos(spawnX, spawnY, spawnZ);
         a20.setStartRoom(startIndex);
+        a20.setHard(rs.hardMode);
 
         // 出現位置のチャンクを（このB-20のチケットで）読み込んでから追加する
         com.example.roomsmod.entity.RusherChunks.prepareSpawn(level, a20, new net.minecraft.world.level.ChunkPos(start));
         if (!level.addFreshEntity(a20)) { RoomsDebug.warn("B-20 spawn failed: addFreshEntity returned false"); return; }
         int pathLen = 0;
-        for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.roomPaths.get(i).size();
+        for (int i = startIndex; i < rs.roomPaths.size(); i++) pathLen += rs.path(i).size();
         RoomsDebug.log(player,
-            "B-20が出現したわ！ (部屋index=" + startIndex + ", X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + ")",
+            "B-20 が出現した（" + com.example.roomsmod.world.section.Sections.formatRoom(rs, startIndex) + "、X=" + String.format("%.0f", spawnX) + ", Z=" + String.format("%.0f", spawnZ) + "）",
             "B-20 spawn roomIndex={} pos=({}, {}, {}) pathLength={}", startIndex, spawnX, spawnY, spawnZ, pathLen);
     }
 }

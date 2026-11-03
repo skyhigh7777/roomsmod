@@ -10,18 +10,18 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
-/** GK-205。 */
+/** S-205。 */
 public class GKStareEntity extends GKRoomWatcher {
     public static final double LOOK_DOT = 0.9;
     public GKStareEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-205"; }
+    @Override public String vName() { return "S-205"; }
     @Override protected int telegraphTicks() { return 40; }
     @Override protected int watchTicks() { return 240; }
     @Override protected int limit() { return 20; }
     @Override protected float damage() { return 20f; }
     @Override protected SoundEvent cue() { return RoomsMod.GK_STARE_HUM.get(); }
     @Override protected int cueInterval() { return 40; }
-    @Override protected String chatStart() { return "GK-205 のうなり（予告 2秒）"; }
+    @Override protected String chatStart() { return "S-205 のうなり（予告 2秒）"; }
     @Override protected boolean violates(Player p) {
         if (!canSee(p)) return false;
         Vec3 to = getEyePosition().subtract(p.getEyePosition()).normalize();

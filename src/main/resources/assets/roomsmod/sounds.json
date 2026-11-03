@@ -193,5 +193,112 @@
       "roomsmod:gk_homework_page"
     ],
     "subtitle": "subtitles.roomsmod.gk_homework_page"
+  },
+  "u20_approach": {
+    "sounds": [
+      {
+        "name": "roomsmod:a20_approach",
+        "pitch": 1.3
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.u20_approach"
+  },
+  "u60_approach": {
+    "sounds": [
+      {
+        "name": "roomsmod:a40_approach",
+        "pitch": 0.8
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.u60_approach"
+  },
+  "u120_approach": {
+    "sounds": [
+      {
+        "name": "roomsmod:v50_approach",
+        "pitch": 1.35
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.u120_approach"
+  },
+  "u200_step": {
+    "sounds": [
+      {
+        "name": "roomsmod:v25t_step",
+        "pitch": 0.6
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.u200_step"
+  },
+  "u300_approach": {
+    "sounds": [
+      {
+        "name": "roomsmod:gk_chime_approach",
+        "pitch": 0.75
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.u300_approach"
+  },
+  "placeholder_beep": {
+    "sounds": [
+      {
+        "name": "minecraft:note/bit"
+      }
+    ],
+    "subtitle": "subtitles.roomsmod.placeholder_beep"
+  },
+  "h30_drag": {
+    "sounds": [
+      "roomsmod:h30_drag"
+    ],
+    "subtitle": "subtitles.roomsmod.h30_drag"
+  },
+  "h90_step": {
+    "sounds": [
+      "roomsmod:h90_step"
+    ],
+    "subtitle": "subtitles.roomsmod.h90_step"
+  },
+  "h90_check": {
+    "sounds": [
+      "roomsmod:h90_check"
+    ],
+    "subtitle": "subtitles.roomsmod.h90_check"
+  },
+  "h150_rustle": {
+    "sounds": [
+      "roomsmod:h150_rustle"
+    ],
+    "subtitle": "subtitles.roomsmod.h150_rustle"
+  },
+  "h260_rattle": {
+    "sounds": [
+      "roomsmod:h260_rattle"
+    ],
+    "subtitle": "subtitles.roomsmod.h260_rattle"
+  },
+  "f5_hum": {
+    "sounds": [
+      "roomsmod:f5_hum"
+    ],
+    "subtitle": "subtitles.roomsmod.f5_hum"
+  },
+  "f35_bubble": {
+    "sounds": [
+      "roomsmod:f35_bubble"
+    ],
+    "subtitle": "subtitles.roomsmod.f35_bubble"
+  },
+  "f100_gurgle": {
+    "sounds": [
+      "roomsmod:f100_gurgle"
+    ],
+    "subtitle": "subtitles.roomsmod.f100_gurgle"
+  },
+  "f200_wave": {
+    "sounds": [
+      "roomsmod:f200_wave"
+    ],
+    "subtitle": "subtitles.roomsmod.f200_wave"
   }
 }

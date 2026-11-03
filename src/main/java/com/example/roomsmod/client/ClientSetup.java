@@ -23,7 +23,9 @@ public class ClientSetup {
     @SubscribeEvent
     public static void onClientSetup(net.neoforged.fml.event.lifecycle.FMLClientSetupEvent event) {
         com.example.roomsmod.util.ApproachSoundHook.set(ApproachSoundInstance::start);
+        com.example.roomsmod.world.AbyssSpace.clientShift = AbyssClient::shift;
         com.example.roomsmod.util.ApproachSoundHook.setLoop((e, s) -> { if (e instanceof com.example.roomsmod.entity.v.V100Entity v) WatchSoundInstance.start(v, s); });
+        event.enqueueWork(WindowIcon::apply); // ウィンドウ・タスクバーのアイコン（描画スレッドで）
     }
 
     @SubscribeEvent
@@ -42,7 +44,7 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.GK_STARE.get(), c -> new VRenderer<>(c, "gk12", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.GK_WHISPER.get(), c -> new VRenderer<>(c, "gk_whisper", 2.0f, 0.3f));
         event.registerEntityRenderer(RoomsMod.GK_DETENTION.get(), c -> new VRenderer<>(c, "gk_detention", 2.4f, 0.02f));
-        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f).outlineOnly()); // GK-105 は姿を描かない。デバッグ時だけ光る輪郭のみ。手がかりは偽の扉だけ
+        event.registerEntityRenderer(RoomsMod.GK_SUBSTITUTE.get(), c -> new VRenderer<>(c, "gk_substitute", 2.2f, 0.05f).outlineOnly()); // S-105 は姿を描かない。デバッグ時だけ光る輪郭のみ。手がかりは偽の扉だけ
         event.registerEntityRenderer(RoomsMod.GK_ERASER.get(), c -> new VRenderer<>(c, "gk_eraser", 2.2f, 0.4f));
         event.registerEntityRenderer(RoomsMod.GK_QUIZ.get(), c -> new VRenderer<>(c, "gk_quiz", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_PA.get(), c -> new VRenderer<>(c, "gk_pa", 1.0f, 0.05f));
@@ -64,6 +66,45 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.B_17.get(), c -> new BRenderer<>(c, "b_17", 1.4f));
         event.registerEntityRenderer(RoomsMod.GK_BELL2.get(), c -> new VRenderer<>(c, "gk_bell2", 2.0f, 0.5f));
         event.registerEntityRenderer(RoomsMod.GK_REWIND.get(), c -> new VRenderer<>(c, "gk_rewind", 1.8f, 0.1f));
+        event.registerEntityRenderer(RoomsMod.U20.get(), c -> new BRenderer<>(c, "u20", 2.4f));
+        event.registerEntityRenderer(RoomsMod.U60.get(), c -> new BRenderer<>(c, "u60", 2.4f));
+        event.registerEntityRenderer(RoomsMod.U120.get(), c -> new BRenderer<>(c, "u120", 2.2f));
+        event.registerEntityRenderer(RoomsMod.U200.get(), c -> new BRenderer<>(c, "u200", 2.0f));
+        event.registerEntityRenderer(RoomsMod.U300.get(), c -> new BRenderer<>(c, "u300", 2.2f));
+        event.registerEntityRenderer(RoomsMod.H30.get(), c -> new VRenderer<>(c, "h30", 2.0f, 0.06f));
+        event.registerEntityRenderer(RoomsMod.H90.get(), c -> new VRenderer<>(c, "h90", 2.2f, 0.02f));
+        event.registerEntityRenderer(RoomsMod.H150.get(), c -> new VRenderer<>(c, "h150", 2.2f, 0.12f)); // 気づいた時だけ描く（isRevealed）
+        event.registerEntityRenderer(RoomsMod.H260.get(), c -> new VRenderer<>(c, "h260", 1.8f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.F5.get(), c -> new VRenderer<>(c, "f5", 1.8f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.F35.get(), c -> new VRenderer<>(c, "f35", 2.2f, 0.08f)); // 水上に出た時だけ描く（isRevealed）
+        event.registerEntityRenderer(RoomsMod.F100.get(), c -> new VRenderer<>(c, "f100", 2.1f, 0.03f));
+        event.registerEntityRenderer(RoomsMod.F200.get(), c -> new VRenderer<>(c, "f200", 2.8f, 0.10f));
+        event.registerEntityRenderer(RoomsMod.A25.get(), c -> new BRenderer<>(c, "a25", 2.0f));
+        event.registerEntityRenderer(RoomsMod.A90.get(), c -> new BRenderer<>(c, "a90", 1.9f));
+        event.registerEntityRenderer(RoomsMod.A180.get(), c -> new BRenderer<>(c, "a180", 1.8f));
+        event.registerEntityRenderer(RoomsMod.A50.get(), c -> new BRenderer<>(c, "a50", 1.8f));
+        event.registerEntityRenderer(RoomsMod.A130.get(), c -> new BRenderer<>(c, "a130", 2.6f));
+        event.registerEntityRenderer(RoomsMod.A250.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（壁が動く）
+        event.registerEntityRenderer(RoomsMod.A350.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（横穴そのもの）
+        event.registerEntityRenderer(RoomsMod.A200.get(), c -> new BRenderer<>(c, "a200", 1.8f));
+        event.registerEntityRenderer(RoomsMod.A300.get(), c -> new BRenderer<>(c, "a300", 1.9f));
+        event.registerEntityRenderer(RoomsMod.A450.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（重力が変わる）
+        event.registerEntityRenderer(RoomsMod.A525.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（暗転と光の粒）
+        event.registerEntityRenderer(RoomsMod.A600.get(), c -> new BRenderer<>(c, "a600", 2.0f));
+        event.registerEntityRenderer(RoomsMod.A666.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（声だけ）
+        event.registerEntityRenderer(RoomsMod.A750.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（看板が変わる）
+        event.registerEntityRenderer(RoomsMod.A800.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（床そのもの）
+        event.registerEntityRenderer(RoomsMod.A1000.get(), c -> new BRenderer<>(c, "a1000", 4.6f));
+        event.registerEntityRenderer(RoomsMod.A1050.get(), c -> new BRenderer<>(c, "a1050", 2.6f)); // 下から見上げる眼
+        event.registerEntityRenderer(RoomsMod.A1100.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（壁の手は粒）
+        event.registerEntityRenderer(RoomsMod.A1111.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（看板と横穴が変わる）
+        event.registerEntityRenderer(RoomsMod.A1180.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（重い空気と塊の粒）
+        event.registerEntityRenderer(RoomsMod.E332.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
+        event.registerEntityRenderer(RoomsMod.EXTRABOX.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
+        // PLACEHOLDER：単色の正方形（揺れなし）
+        event.registerEntityRenderer(RoomsMod.PLACEHOLDER_32767.get(), c -> new VRenderer<>(c, "placeholder_32767", 1.5f, 0f));
+        event.registerEntityRenderer(RoomsMod.PLACEHOLDER_65535.get(), c -> new VRenderer<>(c, "placeholder_65535", 1.5f, 0f));
+        event.registerEntityRenderer(RoomsMod.PLACEHOLDER_2147483648.get(), c -> new VRenderer<>(c, "placeholder_2147483648", 1.5f, 0f));
     }
 
     private static class A20Renderer extends EntityRenderer<A20Entity> {
@@ -213,6 +254,9 @@ public class ClientSetup {
         public void render(T entity, float yaw, float pt, PoseStack ps, MultiBufferSource buf, int light) {
             if (entity instanceof com.example.roomsmod.entity.v.V100Entity v && !v.isPeeking()) return;
             if (entity instanceof com.example.roomsmod.entity.v.V25BuffedEntity b && !b.isRevealed()) return; // 捜索開始までは実体なし
+            if (entity instanceof com.example.roomsmod.entity.placeholder.Placeholder65535Entity && entity.isInvisible()) return; // 姿を現すまで描かない
+            if (entity instanceof com.example.roomsmod.entity.h.HCurtainEntity hc && !hc.isRevealed() && !entity.isCurrentlyGlowing()) return; // H-150 はカーテンの陰：気づくまで描かない
+            if (entity instanceof com.example.roomsmod.entity.f.FSurfacerEntity fs && !fs.isRevealed() && !entity.isCurrentlyGlowing()) return; // F-35 は水の下：飛び出すまで描かない
             if (outlineOnly && !entity.isCurrentlyGlowing()) return; // 輪郭のみ型：デバッグ以外では何も描かない
             float age = entity.tickCount + pt;
             ps.pushPose();

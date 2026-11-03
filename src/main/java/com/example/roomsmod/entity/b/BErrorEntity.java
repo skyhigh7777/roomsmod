@@ -32,7 +32,7 @@ public class BErrorEntity extends BRoomEntity {
         if (phase % 20 == 0) level.playSound(null, getX(), getY(), getZ(), SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.HOSTILE, 1.5f, 1.8f);
         if (phase >= WINDOW_TICKS) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDERMAN_SCREAM, SoundSource.HOSTILE, 2f, 1.4f);
-            for (Player p : roomPlayers(level, 40, true)) { RoomsDebug.log(p, "B-110 が叫んだわ", "B-110 timeout player={} closed={}", p.getGameProfile().getName(), closed); hit(p, 20f); }
+            for (Player p : roomPlayers(level, 40, true)) { RoomsDebug.log(p, "B-110 が叫んだ", "B-110 timeout player={} closed={}", p.getGameProfile().getName(), closed); hit(p, 20f); }
             leave("timeout");
         }
     }
@@ -41,7 +41,7 @@ public class BErrorEntity extends BRoomEntity {
     public void close(ServerLevel level, Player p) {
         closed++;
         level.playSound(null, getX(), getY(), getZ(), SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.HOSTILE, 1.5f, 1.2f);
-        RoomsDebug.log(p, "B-110 を閉じたわ（" + closed + "/" + WINDOWS + "）", "B-110 closed by {} {}/{}", p.getGameProfile().getName(), closed, WINDOWS);
+        RoomsDebug.log(p, "B-110 を閉じた（" + closed + "/" + WINDOWS + "）", "B-110 closed by {} {}/{}", p.getGameProfile().getName(), closed, WINDOWS);
         if (closed >= WINDOWS) { leave("all windows closed"); return; }
         Vec3 v = SafeSpot.findRandom(level, RoomsState.get(level), startRoom, level.random);
         if (v != null) setPos(v.x, v.y, v.z);

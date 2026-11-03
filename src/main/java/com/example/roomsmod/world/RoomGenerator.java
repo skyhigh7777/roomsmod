@@ -34,9 +34,16 @@ public class RoomGenerator {
 
     private static BlockPos generateLobbyInner(ServerLevel level, BlockPos origin) {
         theme = com.example.roomsmod.world.section.Sections.forRoom(RoomsState.get(level), 0);
-        int width = 20;
+        // 幅は奇数（x=0..20、中心 x=10 = 出口扉・中央の天窓・スポーン 10.5）。2026-11-01 にパネル側（+X）の壁を 1 マス外へ（20 → 21）
+        int width = RoomsLayout.LOBBY_WIDTH;
         int depth = 32;
         int height = 5;
+
+        // 中を空にする（幅を変えた時の古い壁・パネル・看板や、置かれたブロックを残さない）
+        for (int x = 1; x < width - 1; x++) for (int z = 1; z < depth - 1; z++) for (int y = 1; y < height; y++) {
+            BlockPos q = origin.offset(x, y, z);
+            if (!level.getBlockState(q).isAir()) level.setBlock(q, Blocks.AIR.defaultBlockState(), 2);
+        }
 
         // 床・壁・天井
         for (int x = 0; x < width; x++) {
@@ -66,12 +73,16 @@ public class RoomGenerator {
         // 重なり防止レジストリに登録
         // 状態をロビーから開始し、重なり防止レジストリと経路を登録
         RoomsState state = RoomsState.get(level);
+        // 古い部屋は作り直しの後に片付ける（RoomsCleanup）。範囲は reset で消える前に取っておく
+        List<BoundingBox> oldRegions = RoomsCleanup.snapshot(state);
         state.reset();
         List<BlockPos> path = List.of(origin.offset(10, 1, 2), origin.offset(10, 1, depth - 2), doorPos);
         state.addRoom(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
                 origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)), path);
         state.setExpectedExitDoor(doorPos);
         if (origin.equals(LobbyPanels.ORIGIN)) LobbyPanels.build(level);
+        RoomsCleanup.schedule(level, state, oldRegions, List.of(state.boxes(0).get(0),
+                new BoundingBox(doorPos.getX(), doorPos.getY(), doorPos.getZ() + 1, doorPos.getX(), doorPos.getY() + 1, doorPos.getZ() + 1)));
 
         return doorPos;
     }
@@ -101,7 +112,7 @@ public class RoomGenerator {
         }
         // 天窓: 3x5 を x=4..6 / 13..15 × z=5..9 / 13..17、中央に 3x3（x=9..11, z=10..12）。上は空まで何もなし
         java.util.List<int[]> panes = new ArrayList<>();
-        for (int cx : new int[]{5, 14}) for (int cz : new int[]{7, 15})
+        for (int cx : new int[]{5, width - 1 - 5}) for (int cz : new int[]{7, 15})
             for (int dx = -1; dx <= 1; dx++) for (int dz = -2; dz <= 2; dz++) panes.add(new int[]{cx + dx, cz + dz});
         for (int dx = -1; dx <= 1; dx++) for (int dz = -1; dz <= 1; dz++) panes.add(new int[]{10 + dx, 11 + dz});
         for (int[] g : panes) {
@@ -113,8 +124,11 @@ public class RoomGenerator {
             }
         }
         // 扉側は天井埋め込みのシーランタン（以前のグロウストーン天窓と同程度の位置）
-        for (int cx : new int[]{5, 14}) for (int cz : new int[]{23, 27})
+        // 扉側の半分（天窓のない側）は x=5 / 10 / width-6 の3列（中心 x=10 で左右対称）。中央の列は扉へ光が漏れないよう z=24 まで
+        for (int cx : new int[]{5, width - 1 - 5}) for (int cz : new int[]{20, 24, 28})
             level.setBlockAndUpdate(origin.offset(cx, height, cz), Blocks.SEA_LANTERN.defaultBlockState());
+        for (int cz : new int[]{20, 24})
+            level.setBlockAndUpdate(origin.offset(width / 2, height, cz), Blocks.SEA_LANTERN.defaultBlockState());
     }
 
     /**
@@ -173,11 +187,14 @@ public class RoomGenerator {
 
     public static BlockPos generateNextRoom(ServerLevel level, BlockPos origin, int roomNumber) {
         BlockPos exit;
+        RoomsCleanup.flush(level); // 古い部屋の片付けが残っていたら先に（新しい部屋を壊さないように）
         DropGuard.begin();
         try { exit = generateNextRoomInner(level, origin, roomNumber); } finally { DropGuard.end("room " + roomNumber + " generation"); }
-        try { placeBattery(level, roomNumber); }
+        // A（縦穴）には床がないので電池・包帯は置かない
+        boolean abyss = com.example.roomsmod.world.section.Sections.forRoom(RoomsState.get(level), roomNumber) == com.example.roomsmod.world.section.Sections.A;
+        if (!abyss) try { placeBattery(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("battery placement failed room=" + roomNumber, e); }
-        try { placeBandage(level, roomNumber); }
+        if (!abyss) try { placeBandage(level, roomNumber); }
         catch (RuntimeException e) { com.example.roomsmod.util.RoomsDebug.error("bandage placement failed room=" + roomNumber, e); }
         LobbyPanels.refreshDeepest(level);
         return exit;
@@ -196,11 +213,18 @@ public class RoomGenerator {
     }
 
     public static final double BANDAGE_ROOM_CHANCE = 0.12;
+    /** H（病棟）の部屋で包帯が落ちている割合（ほかは BANDAGE_ROOM_CHANCE）。 */
+    public static final double HOSPITAL_BANDAGE_ROOM_CHANCE = 0.30;
 
-    /** BANDAGE_ROOM_CHANCE で、部屋の安全な床の上に包帯を1個（電池とは別の抽選）。ロビーには置かない。 */
+    /** 部屋 room で包帯が落ちている割合。 */
+    public static double bandageChance(RoomsState rs, int room) {
+        return com.example.roomsmod.world.section.Sections.forRoom(rs, room) == com.example.roomsmod.world.section.Sections.H ? HOSPITAL_BANDAGE_ROOM_CHANCE : BANDAGE_ROOM_CHANCE;
+    }
+
+    /** bandageChance で、部屋の安全な床の上に包帯を1個（電池とは別の抽選）。ロビーには置かない。 */
     static void placeBandage(ServerLevel level, int room) {
-        if (room <= 0 || level.random.nextDouble() >= BANDAGE_ROOM_CHANCE) return;
         RoomsState rs = RoomsState.get(level);
+        if (room <= 0 || level.random.nextDouble() >= bandageChance(rs, room)) return;
         net.minecraft.world.phys.Vec3 at = SafeSpot.findRandom(level, rs, room, level.random);
         if (at == null) return;
         var it = new net.minecraft.world.entity.item.ItemEntity(level, at.x, at.y + 0.05, at.z, new net.minecraft.world.item.ItemStack(com.example.roomsmod.RoomsMod.BANDAGE.get()), 0, 0, 0);
@@ -219,6 +243,11 @@ public class RoomGenerator {
         if (prevTheme != theme) RoomsDebug.log("section change at room {}: {} -> {}", roomNumber, prevTheme.id(), theme.id());
         if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.GK) return GKRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.U) return CorridorRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.H) return HospitalRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.F) return FloodedRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.A) return AbyssRooms.generate(level, origin, roomNumber, state, prevTheme != theme);
+        if (theme == com.example.roomsmod.world.section.Sections.PLACEHOLDER) return PlaceholderRooms.generate(level, origin, roomNumber, rand, state);
         RoomPlan plan = choosePlan(rand, origin, state.generatedRooms);
         String planInfo = lastPlanInfo;
         buildShell(level, origin, plan);

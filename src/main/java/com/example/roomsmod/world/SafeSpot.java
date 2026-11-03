@@ -19,7 +19,7 @@ public final class SafeSpot {
     private SafeSpot() {}
 
     public static boolean inInterior(RoomsState rs, int room, BlockPos p) {
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             if (p.getX() > b.minX() && p.getX() < b.maxX() && p.getZ() > b.minZ() && p.getZ() < b.maxZ()
                     && p.getY() > b.minY() && p.getY() + 1 < b.maxY()) return true;
         return false;
@@ -35,7 +35,13 @@ public final class SafeSpot {
         l.getChunk(p.getX() >> 4, p.getZ() >> 4); // 同期読み込み
         BlockPos below = p.below();
         return inInterior(rs, room, p) && passable(l, p) && passable(l, p.above())
-                && l.getBlockState(below).isFaceSturdy(l, below, Direction.UP);
+                && (l.getBlockState(below).isFaceSturdy(l, below, Direction.UP) || isBottomSlab(l.getBlockState(below)));
+    }
+
+    /** 下半分のハーフブロック（F の水浸しの床）。その上 0.5 に立てる。 */
+    private static boolean isBottomSlab(BlockState s) {
+        return s.getBlock() instanceof net.minecraft.world.level.block.SlabBlock
+                && s.getValue(net.minecraft.world.level.block.SlabBlock.TYPE) == net.minecraft.world.level.block.state.properties.SlabType.BOTTOM;
     }
 
     /** 足の位置（ブロック中央の下面）。 */
@@ -43,14 +49,17 @@ public final class SafeSpot {
     public static Vec3 findRandom(ServerLevel l, RoomsState rs, int room, net.minecraft.util.RandomSource r) {
         if (room < 0 || room >= rs.generatedRooms.size()) return null;
         List<BlockPos> ok = new ArrayList<>();
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX() + 1, b.minY() + 1, b.minZ() + 1, b.maxX() - 1, b.maxY() - 2, b.maxZ() - 1))
                 if (isSafe(l, rs, room, q)) ok.add(q.immutable());
         return ok.isEmpty() ? null : Vec3.atBottomCenterOf(ok.get(r.nextInt(ok.size())));
     }
 
     public static Vec3 find(ServerLevel l, RoomsState rs, int room) {
-        List<BlockPos> path = room >= 0 && room < rs.roomPaths.size() ? rs.roomPaths.get(room) : List.of();
+        // A（縦穴）：床がないので決まった位置（AbyssRooms）
+        Vec3 abyss = AbyssRooms.spotFor(rs, room);
+        if (abyss != null) return abyss;
+        List<BlockPos> path = room >= 0 && room < rs.roomPaths.size() ? rs.path(room) : List.of();
         List<BlockPos> cand = new ArrayList<>();
         // 経路の各区間の点（中央→外側の順）
         List<BlockPos> line = new ArrayList<>();
@@ -73,7 +82,7 @@ public final class SafeSpot {
         }
         // 部屋の箱を走査
         if (room >= 0 && room < rs.generatedRooms.size())
-            for (BoundingBox b : rs.generatedRooms.get(room))
+            for (BoundingBox b : rs.boxes(room))
                 for (BlockPos q : BlockPos.betweenClosed(b.minX() + 1, b.minY() + 1, b.minZ() + 1, b.maxX() - 1, b.maxY() - 2, b.maxZ() - 1))
                     if (isSafe(l, rs, room, q)) return Vec3.atBottomCenterOf(q);
         com.example.roomsmod.util.RoomsDebug.warn("SafeSpot: no safe spot in room {}, falling back to entrance", room);

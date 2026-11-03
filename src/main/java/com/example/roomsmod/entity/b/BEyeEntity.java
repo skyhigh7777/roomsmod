@@ -19,7 +19,7 @@ public class BEyeEntity extends BMotionWatcher {
     @Override protected float damage() { return 20f; }
     @Override protected SoundEvent cue() { return SoundEvents.ENDER_EYE_DEATH; }
     @Override protected int cueInterval() { return 40; }
-    @Override protected String chatStart() { return "B-70 が開くわ（予告 2.5秒）"; }
+    @Override protected String chatStart() { return "B-70 が開く（予告 2.5秒）"; }
     @Override protected Vector3f glitchColor() { return new Vector3f(0.9f, 0.5f, 0.1f); }
     @Override protected boolean violates(Player p) {
         Vec3 m = moved(p);

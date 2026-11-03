@@ -33,8 +33,8 @@ public final class RoomsTravel {
     public static boolean busy() { return level != null; }
 
     public static boolean start(ServerLevel lv, ServerPlayer p, int n) {
-        if (busy()) { p.displayClientMessage(Component.literal("いま部屋を生成中よ、少し待ってね"), true); return false; }
-        BlockPos origin = new BlockPos(0, 1, 0);
+        if (busy()) { p.displayClientMessage(com.example.roomsmod.util.RoomsMsg.barDeny("部屋を生成中。完了まで待機"), true); return false; }
+        BlockPos origin = RoomsLayout.LOBBY_ORIGIN;
         BlockPos lobbyExit = RoomGenerator.generateLobby(lv, origin);
         RoomsState.get(lv).markDoorGenerated(lobbyExit);
         level = lv; player = p.getUUID(); playerRef = p; target = n; next = 1; startedMs = System.currentTimeMillis();
@@ -49,6 +49,12 @@ public final class RoomsTravel {
 
     private static void step() {
         RoomsState state = RoomsState.get(level);
+        // ロビーを作り直した直後は古い部屋の片付け（RoomsCleanup）が終わるまで待つ（1 tick に全部やると止まる）
+        if (RoomsCleanup.busy(level)) {
+            ServerPlayer w = level.getServer().getPlayerList().getPlayer(player);
+            if (w != null && level.getGameTime() % 10 == 0) w.displayClientMessage(Component.literal("古い部屋を片付け中"), true);
+            return;
+        }
         // 保険：生成中に別の処理で進行表がリセットされたら（部屋数 < 生成済み番号）、番号がずれるので中止して最初から
         if (state.generatedRooms.size() < next) {
             RoomsDebug.warn("rooms to {}: state was reset during generation (rooms={} expected={}) -> restart", target, state.generatedRooms.size(), next);
@@ -70,7 +76,7 @@ public final class RoomsTravel {
         ServerPlayer p = level.getServer().getPlayerList().getPlayer(player);
         if (p == null && playerRef != null && !playerRef.isRemoved()) p = playerRef;
         if (next <= target) {
-            if (p != null && (next - 1) % 40 < ROOMS_PER_TICK) p.displayClientMessage(Component.literal("部屋を生成中… " + (next - 1) + " / " + target), true);
+            if (p != null && (next - 1) % 40 < ROOMS_PER_TICK) p.displayClientMessage(Component.literal("部屋を生成中 " + (next - 1) + " / " + target), true);
             return;
         }
         // 生成器が expectedExitDoor = 最後の部屋の出口 に設定済み
@@ -81,7 +87,7 @@ public final class RoomsTravel {
         RoomsDebug.log("rooms to {}: teleport to ({}, {}, {}) after {} ms", target, at.x, at.y, at.z, System.currentTimeMillis() - startedMs);
         if (p != null) {
             p.teleportTo(level, at.x, at.y, at.z, 0, 0);
-            p.sendSystemMessage(Component.literal(Sections.formatRoom(state, target) + " まで生成してワープしたわ"));
+            p.sendSystemMessage(com.example.roomsmod.util.RoomsMsg.ok(Sections.formatRoom(state, target) + " まで生成してワープした"));
         }
         level = null; player = null; playerRef = null;
     }

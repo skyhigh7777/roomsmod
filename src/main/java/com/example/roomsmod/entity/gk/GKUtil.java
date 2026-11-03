@@ -22,7 +22,7 @@ public final class GKUtil {
 
     /** 経路（幅3）の上か。 */
     public static boolean nearPath(RoomsState rs, int room, BlockPos p) {
-        List<BlockPos> path = rs.roomPaths.get(room);
+        List<BlockPos> path = rs.path(room);
         for (int i = 0; i + 1 < path.size(); i++) {
             BlockPos a = path.get(i), b = path.get(i + 1);
             if (p.getX() >= Math.min(a.getX(), b.getX()) - 1 && p.getX() <= Math.max(a.getX(), b.getX()) + 1
@@ -35,7 +35,7 @@ public final class GKUtil {
     public static List<BlockPos> freeSpots(ServerLevel l, RoomsState rs, int room, RandomSource r, int n) {
         List<BlockPos> ok = new ArrayList<>(), out = new ArrayList<>();
         if (room < 0 || room >= rs.generatedRooms.size()) return out;
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX() + 1, b.minY() + 1, b.minZ() + 1, b.maxX() - 1, b.maxY() - 2, b.maxZ() - 1))
                 if (SafeSpot.isSafe(l, rs, room, q) && !nearPath(rs, room, q) && l.getBlockState(q.below()).isSolidRender(l, q.below())) ok.add(q.immutable());
         Collections.shuffle(ok, new java.util.Random(r.nextLong()));

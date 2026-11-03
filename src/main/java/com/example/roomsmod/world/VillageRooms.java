@@ -30,7 +30,7 @@ final class VillageRooms {
     private VillageRooms() {}
 
     static final int STORY = 4;           // 1階の床〜2階の床
-    static final int BASE_Y = 1;          // 区画の基準床
+    static final int BASE_Y = RoomsLayout.LOBBY_Y; // 区画の基準床（ふつうはロビーの床。choose ではこのセーブのロビーの床を使う）
     static final float TWO_STORY_CHANCE = 0.22f;
     private static final int EX = 10;     // 入口 x
 
@@ -188,7 +188,7 @@ final class VillageRooms {
     private static Plan choose(Random rand, BlockPos origin, List<List<BoundingBox>> rooms) {
         Plan p;
         float f = rand.nextFloat();
-        if (f < TWO_STORY_CHANCE) p = planTwoStory(rand, origin, origin.getY() > BASE_Y);
+        if (f < TWO_STORY_CHANCE) p = planTwoStory(rand, origin, origin.getY() > baseFloor(rooms));
         else if (f < TWO_STORY_CHANCE + 0.28f) p = planSingle(rand, origin, r(rand, 5, 9), r(rand, 5, 9));
         else if (f < TWO_STORY_CHANCE + 0.56f) p = planTwoRoom(rand, origin);
         else p = planSide(rand, origin);
@@ -196,6 +196,11 @@ final class VillageRooms {
         RoomsDebug.log("village plan {} overlapped, fallback SINGLE 5x5", p.layout);
         Plan fb = planSingle(new Random(0), BlockPos.ZERO, 5, 5);
         return fb;
+    }
+
+    /** 2階建てで上る/下るの基準：このセーブのロビー（部屋0）の床の y（旧セーブは y=1、新しくは LOBBY_Y）。なければ BASE_Y。 */
+    private static int baseFloor(List<List<BoundingBox>> rooms) {
+        return rooms.isEmpty() || rooms.get(0).isEmpty() ? BASE_Y : rooms.get(0).get(0).minY();
     }
 
     private static int baseY(BlockPos origin, Plan p) { return origin.getY() - p.entranceLevel; }

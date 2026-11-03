@@ -53,7 +53,7 @@ public class BScatterEntity extends BRoomEntity {
         phase++;
         if (phase == 1) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.GHAST_SCREAM, SoundSource.HOSTILE, 1.5f, 0.6f);
-            RoomsDebug.announce(playersNear(48), "B-205 が砕け散ったわ（欠片 " + pieces.size() + " 個、" + TIME / 20 + "秒）", "B-205 telegraph room={} pieces={}", startRoom, pieces.size());
+            RoomsDebug.announce(playersNear(48), "B-205 が砕け散った（欠片 " + pieces.size() + " 個、" + TIME / 20 + "秒）", "B-205 telegraph room={} pieces={}", startRoom, pieces.size());
         }
         if (phase % 5 == 0) {
             DustParticleOptions d = new DustParticleOptions(new Vector3f(0.05f, 0.05f, 0.05f), 2.0f);
@@ -63,13 +63,13 @@ public class BScatterEntity extends BRoomEntity {
         for (Player p : roomPlayers(level, 48, true))
             pieces.removeIf(b -> {
                 boolean got = p.position().distanceTo(Vec3.atBottomCenterOf(b)) < PICK;
-                if (got) RoomsDebug.log(p, "B-205 の欠片を拾ったわ", "B-205 piece picked player={} at={} left={}", p.getGameProfile().getName(), b, pieces.size() - 1);
+                if (got) RoomsDebug.log(p, "B-205 の欠片を拾った", "B-205 piece picked player={} at={} left={}", p.getGameProfile().getName(), b, pieces.size() - 1);
                 return got;
             });
         if (pieces.isEmpty()) { level.playSound(null, getX(), getY(), getZ(), SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.5f, 0.6f); leave("all pieces collected"); return; }
         if (phase >= TIME) {
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.ENDERMAN_SCREAM, SoundSource.HOSTILE, 2f, 0.5f);
-            for (Player p : roomPlayers(level, 40, true)) { RoomsDebug.log(p, "B-205 が叫んだわ", "B-205 scream player={} left={}", p.getGameProfile().getName(), pieces.size()); hit(p, 20f); }
+            for (Player p : roomPlayers(level, 40, true)) { RoomsDebug.log(p, "B-205 が叫んだ", "B-205 scream player={} left={}", p.getGameProfile().getName(), pieces.size()); hit(p, 20f); }
             leave("time over");
         }
     }

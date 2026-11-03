@@ -22,19 +22,19 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import java.util.ArrayList;
 import java.util.List;
 
-/** GK-165：ロッカーの1つに潜む。そのロッカーはガタガタ鳴る。入ると捕まる。 */
+/** S-165：ロッカーの1つに潜む。そのロッカーはガタガタ鳴る。入ると捕まる。 */
 public class GKMimicEntity extends com.example.roomsmod.entity.v.VEntity {
     public static final int LIFE = 20 * 60;
     public static final float DAMAGE = 40f;
     private BlockPos locker = null;
     public GKMimicEntity(EntityType<? extends Mob> type, Level level) { super(type, level); }
-    @Override public String vName() { return "GK-165"; }
+    @Override public String vName() { return "S-165"; }
     @Override protected int maxLifeTicks() { return LIFE; }
 
     static List<BlockPos> lockers(ServerLevel l, RoomsState rs, int room) {
         List<BlockPos> out = new ArrayList<>();
         if (room < 0 || room >= rs.generatedRooms.size()) return out;
-        for (BoundingBox b : rs.generatedRooms.get(room))
+        for (BoundingBox b : rs.boxes(room))
             for (BlockPos q : BlockPos.betweenClosed(b.minX(), b.minY(), b.minZ(), b.maxX(), b.maxY(), b.maxZ())) {
                 BlockState s = l.getBlockState(q);
                 if (s.getBlock() instanceof LockerBlock && s.getValue(LockerBlock.HALF) == DoubleBlockHalf.LOWER) out.add(q.immutable());
@@ -52,7 +52,7 @@ public class GKMimicEntity extends com.example.roomsmod.entity.v.VEntity {
         startRoom = room;
         locker = ls.get(level.random.nextInt(ls.size()));
         setPos(locker.getX() + 0.5, locker.getY(), locker.getZ() + 0.5);
-        RoomsDebug.log("GK-165 hides in locker {} room={} (of {})", locker, room, ls.size());
+        RoomsDebug.log("S-165 hides in locker {} room={} (of {})", locker, room, ls.size());
         return locker;
     }
 
@@ -60,7 +60,7 @@ public class GKMimicEntity extends com.example.roomsmod.entity.v.VEntity {
 
     public void caught(ServerLevel level, Player p) {
         level.playSound(null, locker, RoomsMod.GK_ROLLCALL_CHECK.get(), SoundSource.HOSTILE, 3.0f, 0.5f);
-        RoomsDebug.log(p, "GK-165: ロッカーの中にいたわ", "GK-165 caught player={} locker={} creative={}", p.getGameProfile().getName(), locker, p.isCreative());
+        RoomsDebug.log(p, "S-165: ロッカーの中にいた", "S-165 caught player={} locker={} creative={}", p.getGameProfile().getName(), locker, p.isCreative());
         RoomsDamage.hurt(this, p, DAMAGE);
         leave("caught");
     }
