@@ -48,7 +48,8 @@ public class A666Entity extends AbyssEnemy {
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override protected Class<?>[] incompatible() {
         return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A200Entity.class, A250Entity.class,
-                A300Entity.class, A525Entity.class, A600Entity.class, A750Entity.class, A800Entity.class};
+                A300Entity.class, A525Entity.class, A600Entity.class, A750Entity.class, A800Entity.class,
+                A1111Entity.class};
     }
 
     private int step() { return hardSpawn ? STEP_HARD : STEP; }

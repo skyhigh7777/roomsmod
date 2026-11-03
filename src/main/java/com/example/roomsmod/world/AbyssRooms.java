@@ -55,7 +55,8 @@ import java.util.UUID;
  *   <li>層 k の中身（横穴・ロッカー・番号の看板）は「先頭のプレイヤーの部屋 + (k - 1)」の部屋のもの。1 周ごとに中身を 1 層ぶん上へずらすので、
  *       テレポートの前後で周りの見た目は同じ（ブロックの差し替えはテレポートより先にクライアントへ送る）。</li>
  *   <li>横穴（ロッカー2つ）は 2〜3 部屋ごと。落ちながら横穴の高さで壁の方へ動いて入る（縦穴の列には何も置かない＝途中で止まらない）。最初の 1 周で小部屋の穴をふさぐ（上へは戻れない）。</li>
- *   <li>縦穴の中では落下ダメージなし。落下速度の上限（約 12 ブロック/秒、スニーク中は約半分）はクライアント側（ClientAbyss / AbyssClient）。</li>
+ *   <li>縦穴の中では落下ダメージなし。落下速度の上限（{@link #fallSpeed}：A-500 まで 5 ブロック/秒、深いほど少しずつ速く、スニーク中は半分）は
+ *       部屋が変わったときにサーバーが計算して AbyssPayload で送り、クライアント側（AbyssClient）が守る。</li>
  * </ul>
  */
 @EventBusSubscriber(modid = RoomsMod.MOD_ID)
@@ -75,8 +76,27 @@ public final class AbyssRooms {
     static final int TOTAL = EXTRA_ABOVE + SEGMENTS;
     /** 最下層の下の余白（ここは常に空、底は黒い床）。 */
     public static final int BOTTOM_GAP = 4;
-    /** 落下速度の上限（ブロック/tick）。5 ブロック/秒（1 部屋 約 2.4 秒）。スニーク中はこの半分。 */
+    /** 落下速度の上限（ブロック/tick）の基本（A-500 まで）。5 ブロック/秒（1 部屋 約 2.4 秒）。スニーク中はこの半分。深い部屋は {@link #fallSpeed}。 */
     public static final double MAX_FALL = 0.25, MAX_FALL_SNEAK = 0.125;
+    /** 深さで速くなる落下速度の上限のいちばん上（A-1333 あたりから）。A-1180 の一時的な加速はこの上に足す。 */
+    public static final double FALL_CAP = 0.35;
+
+    /**
+     * A のセクション内番号 local の部屋の落下速度の上限（ブロック/tick、スニークはこの半分。ハードも同じ）。
+     * A-500 まで 0.25 → A-1000 で 0.30（直線）→ A-1199 で約 0.33（A-1000 から 200 部屋で +0.03）→ 上限 {@value #FALL_CAP}。
+     * 1 部屋（{@value #L} ブロック）は 0.25 で 48 tick、0.30 で 40 tick、0.33 で約 36 tick、0.35 で約 34 tick（1 周の返事待ち {@value #PENDING_TICKS} tick の見張りとは別：返事が来れば待ちは解ける）。
+     */
+    public static double fallSpeed(int local) {
+        if (local <= 500) return MAX_FALL;
+        if (local <= 1000) return MAX_FALL + 0.05 * (local - 500) / 500.0;
+        return Math.min(FALL_CAP, 0.30 + 0.03 * (local - 1000) / 200.0);
+    }
+
+    /** 全体の部屋番号 room（A の部屋）の落下速度の上限。A でなければ基本の {@value #MAX_FALL}。 */
+    public static double fallSpeedForRoom(RoomsState rs, int room) {
+        if (rs == null || Sections.forRoom(rs, room) != Sections.A) return MAX_FALL;
+        return fallSpeed(Sections.localRoom(rs, room));
+    }
 
     // ローカル座標（小部屋の origin から）。縦穴の内側 x 8..12, z 3..7、壁は 3 ブロック厚（x 5..15, z 0..10）
     public static final int CX = 10, CZ = 5, IN = 2, X0 = 5, X1 = 15, Z0 = 0, Z1 = 10;
@@ -677,7 +697,7 @@ public final class AbyssRooms {
         double[] q = AbyssSqueeze.nearestFit(openMask, sp.getX() - cx, sp.getZ() - cz, sp.getBbWidth() / 2 + margin);
         if (q == null) return;
         sp.connection.teleport(cx + q[0], sp.getY(), cz + q[1], sp.getYRot(), sp.getXRot());
-        sp.setDeltaMovement(0, -MAX_FALL, 0);
+        sp.setDeltaMovement(0, -fallCap(sp), 0);
         sp.fallDistance = 0;
         LAST.put(sp.getUUID(), sp.position());
     }
@@ -720,6 +740,71 @@ public final class AbyssRooms {
     /** 引き止めで上がってよい足の高さの上限（実際の座標。小部屋の床・天井に頭をぶつけない）。 */
     public static double holdCeiling(RoomsState rs) { return rs.abyss == null ? Double.MAX_VALUE : Math.min(rs.abyss.colTop() - 3.0, rs.abyss.oy - 4.0); }
 
+    // ===================== 落下速度（部屋ごと・一時的な加速） =====================
+
+    /** プレイヤーごとの今の部屋の落下速度の上限（部屋が変わったときだけ計算し直す）と、その部屋。 */
+    private record Cap(int room, double base) {}
+    private static final Map<UUID, Cap> CAP = new HashMap<>();
+    /** クライアントへ最後に送った上限（同じなら送らない）。 */
+    private static final Map<UUID, Float> SENT_CAP = new HashMap<>();
+    /** 一時的な加速（A-1180）：プレイヤー → [期限の game time, 足す速さ]。期限を過ぎたらサーバーでも数えない。 */
+    private static final Map<UUID, double[]> BOOST = new HashMap<>();
+
+    /** プレイヤーの今の部屋 room の落下速度の上限（基本、加速なし）。部屋が変わったときだけ計算する。 */
+    private static double baseCapFor(RoomsState rs, UUID id, int room) {
+        Cap c = CAP.get(id);
+        if (c == null || c.room() != room) { c = new Cap(room, fallSpeedForRoom(rs, room)); CAP.put(id, c); }
+        return c.base();
+    }
+
+    /** サーバー側：プレイヤーの今の部屋の落下速度の上限（基本、加速なし。縦穴の外・不明なら {@value #MAX_FALL}）。敵の予告の長さなどに使う。 */
+    public static double baseFall(net.minecraft.world.entity.player.Player p) {
+        Cap c = p == null ? null : CAP.get(p.getUUID());
+        return c == null ? MAX_FALL : c.base();
+    }
+
+    /** サーバー側：今の落下速度の上限（基本 + 一時的な加速）。プレイヤーを縦穴へ置き直すときの下向きの速さに使う。 */
+    public static double fallCap(net.minecraft.world.entity.player.Player p) {
+        return baseFall(p) + boostOf(p);
+    }
+
+    private static double boostOf(net.minecraft.world.entity.player.Player p) {
+        if (p == null) return 0;
+        double[] b = BOOST.get(p.getUUID());
+        if (b == null) return 0;
+        if (p.level().getGameTime() >= (long) b[0]) { BOOST.remove(p.getUUID()); return 0; }
+        return b[1];
+    }
+
+    /** サーバー → クライアント：一時的な加速（add を ticks の間だけ上限に足す。クライアントは自分で数えて ticks で必ず元に戻す。ticks 0 で解除）。 */
+    public record BoostPayload(float add, int ticks) implements CustomPacketPayload {
+        public static final Type<BoostPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "abyss_boost"));
+        public static final StreamCodec<ByteBuf, BoostPayload> STREAM_CODEC = StreamCodec.composite(ByteBufCodecs.FLOAT, BoostPayload::add, ByteBufCodecs.VAR_INT, BoostPayload::ticks, BoostPayload::new);
+        @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    /** クライアント側：落下速度の上限（今の部屋）と一時的な加速・残り tick（クライアントが毎 tick 減らす）。 */
+    public static volatile float clientCap = (float) MAX_FALL;
+    public static volatile float clientBoost = 0f;
+    public static volatile int clientBoostTicks = 0;
+
+    /** 一時的に落下速度の上限を add 上げる（ticks の間。サーバーは game time の期限で、クライアントは自分の数えで、どちらも必ず元に戻る）。 */
+    public static void boost(ServerPlayer sp, float add, int ticks) {
+        BOOST.put(sp.getUUID(), new double[]{sp.serverLevel().getGameTime() + ticks, add});
+        PacketDistributor.sendToPlayer(sp, new BoostPayload(add, ticks));
+        RoomsDebug.log("abyss boost player={} add={} ticks={}", sp.getGameProfile().getName(), add, ticks);
+    }
+
+    /** 一時的な加速をすぐ解除する（加速中でなければ何もしない）。 */
+    public static void clearBoost(ServerPlayer sp) {
+        if (BOOST.remove(sp.getUUID()) != null) {
+            PacketDistributor.sendToPlayer(sp, new BoostPayload(0f, 0));
+            RoomsDebug.log("abyss boost cleared player={}", sp.getGameProfile().getName());
+        }
+    }
+
+    public static boolean boosted(net.minecraft.world.entity.player.Player p) { return boostOf(p) > 0; }
+
     // ===================== 落下・1周 =====================
 
     /** プレイヤーごとの今の部屋（縦穴の中にいる間だけ）、周回数、前の tick の位置。 */
@@ -741,10 +826,10 @@ public final class AbyssRooms {
     /** 返事待ちの上限（tick）。これを過ぎたら待つのをやめる（バニラは 20 tick で絶対位置のテレポートを送り直す）。 */
     static final int PENDING_TICKS = 40;
 
-    /** サーバー → クライアント：縦穴の中にいるか（落下速度の上限）。 */
-    public record AbyssPayload(boolean active) implements CustomPacketPayload {
+    /** サーバー → クライアント：縦穴の中にいるかと、今の部屋の落下速度の上限（ブロック/tick、スニークはこの半分）。 */
+    public record AbyssPayload(boolean active, float cap) implements CustomPacketPayload {
         public static final Type<AbyssPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(RoomsMod.MOD_ID, "abyss"));
-        public static final StreamCodec<ByteBuf, AbyssPayload> STREAM_CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, AbyssPayload::active, AbyssPayload::new);
+        public static final StreamCodec<ByteBuf, AbyssPayload> STREAM_CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, AbyssPayload::active, ByteBufCodecs.FLOAT, AbyssPayload::cap, AbyssPayload::new);
         @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
@@ -753,7 +838,9 @@ public final class AbyssRooms {
 
     public static void init(IEventBus modBus) {
         modBus.addListener((RegisterPayloadHandlersEvent e) -> e.registrar("1").playToClient(AbyssPayload.TYPE, AbyssPayload.STREAM_CODEC,
-                (msg, ctx) -> ctx.enqueueWork(() -> clientActive = msg.active()))
+                (msg, ctx) -> ctx.enqueueWork(() -> { clientActive = msg.active(); if (msg.cap() > 0) clientCap = msg.cap(); }))
+                .playToClient(BoostPayload.TYPE, BoostPayload.STREAM_CODEC,
+                        (msg, ctx) -> ctx.enqueueWork(() -> { clientBoost = msg.ticks() > 0 ? msg.add() : 0f; clientBoostTicks = Math.max(0, msg.ticks()); }))
                 .playToClient(AbyssSpace.ShiftPayload.TYPE, AbyssSpace.ShiftPayload.STREAM_CODEC,
                         (msg, ctx) -> ctx.enqueueWork(() -> AbyssSpace.clientShift.accept(msg)))
                 .playToClient(HoldPayload.TYPE, HoldPayload.STREAM_CODEC,
@@ -769,7 +856,20 @@ public final class AbyssRooms {
     }
 
     private static void setActive(ServerPlayer p, boolean on) {
-        if (on ? ACTIVE.add(p.getUUID()) : ACTIVE.remove(p.getUUID())) PacketDistributor.sendToPlayer(p, new AbyssPayload(on));
+        Cap c = CAP.get(p.getUUID());
+        setActive(p, on, c == null ? MAX_FALL : c.base());
+    }
+
+    /** 縦穴の中か・今の部屋の上限をクライアントへ（変わったときだけ送る：上限は 1 周ごとにしか変わらない）。 */
+    private static void setActive(ServerPlayer p, boolean on, double cap) {
+        UUID id = p.getUUID();
+        boolean changed = on ? ACTIVE.add(id) : ACTIVE.remove(id);
+        float f = (float) cap;
+        Float sent = SENT_CAP.get(id);
+        if (on && (sent == null || Math.abs(sent - f) > 1.0E-4f)) changed = true;
+        if (!changed) return;
+        if (on) SENT_CAP.put(id, f);
+        PacketDistributor.sendToPlayer(p, new AbyssPayload(on, on ? f : (sent != null ? sent : f)));
     }
 
     private static Shaft shaftFor(ServerPlayer sp) {
@@ -809,6 +909,7 @@ public final class AbyssRooms {
             cur = pos.y >= s.oy && !s.sealed ? s.entryRoom : Math.max(s.entryRoom, rs.currentRoom);
             ROOM.put(id, cur);
         }
+        setActive(sp, true, baseCapFor(rs, id, cur)); // 部屋が変わったときだけ計算・送信
         if (watchStall(level, rs, s, sp, last, cur)) return;
         if (!s.inShaft(pos) || pos.y >= s.loopY() || LockerManager.getSpot(sp) != null) return;
         loop(level, rs, s, sp, cur);
@@ -840,7 +941,7 @@ public final class AbyssRooms {
             sendBlocks(level, s, changed);
             Vec3 c = safeColumnPoint(s, s.ox + CX + 0.5, pos.y, s.oz + CZ + 0.5, sp.getBbWidth() / 2 + 0.05); // 狭めている間は残るマスへ
             sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
-            sp.setDeltaMovement(0, -MAX_FALL, 0);
+            sp.setDeltaMovement(0, -fallCap(sp), 0);
             sp.fallDistance = 0;
             LAST.put(id, sp.position());
             RoomsDebug.log("abyss stall player={} room={} y={} onGround={} -> cleared {} blocks, centered",
@@ -854,7 +955,7 @@ public final class AbyssRooms {
             if (sp.level() == level && s.contains(sp.position())) {
                 Vec3 c = safeColumnPoint(s, s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, sp.getBbWidth() / 2 + 0.05);
                 sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
-                sp.setDeltaMovement(0, -MAX_FALL, 0);
+                sp.setDeltaMovement(0, -fallCap(sp), 0);
                 sp.fallDistance = 0;
                 LAST.put(id, sp.position());
             }
@@ -919,7 +1020,7 @@ public final class AbyssRooms {
         if (pend != null && level.getGameTime() - pend <= PENDING_TICKS) return;
         Vec3 c = safeColumnPoint(s, s.ox + CX + 0.5, s.segTop(1) - 1, s.oz + CZ + 0.5, sp.getBbWidth() / 2 + 0.05);
         sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
-        sp.setDeltaMovement(0, -MAX_FALL, 0);
+        sp.setDeltaMovement(0, -fallCap(sp), 0);
         sp.fallDistance = 0;
         PENDING.put(id, level.getGameTime());
         RoomsDebug.warn("abyss rescue player={} was on the shaft roof at {} -> back into the shaft at {}", sp.getGameProfile().getName(), pos, c);
@@ -937,10 +1038,11 @@ public final class AbyssRooms {
     public static void onLogout(PlayerEvent.PlayerLoggedOutEvent event) {
         UUID id = event.getEntity().getUUID();
         ROOM.remove(id); LOOPS.remove(id); LAST.remove(id); ACTIVE.remove(id); STILL.remove(id); HELD.remove(id); HELD_VY.remove(id); PENDING.remove(id);
+        CAP.remove(id); SENT_CAP.remove(id); BOOST.remove(id);
     }
 
     @SubscribeEvent
     public static void onChangeDim(PlayerEvent.PlayerChangedDimensionEvent event) {
-        if (event.getEntity() instanceof ServerPlayer sp) { setActive(sp, false); if (HELD.containsKey(sp.getUUID())) release(sp); }
+        if (event.getEntity() instanceof ServerPlayer sp) { setActive(sp, false); if (HELD.containsKey(sp.getUUID())) release(sp); clearBoost(sp); }
     }
 }

@@ -48,6 +48,7 @@ public class A50Entity extends AbyssEnemy {
 
     public A50Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "A-50"; }
+    @Override protected Class<?>[] incompatible() { return new Class<?>[]{A1050Entity.class, A1100Entity.class, A1111Entity.class, A1180Entity.class}; } // A-1000 より深い敵（両向き）
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override public int reservedAlcove() { return state == State.STALK || state == State.CAST ? alcoveRoom : -1; }
 

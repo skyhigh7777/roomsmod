@@ -47,6 +47,7 @@ public class A90Entity extends AbyssEnemy {
 
     public A90Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "A-90"; }
+    @Override protected Class<?>[] incompatible() { return new Class<?>[]{A1111Entity.class}; } // A-1000 より深い敵（両向き）
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
 
     /** 生きている A-90 が使っている横穴の部屋。 */

@@ -53,7 +53,8 @@ public class A600Entity extends AbyssEnemy {
     @Override public int reservedAlcove() { return state == State.SINK ? -1 : alcoveRoom; }
     @Override protected Class<?>[] incompatible() {
         return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A200Entity.class, A250Entity.class,
-                A300Entity.class, A350Entity.class, A450Entity.class, A525Entity.class, A666Entity.class, A750Entity.class, A800Entity.class, A1000Entity.class};
+                A300Entity.class, A350Entity.class, A450Entity.class, A525Entity.class, A666Entity.class, A750Entity.class, A800Entity.class, A1000Entity.class,
+                A1050Entity.class, A1100Entity.class, A1111Entity.class, A1180Entity.class};
     }
 
     @Override

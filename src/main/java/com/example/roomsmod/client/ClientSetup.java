@@ -94,6 +94,10 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.A750.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（看板が変わる）
         event.registerEntityRenderer(RoomsMod.A800.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（床そのもの）
         event.registerEntityRenderer(RoomsMod.A1000.get(), c -> new BRenderer<>(c, "a1000", 4.6f));
+        event.registerEntityRenderer(RoomsMod.A1050.get(), c -> new BRenderer<>(c, "a1050", 2.6f)); // 下から見上げる眼
+        event.registerEntityRenderer(RoomsMod.A1100.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（壁の手は粒）
+        event.registerEntityRenderer(RoomsMod.A1111.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（看板と横穴が変わる）
+        event.registerEntityRenderer(RoomsMod.A1180.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし（重い空気と塊の粒）
         event.registerEntityRenderer(RoomsMod.E332.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         event.registerEntityRenderer(RoomsMod.EXTRABOX.get(), net.minecraft.client.renderer.entity.NoopRenderer::new); // 姿なし
         // PLACEHOLDER：単色の正方形（揺れなし）

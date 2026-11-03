@@ -12,7 +12,8 @@ import net.neoforged.neoforge.client.event.ClientTickEvent;
 
 /**
  * A（Abyss）の縦穴の中の落下速度の上限（クライアント側。プレイヤーの移動はクライアントが決めるため）。
- * 約 12 ブロック/秒、スニーク中はその半分。サーバーが AbyssPayload で縦穴の中かを知らせる。
+ * 上限はサーバーが部屋ごとに AbyssPayload で送る（A-500 まで 0.25 ブロック/tick、深いほど少しずつ速く最大 0.35）、スニーク中はその半分。
+ * A-1180 の一時的な加速（BoostPayload）はここで毎 tick 数えて、残りが 0 になったら必ず元に戻す（サーバーからの解除が届かなくても）。
  */
 @EventBusSubscriber(modid = RoomsMod.MOD_ID, value = Dist.CLIENT)
 public final class AbyssClient {
@@ -20,6 +21,7 @@ public final class AbyssClient {
 
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
+        if (AbyssRooms.clientBoostTicks > 0 && --AbyssRooms.clientBoostTicks <= 0) AbyssRooms.clientBoost = 0f; // 加速の期限（クライアント側で必ず戻す）
         LocalPlayer p = Minecraft.getInstance().player;
         if (p == null) return;
         float hold = AbyssRooms.clientHoldVy;
@@ -30,7 +32,8 @@ public final class AbyssClient {
             return;
         }
         if (!AbyssRooms.clientActive || p.isSpectator() || p.getAbilities().flying) return;
-        double cap = p.isShiftKeyDown() ? AbyssRooms.MAX_FALL_SNEAK : AbyssRooms.MAX_FALL;
+        double full = AbyssRooms.clientCap + (AbyssRooms.clientBoostTicks > 0 ? AbyssRooms.clientBoost : 0f);
+        double cap = p.isShiftKeyDown() ? full * 0.5 : full;
         Vec3 v = p.getDeltaMovement();
         if (v.y < -cap) p.setDeltaMovement(v.x, -cap, v.z);
     }
@@ -89,5 +92,5 @@ public final class AbyssClient {
     }
 
     @SubscribeEvent
-    public static void onLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) { AbyssRooms.clientActive = false; AbyssRooms.clientHoldVy = Float.NaN; }
+    public static void onLogout(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut event) { AbyssRooms.clientActive = false; AbyssRooms.clientHoldVy = Float.NaN; AbyssRooms.clientCap = (float) AbyssRooms.MAX_FALL; AbyssRooms.clientBoost = 0f; AbyssRooms.clientBoostTicks = 0; }
 }

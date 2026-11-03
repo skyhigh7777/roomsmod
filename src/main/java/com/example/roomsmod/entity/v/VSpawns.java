@@ -91,6 +91,11 @@ public final class VSpawns {
         A750("A-750", "a750", null, RoomsMod.A750),
         A800("A-800", "a800", null, RoomsMod.A800),
         A1000("A-1000", "a1000", null, RoomsMod.A1000),
+        // A-1000 より深い A（A-1050 / A-1100 / A-1111 / A-1180）。組み合わせは AbyssEnemy.incompatible（両向き）で判定
+        A1050("A-1050", "a1050", null, RoomsMod.A1050),
+        A1100("A-1100", "a1100", null, RoomsMod.A1100),
+        A1111("A-1111", "a1111", null, RoomsMod.A1111),
+        A1180("A-1180", "a1180", null, RoomsMod.A1180),
         // ハードモード専用（どのセクションにも属さない。Sections.hardTable にだけ入る）
         E332("3!3!2", "mimic", null, RoomsMod.E332),
         // PLACEHOLDER（テスト用）区画：区画の表は空。どの抽選表（通常・ハード）にも入らない：3!3!2 の召喚（E332Entity.summonPool）と /rooms admin spawn だけ

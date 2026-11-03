@@ -42,6 +42,7 @@ public class A350Entity extends AbyssEnemy {
 
     public A350Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "A-350"; }
+    @Override protected Class<?>[] incompatible() { return new Class<?>[]{A1111Entity.class}; } // A-1000 より深い敵（両向き）
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
 
     private static final Direction[] SIDES = {Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
@@ -120,7 +121,7 @@ public class A350Entity extends AbyssEnemy {
         AbyssRooms.Shaft s = rs.abyss;
         Vec3 c = AbyssRooms.safeColumnPoint(s, cx(s), sp.getY(), cz(s), sp.getBbWidth() / 2 + 0.05); // A-250 で狭まっていれば残るマスへ
         sp.connection.teleport(c.x, c.y, c.z, sp.getYRot(), sp.getXRot());
-        sp.setDeltaMovement(0, -AbyssRooms.MAX_FALL, 0);
+        sp.setDeltaMovement(0, -AbyssRooms.fallCap(sp), 0);
         sp.fallDistance = 0;
         RoomsDebug.log("A-350 bit {} (hiding={})", sp.getGameProfile().getName(), hiding);
         close(level, rs, "bit");

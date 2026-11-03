@@ -50,7 +50,8 @@ public class A750Entity extends AbyssEnemy {
     @Override public int reservedAlcove() { return done ? -1 : exitRoom; }
     @Override protected Class<?>[] incompatible() {
         return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A350Entity.class, A450Entity.class,
-                A525Entity.class, A600Entity.class, A666Entity.class, A800Entity.class, A1000Entity.class};
+                A525Entity.class, A600Entity.class, A666Entity.class, A800Entity.class, A1000Entity.class,
+                A1111Entity.class};
     }
 
     private int span() { return hardSpawn ? SPAN_HARD : SPAN; }

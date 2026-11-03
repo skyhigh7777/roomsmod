@@ -51,7 +51,8 @@ public class A525Entity extends AbyssEnemy {
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override protected Class<?>[] incompatible() {
         return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A200Entity.class, A250Entity.class,
-                A300Entity.class, A350Entity.class, A450Entity.class, A600Entity.class, A666Entity.class, A750Entity.class, A800Entity.class};
+                A300Entity.class, A350Entity.class, A450Entity.class, A600Entity.class, A666Entity.class, A750Entity.class, A800Entity.class,
+                A1111Entity.class};
     }
 
     private int strike() { return hardSpawn ? STRIKE_HARD : STRIKE; }

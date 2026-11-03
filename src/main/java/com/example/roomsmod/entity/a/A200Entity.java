@@ -51,19 +51,22 @@ public class A200Entity extends AbyssEnemy {
     private State state = State.WAIT;
     private int stateTicks = 0, fired = 0, waited = 0;
     private double aimX, aimZ, shotY;
+    /** 狙うプレイヤーの今の部屋の全速の落下（深いほど速い：弾との近づく速さが上がるぶん予告を長く）。 */
+    private double fall = AbyssRooms.MAX_FALL;
     private final Set<UUID> hitThisShot = new HashSet<>();
 
     public A200Entity(EntityType<? extends Mob> type, Level level) { super(type, level); }
     @Override public String vName() { return "A-200"; }
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override protected Class<?>[] incompatible() {
-        return new Class<?>[]{A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A250Entity.class, A300Entity.class};
+        return new Class<?>[]{A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A250Entity.class, A300Entity.class,
+                A1100Entity.class, A1180Entity.class};
     }
 
     /** 予告の長さ：止まった状態からスニークで線から HIT_R+0.05 離れる時間 × 余裕 − 弾が届く最短の時間。 */
     int aimTicks() {
         double speed = hardSpawn ? SPEED_HARD : SPEED;
-        int travel = (int) Math.floor((DEPTH_ROOMS * AbyssRooms.L - 1.8) / (speed + AbyssRooms.MAX_FALL));
+        int travel = (int) Math.floor((DEPTH_ROOMS * AbyssRooms.L - 1.8) / (speed + fall));
         int need = (int) Math.ceil(AbyssSqueeze.sneakTicks(HIT_R + 0.05) * (hardSpawn ? AbyssSqueeze.MARGIN_HARD : AbyssSqueeze.MARGIN));
         return Math.max(hardSpawn ? AIM_HARD : AIM, need - travel);
     }
@@ -75,6 +78,7 @@ public class A200Entity extends AbyssEnemy {
         Player t = pickTarget(level, rs, player);
         if (t == null || AbyssRooms.isHeld(t) && !anyAlive(level, A450Entity.class)) return null;
         targetId = t.getUUID();
+        fall = AbyssRooms.baseFall(t);
         Vec3 p = pv(rs, t);
         setVirtualPos(new Vec3(cx(rs.abyss), p.y - START_ROOMS * AbyssRooms.L, cz(rs.abyss)));
         RoomsDebug.log("A-200 prepare target={} volleys={}", t.getGameProfile().getName(), hardSpawn ? VOLLEYS_HARD : VOLLEYS);
@@ -88,6 +92,7 @@ public class A200Entity extends AbyssEnemy {
         RoomsState rs = RoomsState.get(level);
         if (rs.abyss == null) { leave("no shaft"); return; }
         Player t = target(level, rs);
+        if (t != null) fall = AbyssRooms.baseFall(t);
         Vec3 v = virtualPos();
         stateTicks++;
         if (life == 1) {

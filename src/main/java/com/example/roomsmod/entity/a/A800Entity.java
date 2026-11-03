@@ -26,7 +26,7 @@ import net.minecraft.world.phys.Vec3;
 /**
  * A-800「落ちる床」：プレイヤーの下に、縦穴の内側 5x5 いっぱいの薄い床（ハーフブロック）が現れる。ひびの入ったタイルだけ抜けられる。姿はない。
  * <ul>
- *   <li>床：プレイヤーの足の {@value #DROP} ブロック（ハード {@value #DROP_HARD}）下に、ふつうのタイル（滑らかな石のハーフ、明るい灰色）と
+ *   <li>床：プレイヤーの足の {@value #DROP} ブロック（ハード {@value #DROP_HARD}）下（A-500 より深いと落下が速いぶん下へ：{@link #drop}、全速で床まで同じ tick 数）に、ふつうのタイル（滑らかな石のハーフ、明るい灰色）と
  *       ひびのタイル（深層岩の丸石のハーフ、暗くでこぼこ）。ひびは必ず 2x2 のかたまりが 1 つ（縦穴のどこからでも届く）と、ばらばらに 0〜2 枚。
  *       置くときに石の割れる音。看板・松明の高さは避ける（その段の角のマスに穴が開かないように）。</li>
  *   <li>間に合うか：一番遠い角から反対側の 2x2 の上まで約 4.3 ブロック、空中を歩いて約 0.2 ブロック/tick → 反応 10 tick 込みで約 31 tick。
@@ -67,7 +67,8 @@ public class A800Entity extends AbyssEnemy {
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override protected Class<?>[] incompatible() {
         return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A200Entity.class, A250Entity.class,
-                A300Entity.class, A350Entity.class, A450Entity.class, A525Entity.class, A600Entity.class, A666Entity.class, A750Entity.class, A1000Entity.class};
+                A300Entity.class, A350Entity.class, A450Entity.class, A525Entity.class, A600Entity.class, A666Entity.class, A750Entity.class, A1000Entity.class,
+                A1050Entity.class, A1100Entity.class, A1111Entity.class, A1180Entity.class};
     }
 
     @Override
@@ -78,11 +79,20 @@ public class A800Entity extends AbyssEnemy {
         if (t == null || HidingRules.isHiding(t) || AbyssRooms.isHeld(t)) return null;
         targetId = t.getUUID();
         setVirtualPos(pv(rs, t));
-        RoomsDebug.log("A-800 prepare target={} floors={} drop={}", t.getGameProfile().getName(), hardSpawn ? FLOORS_HARD : FLOORS, hardSpawn ? DROP_HARD : DROP);
+        RoomsDebug.log("A-800 prepare target={} floors={} drop={}", t.getGameProfile().getName(), hardSpawn ? FLOORS_HARD : FLOORS, drop(AbyssRooms.baseFall(t)));
         return blockPosition();
     }
 
     private void setState(State s) { state = s; stateTicks = 0; }
+
+    /**
+     * 床までの高さ：全速で床まで落ちる時間が A-500 までと同じ（通常 52 tick、ハード 44 tick）になるよう、その部屋の落下速度に合わせて伸ばす
+     * （0.25 → 13 / 11、0.30 → 16 / 14、0.33 → 18 / 15）。
+     */
+    int drop(double fall) {
+        int base = hardSpawn ? DROP_HARD : DROP;
+        return Math.max(base, (int) Math.ceil(base * fall / AbyssRooms.MAX_FALL - 1.0E-6));
+    }
 
     private static int bit(int lx, int lz) { return 1 << ((lx + 2) * 5 + (lz + 2)); }
 
@@ -96,8 +106,8 @@ public class A800Entity extends AbyssEnemy {
     }
 
     /** 床の仮想の y：足の DROP 下。看板・松明の高さ（層の底から TORCH_OFF / SIGN_OFF）を避ける。 */
-    private int pickFloorY(AbyssRooms.Shaft s, Vec3 feet) {
-        int y = (int) Math.floor(feet.y) - (hardSpawn ? DROP_HARD : DROP);
+    private int pickFloorY(AbyssRooms.Shaft s, Vec3 feet, Player t) {
+        int y = (int) Math.floor(feet.y) - drop(AbyssRooms.baseFall(t));
         for (int i = 0; i < 3; i++) {
             int off = Math.floorMod(y - s.segBottom(1), AbyssRooms.L); // 仮想と実際の差は L の倍数なので、層の中の高さは同じ
             if (off != AbyssRooms.TORCH_OFF && off != AbyssRooms.SIGN_OFF) break;
@@ -215,7 +225,7 @@ public class A800Entity extends AbyssEnemy {
             case WARN -> {
                 if (stateTicks == 1) level.playSound(null, t.getX(), t.getY(), t.getZ(), SoundEvents.DEEPSLATE_TILES_BREAK, SoundSource.HOSTILE, 2.0f, 0.5f);
                 if (stateTicks >= WARN) {
-                    floorVY = pickFloorY(rs.abyss, p);
+                    floorVY = pickFloorY(rs.abyss, p, t);
                     crackMask = pickCracks();
                     crumbled = false;
                     syncFloor(level, rs);

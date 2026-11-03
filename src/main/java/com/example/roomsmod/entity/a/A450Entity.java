@@ -48,7 +48,8 @@ public class A450Entity extends AbyssEnemy {
     @Override public String vName() { return "A-450"; }
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override protected Class<?>[] incompatible() {
-        return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A250Entity.class, A300Entity.class};
+        return new Class<?>[]{A25Entity.class, A50Entity.class, A90Entity.class, A130Entity.class, A180Entity.class, A250Entity.class, A300Entity.class,
+                A1050Entity.class, A1100Entity.class, A1111Entity.class, A1180Entity.class};
     }
 
     @Override
@@ -110,7 +111,7 @@ public class A450Entity extends AbyssEnemy {
                 if (HidingRules.isHiding(t)) { if (AbyssRooms.isHeld(sp)) AbyssRooms.release(sp); sp.removeEffect(MobEffects.LEVITATION); return; } // ロッカーの中は動かさない
                 float up = (hardSpawn ? UP_HARD : UP) * (t.isShiftKeyDown() ? 0.5f : 1f);
                 float k = Math.min(1f, stateTicks / (float) RAMP);
-                float vy = -(float) AbyssRooms.MAX_FALL * (1 - k) + up * k;
+                float vy = -(float) AbyssRooms.baseFall(sp) * (1 - k) + up * k; // その部屋の全速から上向きへ
                 // 上限（仮想の上がり幅と、実際の天井側の上限の低いほう）：そこで浮いて止まる
                 double room = Math.min(startY + RISE_MAX - pv(rs, t).y, AbyssRooms.holdCeiling(rs) - t.getY());
                 if (room <= 0) vy = Math.min(vy, 0f);

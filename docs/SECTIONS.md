@@ -142,10 +142,14 @@ A uses `world/AbyssRooms.java`. There are no doors: the player falls down a sing
   into the shaft, two lockers and a lantern. Each layer has a room number sign (`A-002`, …) and four soul torches.
 - One way: after the first loop the vestibule hole is sealed.
 - No fall damage inside the shaft footprint (`LivingFallEvent` cancelled, fall distance reset every tick).
-  Fall speed is capped client-side (`client/AbyssClient`, 0.6 blocks/tick ≈ 12 blocks/s, 0.3 while sneaking); the server tells the
-  client when it is inside the shaft with `AbyssRooms.AbyssPayload`.
+  Fall speed is capped client-side (`client/AbyssClient`); the cap depends on depth (`AbyssRooms.fallSpeed`, same in hard mode, half while
+  sneaking): 0.25 blocks/tick up to A-500, linear to 0.30 at A-1000, then +0.03 per 200 rooms (≈0.33 at A-1199), capped at 0.35.
+  The server computes it once per room (when the player's room changes) and sends it with `AbyssRooms.AbyssPayload(active, cap)`.
+  A-1180 adds a temporary boost (`AbyssRooms.boost` / `BoostPayload(add, ticks)`): the client counts it down itself and always drops it at 0;
+  the server forgets it by game time and on logout / dimension change. The 1-loop teleport guard (`PENDING`) and the roof rescue are unchanged
+  (one room still takes ≥ ~30 ticks even with the boost).
 - Spawn table: only A-native entities (`entity/a`, `VEntity.isAbyssNative`): A-25, A-50, A-90, A-130, A-180, A-200, A-250, A-300, A-350,
-  A-450, A-525, A-600, A-666, A-750, A-800, A-1000 (minRoom = section-local number). Hard mode in A uses A's own table (with the
+  A-450, A-525, A-600, A-666, A-750, A-800, A-1000, A-1050, A-1100, A-1111, A-1180 (minRoom = section-local number). Hard mode in A uses A's own table (with the
   hard-mode buffs), not the combined table. Pairs whose avoidance rules clash never coexist (`AbyssEnemy.incompatible`, checked both ways).
 - Later A enemies (details in each class javadoc; damage normal / hard):
   - A-525 blackout (from A-525, 3%): a bell, then the screen goes black except glowing particles (`AbyssFx.DarkPayload`,
@@ -158,8 +162,19 @@ A uses `world/AbyssRooms.java`. There are no doors: the player falls down a sing
   - A-800 floors (A-800, 4%): a slab floor across the 5x5 column 13 (11) blocks below; cobbled-deepslate (cracked) tiles crumble just before you
     reach them, smooth-stone tiles hurt and then shatter (5 / 8). Always one 2x2 cracked patch. Blocks are tracked in virtual coordinates,
     re-placed after each loop and always removed (also after a reload, from the saved positions).
-  - A-1000 the bottom (A-1000, 4%): a shaft-wide mass falls from above at 0.235 (0.24) blocks/tick, a bit slower than full-speed falling;
+  - A-1000 the bottom (A-1000, 4%): a shaft-wide mass falls from above at 0.94 (0.96) × the room's full fall speed, a bit slower than full-speed falling;
     sneaking, standing or hiding lets it catch up (10 / 14). Cannot be hidden from. Distance on the action bar.
+    (A-800's floor distance also grows with the fall speed so the time to reach it stays 52 / 44 ticks; A-200's aim time and A-450's blend use it too.)
+  - A-1050 the eye (A-1050, 4%): an eye follows ~1.7 rooms below; 3 (4) times it warns, then opens for 60 (80) ticks. While open, sneak
+    (slow fall), stay in an alcove/locker or be held; 8 (6) ticks of full-speed falling under its gaze hurt once per opening (5 / 7).
+  - A-1100 hands in the walls (A-1100, 3.5%): 3 (4) rounds; one wall (hard: sometimes two adjacent walls) shows black particles in a 1.5-block band,
+    then hands grab for 30 (36) ticks; being in the band hurts once per grab (4 / 6). No blocks are placed. Alcoves/lockers are safe.
+  - A-1111 miscount (A-1111, 3%): signs of the next 9 (11) rooms show wrong numbers (±1-2) except one room with a real alcove; 2 (3) fake
+    alcoves are added. Enter the alcove whose sign matches the HUD room number. Any other alcove/locker, passing the exit by a room, or timeout
+    hurts (7 / 10). Signs and fakes are always restored.
+  - A-1180 heavy air (A-1180, 3.5%): after a warning the fall cap rises by +0.08 (+0.10) for 160 (200) ticks; 2 (3) grey masses appear ~24
+    blocks below in a corner (the opposite corner is always free); touching one hurts (4 / 6). The boost is always removed.
+  - A-1050 / A-1100 / A-1111 / A-1180 never coexist with each other, nor with the clashing older A enemies (lists in each class, both ways).
 - No batteries / bandages are placed in A rooms. `SafeSpot.find` returns the vestibule (first room) or the top of layer 1 (others),
   so `/rooms to`, lobby GO and the deepest-room panel work.
 - If the section table is changed so that the room after an A room is not A (`/rooms section <id> now` while falling),
@@ -192,7 +207,7 @@ finishes its run there is a 25% chance of another roll on the next tick (`HardMo
 (`hardSpawn`, saved). Category/exclusion rules (`SpawnCategories`, e.g. S-270 KEEP_MOVING) are unchanged.
 Gimmick types stay in their home section even in hard mode (`Sections.HOME_ONLY`, checked in the door roll and in `VSpawns.spawn`,
 so 3!3!2 summons obey it too; `/rooms admin spawn` is not restricted): S-10, S-25, S-45, S-65, S-85, S-105, S-125, S-145, S-165,
-S-185, S-205, S-270 (S); B-30, B-70, B-110, B-155, B-205 (B); V-100, V25-BUFFED (V); F-5 (F); and every A enemy (A-25 … A-1000) is home-restricted to A. Chasers / rushers / path walkers
+S-185, S-205, S-270 (S); B-30, B-70, B-110, B-155, B-205 (B); V-100, V25-BUFFED (V); F-5 (F); and every A enemy (A-25 … A-1180) is home-restricted to A. Chasers / rushers / path walkers
 (B-20, B-40, the B rushers, B-260, B-290, S-225, S-245, S-300, V-10, V-25-T/L, V-50, all U, H, F-35, F-100, F-200) still mix.
 
 ## PLACEHOLDER (test only)

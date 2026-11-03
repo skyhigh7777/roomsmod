@@ -351,6 +351,18 @@ public class RoomsMod {
     public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A1000Entity>> A1000 = ENTITIES.register("a1000",
             () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A1000Entity::new, MobCategory.MONSTER)
                     .sized(2.0f, 2.5f).clientTrackingRange(12).updateInterval(1).build("a1000"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A1050Entity>> A1050 = ENTITIES.register("a1050",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A1050Entity::new, MobCategory.MONSTER)
+                    .sized(1.6f, 1.6f).clientTrackingRange(12).updateInterval(1).build("a1050"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A1100Entity>> A1100 = ENTITIES.register("a1100",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A1100Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a1100"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A1111Entity>> A1111 = ENTITIES.register("a1111",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A1111Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a1111"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.a.A1180Entity>> A1180 = ENTITIES.register("a1180",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.a.A1180Entity::new, MobCategory.MONSTER)
+                    .sized(0.5f, 0.5f).clientTrackingRange(12).updateInterval(1).build("a1180"));
 
     // H（Hospital、病棟）区画
     public static final DeferredHolder<SoundEvent, SoundEvent> H30_DRAG = SOUND_EVENTS.register("h30_drag", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "h30_drag")));
@@ -394,7 +406,7 @@ public class RoomsMod {
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
                 B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
-                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, A525, A600, A666, A750, A800, A1000, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
+                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, A525, A600, A666, A750, A800, A1000, A1050, A1100, A1111, A1180, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

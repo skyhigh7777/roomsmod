@@ -27,7 +27,8 @@ import net.minecraft.world.phys.Vec3;
  * <ul>
  *   <li>出現：プレイヤーの {@value #START_ABOVE} ブロック（ハード {@value #START_ABOVE_HARD}）上。叫ぶような音と、タイトル「底が落ちてくる」「止まるな」。
  *       {@value #GRACE} tick はプレイヤーと同じだけ落ちる（離れも近づきもしない＝予告）。</li>
- *   <li>追う：毎 tick {@value #SPEED} ブロック（ハード {@value #SPEED_HARD}）ずつ落ちる（プレイヤーの動きに関係なく一定。全速の落下 {@value AbyssRooms#MAX_FALL} より少し遅い）。
+ *   <li>追う：毎 tick、その部屋の全速の落下（{@link AbyssRooms#fallSpeed}）の {@value #SPEED} 倍（ハード {@value #SPEED_HARD} 倍）ずつ落ちる
+ *       （A-1000 で 0.282、ハード 0.288。プレイヤーの動きに関係なく一定。全速より少し遅い）。
  *       全速で落ちていれば少しずつ離れる（離れすぎたら {@value #MAX_GAP} ブロックで追いつく）。スニーク（半分の速さ）・横穴・ロッカー・何かの上に立つと、
  *       そのぶん追いつかれる（スニークだと 1 秒で約 2.2 ブロック）。底の下面がプレイヤーの頭まで来たらダメージ {@value #DAMAGE}（ハード {@value #DAMAGE_HARD}）、1 回だけ。
  *       横穴・ロッカーの中でも当たる（A-25 と違い、隠れてやり過ごせない）。</li>
@@ -36,7 +37,7 @@ import net.minecraft.world.phys.Vec3;
  * </ul>
  */
 public class A1000Entity extends AbyssEnemy {
-    public static final double START_ABOVE = 14, START_ABOVE_HARD = 12, SPEED = 0.235, SPEED_HARD = 0.24, MAX_GAP = 22, HIT_GAP = 1.0;
+    public static final double START_ABOVE = 14, START_ABOVE_HARD = 12, SPEED = 0.94, SPEED_HARD = 0.96, MAX_GAP = 22, HIT_GAP = 1.0;
     public static final int GRACE = 40, DURATION = 300, DURATION_HARD = 360;
     public static final float DAMAGE = 10f, DAMAGE_HARD = 14f;
 
@@ -48,7 +49,8 @@ public class A1000Entity extends AbyssEnemy {
     @Override public String vName() { return "A-1000"; }
     @Override protected BlockPos prepare(ServerLevel level, RoomsState rs, int playerRoom) { return null; }
     @Override protected Class<?>[] incompatible() {
-        return new Class<?>[]{A25Entity.class, A50Entity.class, A130Entity.class, A450Entity.class, A600Entity.class, A750Entity.class, A800Entity.class};
+        return new Class<?>[]{A25Entity.class, A50Entity.class, A130Entity.class, A450Entity.class, A600Entity.class, A750Entity.class, A800Entity.class,
+                A1050Entity.class, A1111Entity.class, A1180Entity.class};
     }
 
     @Override
@@ -61,9 +63,12 @@ public class A1000Entity extends AbyssEnemy {
         rel = hardSpawn ? START_ABOVE_HARD : START_ABOVE;
         Vec3 p = pv(rs, t);
         setVirtualPos(new Vec3(cx(rs.abyss), p.y + 1.8 + rel, cz(rs.abyss)));
-        RoomsDebug.log("A-1000 prepare target={} gap={} speed={}", t.getGameProfile().getName(), f(rel), hardSpawn ? SPEED_HARD : SPEED);
+        RoomsDebug.log("A-1000 prepare target={} gap={} speed={}", t.getGameProfile().getName(), f(rel), f(speed(t)));
         return blockPosition();
     }
+
+    /** 今の部屋の全速の落下 × 倍率（一時的な加速は含めない。A-1180 とは同時に出ない）。 */
+    private double speed(Player t) { return AbyssRooms.baseFall(t) * (hardSpawn ? SPEED_HARD : SPEED); }
 
     private static void title(Player t, String main, String sub) {
         if (!(t instanceof ServerPlayer sp)) return;
@@ -95,7 +100,7 @@ public class A1000Entity extends AbyssEnemy {
         if (life <= GRACE) {
             // 予告：プレイヤーと同じだけ落ちる
         } else {
-            double speed = hardSpawn ? SPEED_HARD : SPEED;
+            double speed = speed(t);
             double ny = Math.max(v.y - speed, head.y + 0); // 頭より下へは行かない
             rel = Math.min(MAX_GAP, ny - head.y);
         }
