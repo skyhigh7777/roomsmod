@@ -217,6 +217,17 @@ public class RoomsCommands {
         return 1;
     }
 
+    /** /rooms admin build &lt;true|false&gt;：部屋ディメンションでのブロック設置の可否（サーバー設定 allowBlockPlacing を変更して保存）。 */
+    private static int setBuild(CommandSourceStack src, boolean on) {
+        if (!com.example.roomsmod.config.RoomsConfig.setAllowBlockPlacing(on)) {
+            src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("サーバー設定が読み込まれていない"));
+            return 0;
+        }
+        com.example.roomsmod.util.RoomsDebug.info("allowBlockPlacing {} by {}", on, src.getTextName());
+        src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok("ブロック設置を" + (on ? "ON（置ける）" : "OFF（置けない）") + "にした"), true);
+        return 1;
+    }
+
     /** /rooms admin の下に入れる管理用のコマンド（以前は OP 用の /rooms to・hard on/off・debug・spawn・section）。AdminCommands.build から。 */
     static com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> adminSubtrees(com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> admin) {
         return admin
@@ -231,6 +242,14 @@ public class RoomsCommands {
             .then(Commands.literal("hard")
                 .then(Commands.literal("on").executes(ctx -> setHard(ctx.getSource(), true)))
                 .then(Commands.literal("off").executes(ctx -> setHard(ctx.getSource(), false))))
+            .then(Commands.literal("build")
+                .executes(ctx -> {
+                    boolean on = com.example.roomsmod.config.RoomsConfig.allowBlockPlacing();
+                    ctx.getSource().sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.info("ブロック設置（allowBlockPlacing）: " + (on ? "ON" : "OFF")), false);
+                    return 1;
+                })
+                .then(Commands.argument("allow", com.mojang.brigadier.arguments.BoolArgumentType.bool())
+                    .executes(ctx -> setBuild(ctx.getSource(), com.mojang.brigadier.arguments.BoolArgumentType.getBool(ctx, "allow")))))
             .then(Commands.literal("debug")
                 .then(Commands.literal("on").executes(ctx -> setDebug(ctx.getSource(), true)))
                 .then(Commands.literal("off").executes(ctx -> setDebug(ctx.getSource(), false)))

@@ -89,6 +89,13 @@ public class DoorEventHandler {
                 event.setUseBlock(net.neoforged.neoforge.common.util.TriState.FALSE);
                 return;
             }
+            // 設定 allowBlockPlacing：ブロックの設置だけ通す（クリックしたブロックの GUI・操作は禁止のまま）。
+            // クライアントは設定の同期を待たずに予測を通し、可否はサーバーが決める（不可ならサーバーが取り消してブロック更新で戻る）。
+            if (event.getItemStack().getItem() instanceof net.minecraft.world.item.BlockItem
+                    && (event.getLevel().isClientSide() || com.example.roomsmod.config.RoomsConfig.allowBlockPlacing())) {
+                event.setUseBlock(net.neoforged.neoforge.common.util.TriState.FALSE);
+                return;
+            }
             event.setCanceled(true);
             if (!event.getLevel().isClientSide() && event.getHand() == InteractionHand.MAIN_HAND)
                 RoomsDebug.log("block use cancelled pos={} block={} player={}", event.getPos(), event.getLevel().getBlockState(event.getPos()).getBlock(), event.getEntity().getGameProfile().getName());
