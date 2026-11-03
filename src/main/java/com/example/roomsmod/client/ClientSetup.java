@@ -25,6 +25,7 @@ public class ClientSetup {
         com.example.roomsmod.util.ApproachSoundHook.set(ApproachSoundInstance::start);
         com.example.roomsmod.world.AbyssSpace.clientShift = AbyssClient::shift;
         com.example.roomsmod.util.ApproachSoundHook.setLoop((e, s) -> { if (e instanceof com.example.roomsmod.entity.v.V100Entity v) WatchSoundInstance.start(v, s); });
+        event.enqueueWork(WindowIcon::apply); // ウィンドウ・タスクバーのアイコン（描画スレッドで）
     }
 
     @SubscribeEvent
