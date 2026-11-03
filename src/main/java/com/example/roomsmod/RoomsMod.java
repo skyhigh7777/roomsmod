@@ -257,7 +257,7 @@ public class RoomsMod {
             com.example.roomsmod.util.RoomsDebug.setEnabled(false);
             var lvl = e.getServer().getLevel(RoomsCommands.ROOMS_DIMENSION);
             if (lvl != null) com.example.roomsmod.world.RoomsState.get(lvl);
-            com.example.roomsmod.entity.orb.HealingOrb.ensure(e.getServer()); // 回復のオーブ（まだ置いていなければ 1 回だけ）
+            com.example.roomsmod.entity.orb.HealingOrb.onServerStarted(e.getServer()); // 回復のオーブ（ロビー）。以前のオーバーワールドのものは片付ける
         });
         NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.server.ServerStoppedEvent e) ->
             com.example.roomsmod.util.RoomsDebug.setEnabled(false));

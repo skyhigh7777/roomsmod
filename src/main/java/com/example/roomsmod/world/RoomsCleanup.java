@@ -214,7 +214,7 @@ public final class RoomsCleanup {
     }
 
     private static boolean sweepable(Entity e) {
-        if (e instanceof Player || e.isRemoved()) return false;
+        if (e instanceof Player || e.isRemoved() || e instanceof com.example.roomsmod.entity.orb.HealingOrbEntity) return false;
         if (e instanceof ItemEntity || e instanceof ExperienceOrb) return true;
         return "roomsmod".equals(BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).getNamespace());
     }

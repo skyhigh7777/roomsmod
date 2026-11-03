@@ -55,7 +55,9 @@ public class HealingOrbEntity extends Entity {
             return;
         }
         ServerLevel sl = (ServerLevel) lv;
-        if (tickCount % 20 == 1 && !HealingOrb.isCurrent(sl, this)) { HealingOrb.log("healing orb {} at {} is not the current one -> removed", getUUID(), blockPosition()); discard(); return; }
+        if (tickCount % 20 == 1 && !HealingOrb.isCurrent(sl, this)) { HealingOrb.log("healing orb {} at {} is not the current one -> removed", getUUID(), blockPosition());
+            if (!HealingOrb.isRooms(sl) && sl.getBlockState(blockPosition()).is(net.minecraft.world.level.block.Blocks.LIGHT)) sl.setBlockAndUpdate(blockPosition(), net.minecraft.world.level.block.Blocks.AIR.defaultBlockState()); // 以前のオーバーワールドの光源
+            discard(); return; }
         if (tickCount % INTERVAL != 0) return;
         Vec3 c = position().add(0, getBbHeight() / 2, 0);
         for (Player p : sl.players()) {

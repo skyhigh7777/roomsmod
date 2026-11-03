@@ -78,7 +78,7 @@ public final class RoomsRun {
         RoomsState rs = RoomsState.get(p.serverLevel());
         int hudIdx = playerRoom(p, rs);
         sendRoomHud(p, rs, hudIdx);
-        if (hudIdx == 0 && p.tickCount % 40 == 0) com.example.roomsmod.world.LobbyPanels.ensure(p.serverLevel()); // 既存ワールドのロビーも今のパネル・売店に
+        if (hudIdx == 0 && p.tickCount % 40 == 0) { com.example.roomsmod.world.LobbyPanels.ensure(p.serverLevel()); com.example.roomsmod.entity.orb.HealingOrb.lobbyCheck(p.serverLevel()); } // 既存ワールドのロビーも今のパネル・売店に、回復のオーブ
         if (!p.isAlive() || p.isSpectator()) return;
         Wallet w = Wallet.of(p);
         if (w.runEpoch != rs.epoch) {

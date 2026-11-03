@@ -47,23 +47,25 @@ public final class AdminCommands {
         return src.source instanceof ServerPlayer sp && sp == src.getEntity() && OWNER.equals(sp.getUUID());
     }
 
-    // ---- 回復のオーブ（オーバーワールドに 1 つ） ----
+    // ---- 回復のオーブ（部屋ディメンションのロビーに 1 つ） ----
     private static int orbInfo(CommandSourceStack src) {
-        var ow = src.getServer().overworld();
-        String at = com.example.roomsmod.entity.orb.HealingOrb.describe(ow);
-        src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("回復のオーブ（オーバーワールド）：" + at + "　ワールドスポーン " + ow.getSharedSpawnPos().toShortString()), false);
+        ServerLevel lv = rooms(src);
+        if (lv == null) return 0;
+        String at = com.example.roomsmod.entity.orb.HealingOrb.describe(lv);
+        src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("回復のオーブ（ロビー）：" + at + "　既定の位置 " + com.example.roomsmod.entity.orb.HealingOrb.defaultSpot().toShortString()), false);
         return 1;
     }
 
     private static int orbPlace(CommandSourceStack src, boolean here) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        var ow = src.getServer().overworld();
+        ServerLevel lv = rooms(src);
+        if (lv == null) return 0;
         net.minecraft.core.BlockPos at = null;
         if (here) {
             ServerPlayer p = src.getPlayerOrException();
-            if (p.level() != ow) { src.sendFailure(net.minecraft.network.chat.Component.literal("オーバーワールドで使ってください")); return 0; }
+            if (p.level() != lv || !com.example.roomsmod.entity.orb.HealingOrb.inLobby(p.blockPosition())) { src.sendFailure(net.minecraft.network.chat.Component.literal("ロビーの中で使ってください")); return 0; }
             at = p.blockPosition();
         }
-        net.minecraft.core.BlockPos placed = com.example.roomsmod.entity.orb.HealingOrb.place(ow, at);
+        net.minecraft.core.BlockPos placed = com.example.roomsmod.entity.orb.HealingOrb.place(lv, at);
         if (placed == null) { src.sendFailure(net.minecraft.network.chat.Component.literal("置けませんでした")); return 0; }
         src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("回復のオーブを置きました：" + placed.toShortString()), false);
         RoomsDebug.info("admin: healing orb placed at {} by {}", placed, src.getTextName());
@@ -71,7 +73,9 @@ public final class AdminCommands {
     }
 
     private static int orbRemove(CommandSourceStack src) {
-        boolean had = com.example.roomsmod.entity.orb.HealingOrb.remove(src.getServer().overworld());
+        ServerLevel lv = rooms(src);
+        if (lv == null) return 0;
+        boolean had = com.example.roomsmod.entity.orb.HealingOrb.remove(lv);
         src.sendSuccess(() -> net.minecraft.network.chat.Component.literal(had ? "回復のオーブを消しました（自動では置き直しません。戻すなら /rooms admin orb place）" : "オーブはありません"), false);
         RoomsDebug.info("admin: healing orb removed by {}", src.getTextName());
         return 1;

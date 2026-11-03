@@ -80,7 +80,7 @@ public class RoomGenerator {
         state.addRoom(List.of(new BoundingBox(origin.getX(), origin.getY(), origin.getZ(),
                 origin.getX() + width - 1, origin.getY() + height, origin.getZ() + depth - 1)), path);
         state.setExpectedExitDoor(doorPos);
-        if (origin.equals(LobbyPanels.ORIGIN)) LobbyPanels.build(level);
+        if (origin.equals(LobbyPanels.ORIGIN)) { LobbyPanels.build(level); com.example.roomsmod.entity.orb.HealingOrb.lobbyCheck(level); } // 中を空にしたのでオーブの光源を戻す
         RoomsCleanup.schedule(level, state, oldRegions, List.of(state.boxes(0).get(0),
                 new BoundingBox(doorPos.getX(), doorPos.getY(), doorPos.getZ() + 1, doorPos.getX(), doorPos.getY() + 1, doorPos.getZ() + 1)));
 
