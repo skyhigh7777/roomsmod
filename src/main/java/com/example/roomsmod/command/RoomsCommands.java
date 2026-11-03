@@ -47,7 +47,7 @@ public class RoomsCommands {
         if (com.example.roomsmod.entity.v.VSpawns.isAlive(roomsLevel, com.example.roomsmod.RoomsMod.B_ERROR.get())) {
             src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("B-110 が生存中なので " + (a40 ? "B-40" : "B-20") + " は出せない")); return 0;
         }
-        var player = src.getPlayer();
+        var player = spawnActor(src);
         if (a40) {
             if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> com.example.roomsmod.event.DoorEventHandler.spawnA40(roomsLevel, rs, player))) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("B-40の出現に失敗した")); return 0; }
         } else {
@@ -63,6 +63,23 @@ public class RoomsCommands {
         try { return spawnV(src, "v25buffed"); } finally { com.example.roomsmod.entity.v.V25BuffedEntity.forcedNext = null; }
     }
 
+    /** 出現の基準にするプレイヤー：実行者がプレイヤーならその人、コマンドブロック等なら部屋ディメンションで実行位置にいちばん近いプレイヤー（いなければ null）。 */
+    static ServerPlayer spawnActor(CommandSourceStack src) {
+        ServerPlayer p = src.getPlayer();
+        if (p != null) return p;
+        ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
+        if (lv == null) return null;
+        var pos = src.getPosition();
+        boolean sameLevel = src.getLevel() == lv;
+        ServerPlayer best = null; double bd = Double.MAX_VALUE;
+        for (ServerPlayer sp : lv.players()) {
+            if (sp.isSpectator()) continue;
+            double d = sameLevel ? sp.distanceToSqr(pos) : 0;
+            if (best == null || d < bd) { best = sp; bd = d; }
+        }
+        return best;
+    }
+
     private static int spawnV(CommandSourceStack src, String id) {
         ServerLevel lv = src.getServer().getLevel(ROOMS_DIMENSION);
         if (lv == null) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("ディメンションが見つからない")); return 0; }
@@ -72,7 +89,7 @@ public class RoomsCommands {
         if (com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.blocksSpawns(lv)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err("PLACEHOLDER-2147483648 が生存中は他の敵を出せない（/kill で消せる）")); return 0; }
         if (k.alive(lv)) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(k.display + "（または同じ排他グループ）はすでに生存中")); return 0; }
         com.example.roomsmod.util.RoomsDebug.log("force spawn {} by {}", k.display, src.getTextName());
-        if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> k.spawn(lv, rs, src.getPlayer()))) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(k.display + "の出現に失敗した（条件を満たす場所がない？デバッグログ参照）")); return 0; }
+        if (!com.example.roomsmod.world.AbyssSpace.asCommand(() -> k.spawn(lv, rs, spawnActor(src)))) { src.sendFailure(com.example.roomsmod.util.RoomsMsg.err(k.display + "の出現に失敗した（条件を満たす場所がない？デバッグログ参照）")); return 0; }
         src.sendSuccess(() -> com.example.roomsmod.util.RoomsMsg.ok(k.display + "を出現させた"), true);
         return 1;
     }

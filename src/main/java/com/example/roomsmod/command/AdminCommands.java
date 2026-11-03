@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 /**
- * オーナー専用の管理コマンド /rooms admin ...（OP 権限・サーバーコンソール・コマンドブロック・/execute as では使えない）。
+ * オーナー専用の管理コマンド /rooms admin ...（OP 権限・サーバーコンソール・/execute as では使えない。コマンドブロックは権限レベル 2 以上で可）。
  * 実行者が本人のプレイヤー（CommandSourceStack.source がそのプレイヤーで、実体も同じ）で、UUID が {@link #OWNER} の時だけ。
  * <ul>
  *   <li>section [id lock|unlock]：セクションの利用可否（既定は PLACEHOLDER・H・F がロック）。ロック中はロビーのパネル・/rooms section で選べない。H・F はロック中は進行表にも入らない（解放で S → H → F → A）。</li>
@@ -44,7 +44,9 @@ public final class AdminCommands {
     public static final UUID OWNER = UUID.fromString("e4bc3d43-f5bc-41ec-9572-b49fa2abf570");
 
     public static boolean isOwner(CommandSourceStack src) {
-        return src.source instanceof ServerPlayer sp && sp == src.getEntity() && OWNER.equals(sp.getUUID());
+        if (src.source instanceof ServerPlayer sp && sp == src.getEntity() && OWNER.equals(sp.getUUID())) return true;
+        // コマンドブロック（コマンドブロック付きトロッコも）は OP 権限レベル 2 以上なら可（プレイヤーは本人のみのまま）
+        return src.source instanceof net.minecraft.world.level.BaseCommandBlock && src.hasPermission(2);
     }
 
     // ---- 回復のオーブ（部屋ディメンションのロビーに 1 つ） ----
