@@ -32,7 +32,7 @@ except Exception: font = big = ImageFont.load_default()
 dr.text((W//2, 150), "MINECRAFT", font=big, fill=(230,230,230,255), anchor='mm')
 for i, label in enumerate(["Singleplayer", "Multiplayer", "Minecraft Realms"]):
     y0 = 300 + i*56; dr.rectangle((W//2-200, y0, W//2+200, y0+40), fill=(70,70,70,200), outline=(20,20,20,255), width=2); dr.text((W//2, y0+20), label, font=font, fill=(255,255,255,255), anchor='mm')
-dr.text((8, 8), "SRT's Rooms : Deep Corridors", font=font, fill=(255,255,255,140))
+dr.text((8, 8), "Rooms : Deep Corridors", font=font, fill=(255,255,255,140))
 dr.text((8, H-24), "Minecraft 1.21.1 (NeoForge)", font=font, fill=(255,255,255,255))
 dr.text((W-8, H-24), "(approximate preview; logo/buttons are vanilla)", font=font, fill=(255,255,255,160), anchor='ra')
 img.save('/workspace/title_preview.png')

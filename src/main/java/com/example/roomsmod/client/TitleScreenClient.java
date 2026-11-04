@@ -15,7 +15,7 @@ import net.neoforged.neoforge.client.event.ScreenEvent;
 @EventBusSubscriber(modid = RoomsMod.MOD_ID, value = Dist.CLIENT)
 public final class TitleScreenClient {
     private TitleScreenClient() {}
-    public static final String TITLE = "SRT's Rooms : Deep Corridors";
+    public static final String TITLE = "Rooms : Deep Corridors";
 
     @SubscribeEvent
     public static void onRender(ScreenEvent.Render.Post e) {

@@ -170,7 +170,7 @@
   "item.roomsmod.lobby_return": "Return to Lobby",
   "item.roomsmod.lobby_return.tip": "Right-click: return to the lobby and collect coins (after %s rooms from your start, with no enemies nearby)",
   "key.roomsmod.bandage": "Apply Bandage (hold)",
-  "key.categories.roomsmod": "SRT's Rooms",
+  "key.categories.roomsmod": "Rooms",
   "message.roomsmod.no_bandage": "You have no bandages",
   "message.roomsmod.bandage_interrupted": "Bandaging interrupted",
   "message.roomsmod.bandage_carry_full": "Can't carry more bandages",

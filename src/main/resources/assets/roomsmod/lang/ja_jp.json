@@ -155,7 +155,7 @@
   "item.roomsmod.lobby_return": "ロビーへ帰る",
   "item.roomsmod.lobby_return.tip": "右クリック：ロビーへ戻ってコインを受け取る（開始から%s部屋以上進み、近くに敵がいない時）",
   "key.roomsmod.bandage": "包帯を巻く（押し続ける）",
-  "key.categories.roomsmod": "SRT's Rooms",
+  "key.categories.roomsmod": "Rooms",
   "message.roomsmod.no_bandage": "包帯を持っていない",
   "message.roomsmod.bandage_interrupted": "包帯を巻くのを中断した",
   "message.roomsmod.bandage_carry_full": "包帯はもう持てない",

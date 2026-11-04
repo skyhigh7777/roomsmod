@@ -1,4 +1,4 @@
-# SRT's Rooms : Deep Corridors (NeoForge 1.21.1)
+# Rooms : Deep Corridors (NeoForge 1.21.1)
 
 Mod ID: `roomsmod`（表示名のみ変更。ID・パッケージ・JAR 名 `roomsmod-0.1.0.jar`・セーブ互換はそのまま）
 
