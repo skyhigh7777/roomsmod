@@ -300,5 +300,29 @@
       "roomsmod:f200_wave"
     ],
     "subtitle": "subtitles.roomsmod.f200_wave"
+  },
+  "r5_intercom": {
+    "sounds": [
+      "roomsmod:r5_intercom"
+    ],
+    "subtitle": "subtitles.roomsmod.r5_intercom"
+  },
+  "r35_breath": {
+    "sounds": [
+      "roomsmod:r35_breath"
+    ],
+    "subtitle": "subtitles.roomsmod.r35_breath"
+  },
+  "r100_static": {
+    "sounds": [
+      "roomsmod:r100_static"
+    ],
+    "subtitle": "subtitles.roomsmod.r100_static"
+  },
+  "r200_steps": {
+    "sounds": [
+      "roomsmod:r200_steps"
+    ],
+    "subtitle": "subtitles.roomsmod.r200_steps"
   }
 }

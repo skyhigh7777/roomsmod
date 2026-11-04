@@ -71,6 +71,11 @@ public final class VSpawns {
         F35("F-35", "f35", "f_water", RoomsMod.F35),
         F100("F-100", "f100", null, RoomsMod.F100),
         F200("F-200", "f200", null, RoomsMod.F200),
+        // R（Residence、住宅）区画。R-100 と R-200 は同時に出さない（家族の駆け抜け）
+        R5("R-5", "r5", "r_door", RoomsMod.R5),
+        R35("R-35", "r35", null, RoomsMod.R35),
+        R100("R-100", "r100", "r_family", RoomsMod.R100),
+        R200("R-200", "r200", "r_family", RoomsMod.R200),
         // A（Abyss）専用（縦穴でだけ出る）
         A25("A-25", "a25", null, RoomsMod.A25),
         A90("A-90", "a90", null, RoomsMod.A90),

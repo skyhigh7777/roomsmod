@@ -11,7 +11,13 @@ public final class GKDoorTricks {
     private GKDoorTricks() {}
     /** クライアントとサーバーの両方：この開いた扉を S-125 が見張っているか（閉められる例外）。 */
     public static boolean closableOpenDoor(net.minecraft.world.level.Level level, BlockPos door) {
-        return !level.getEntitiesOfClass(GK07Entity.class, new net.minecraft.world.phys.AABB(door).inflate(3), g -> g.isAlive() && g.guards(door)).isEmpty();
+        return !level.getEntitiesOfClass(GK07Entity.class, new net.minecraft.world.phys.AABB(door).inflate(3), g -> g.isAlive() && g.guards(door)).isEmpty()
+                || intercomDoor(level, door);
+    }
+
+    /** クライアントとサーバーの両方：R-5（インターホン）が鳴らしている扉か（開け閉めさせない）。 */
+    public static boolean intercomDoor(net.minecraft.world.level.Level level, BlockPos door) {
+        return !level.getEntitiesOfClass(com.example.roomsmod.entity.r.RIntercomEntity.class, new net.minecraft.world.phys.AABB(door).inflate(2), r -> r.guards(door)).isEmpty();
     }
 
     /** ベルを鳴らした。 */
@@ -29,6 +35,7 @@ public final class GKDoorTricks {
         for (Entity e : level.getAllEntities()) {
             if (e instanceof GK07Entity g && g.isAlive() && g.guards(door) && level.getBlockState(door).getValue(net.minecraft.world.level.block.DoorBlock.OPEN)) { g.closed(level, player); return true; }
             if (!e.isAlive()) continue;
+            if (e instanceof com.example.roomsmod.entity.r.RIntercomEntity r && r.guards(door)) { r.knock(level, player); return true; }
             if (e instanceof GKDetentionEntity d && d.guards(door)) { d.punish(level, player); return true; }
             if (e instanceof GKSubstituteEntity s && s.isFake(door)) { s.trigger(level, player); return true; }
             if (e instanceof com.example.roomsmod.entity.b.BMawEntity m && m.guards(door) && !m.mouthOpen()) { m.bite(level, player); return true; }

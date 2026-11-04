@@ -252,12 +252,17 @@ public class DoorEventHandler {
             t2.removeIf(r -> com.example.roomsmod.world.section.Sections.gimmickBlocked(rs, room, r.name()));
             table = t2;
         }
+        // R-5（インターホン）で隠れなかった：この1回だけ確率を上げる（RoomsState.nextRollChanceMul、保存しない）
+        float boost = rs.nextRollChanceMul;
+        rs.nextRollChanceMul = 1f;
+        if (boost != 1f) RoomsDebug.log("rusher roll room={} chance x{} (R-5 intercom)", room, boost);
         int local = com.example.roomsmod.world.section.Sections.localRoom(rs, room); // minRoom はセクション内番号で判定
         boolean[] hit = new boolean[table.size()], alive = new boolean[table.size()];
         // 抽選→生存確認→出現の順（旧実装と同じ乱数消費・同じ判定順）
         for (int k = 0; k < table.size(); k++) {
             var r = table.get(k);
             float chance = hard ? Math.min(1f, r.chance() * com.example.roomsmod.world.HardMode.CHANCE_MUL) : r.chance(); // ハード：確率 x HardMode.CHANCE_MUL
+            chance = Math.min(1f, chance * boost);
             if (hard && com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.NAME.equals(r.name()))
                 chance *= com.example.roomsmod.entity.placeholder.Placeholder2147483648Entity.HARD_CHANCE_MUL; // ハード：この敵だけ大きく下げる
             hit[k] = local >= r.minRoom() && (level.random.nextFloat() < chance || forceAll);
@@ -306,7 +311,7 @@ public class DoorEventHandler {
         }
         // S / B / U / H / F / A は1回の抽選で出るのを最大 GK_MAX_PER_ROLL 体に（運だけの重なりを防ぐ）。生存中でスキップされるものは数えない
         if (hard || theme == com.example.roomsmod.world.section.Sections.GK || theme == com.example.roomsmod.world.section.Sections.B || theme == com.example.roomsmod.world.section.Sections.U
-                || theme == com.example.roomsmod.world.section.Sections.H || theme == com.example.roomsmod.world.section.Sections.F || theme == com.example.roomsmod.world.section.Sections.A) {
+                || theme == com.example.roomsmod.world.section.Sections.H || theme == com.example.roomsmod.world.section.Sections.F || theme == com.example.roomsmod.world.section.Sections.R || theme == com.example.roomsmod.world.section.Sections.A) {
             int cap = hard ? HARD_MAX_PER_ROLL : GK_MAX_PER_ROLL;
             java.util.List<Integer> c = new java.util.ArrayList<>();
             for (int k = 0; k < table.size(); k++) if (hit[k] && !alive[k]) c.add(k);

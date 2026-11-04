@@ -41,7 +41,11 @@ public final class RoomsRecords extends SavedData {
             t.putString("s", section); t.putInt("l", local); t.putInt("d", depth); t.putInt("g", global); t.putLong("t", time);
             return t;
         }
-        static Best load(CompoundTag t) { return new Best(t.getString("s"), t.getInt("l"), t.getInt("d"), t.getInt("g"), t.getLong("t")); }
+        static Best load(CompoundTag t) {
+            // 通しの深さは今の ORDER で計算し直す（R を S と H の間に足したので、古い記録の H / F / A の深さを揃える）
+            int d = Sections.absoluteDepth(t.getString("s"), t.getInt("l"));
+            return new Best(t.getString("s"), t.getInt("l"), d > 0 ? d : t.getInt("d"), t.getInt("g"), t.getLong("t"));
+        }
     }
 
     /** セクションの 001 から始めた周回の記録：そのセクションで届いた最深のセクション内番号と、001〜最後の部屋まで行った（達成）回数。 */

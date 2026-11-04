@@ -244,6 +244,7 @@ public class RoomGenerator {
         if (theme == com.example.roomsmod.world.section.Sections.V) return VillageRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.GK) return GKRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.U) return CorridorRooms.generate(level, origin, roomNumber, rand, state);
+        if (theme == com.example.roomsmod.world.section.Sections.R) return ResidenceRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.H) return HospitalRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.F) return FloodedRooms.generate(level, origin, roomNumber, rand, state);
         if (theme == com.example.roomsmod.world.section.Sections.A) return AbyssRooms.generate(level, origin, roomNumber, state, prevTheme != theme);

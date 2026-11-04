@@ -193,6 +193,34 @@ public final class Sections {
             0, 0));
 
     /**
+     * R（Residence、住宅）区画。家の1区画ずつ：玄関・廊下 / リビング / キッチン / 寝室 / 和室（world/ResidenceRooms.java）。進行上は S の後、H の前。
+     * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（S の次は H / A のまま）。/rooms admin section r unlock で解放。
+     * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
+     * 敵は R 専用の 4 体だけ（entity/r：R-5 インターホン / R-35 覗く人 / R-100 家族 / R-200 父。1回の上限は GK_MAX_PER_ROLL）。
+     * ハードモードでは全セクション共通の合同表（Sections.hardTable）になる。
+     */
+    public static final SectionTheme R = register(new SectionTheme(
+            "r", "R",
+            new SectionTheme.Palette(
+                    Blocks.OAK_PLANKS::defaultBlockState, Blocks.CALCITE::defaultBlockState, Blocks.BIRCH_PLANKS::defaultBlockState,
+                    () -> Blocks.CHERRY_DOOR,
+                    () -> Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true)),
+            new int[]{1, 1, 1, 1, 1},
+            B.furniture(), B.cover(),
+            List.of(new SectionTheme.Weighted<>(SectionTheme.HidingType.LOCKER, 0.5f),
+                    new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.5f)),
+            2, 2,
+            List.of(
+                    // R: R 専用の敵だけ（通常モード。ハードは合同表）。名前の番号＝出現開始。
+                    // P(1体以上)：R-5 0.22 / R-35 0.42 / R-100 0.59 / R-200〜 0.75（H・F と同じ曲線。1回の上限 2、R-100 と R-200 は排他）
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R5, 5, 0.22f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R35, 35, 0.25f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R100, 100, 0.30f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R200, 200, 0.40f)),
+            new SectionTheme.SignStyle(() -> Blocks.CHERRY_WALL_SIGN, DyeColor.BROWN, false),
+            1, 8));
+
+    /**
      * H（Hospital、病棟）区画。白いタイルの病室にベッドの列、ベッドの間はカーテンで仕切る（world/HospitalRooms.java）。進行上は S の後、A の前。
      * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（S の次は A のまま）。/rooms admin section h unlock で解放すると進行表に入る。
      * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
@@ -276,7 +304,7 @@ public final class Sections {
      * 既定でロックするセクション（RoomsState.isSectionLocked）。テスト用（PLACEHOLDER）と未公開の H・F。
      * ORDER にあるものはロック中は進行表に入らない（RoomsState.outOfProgression）。ほかのセクションは手でロックしても進行表はそのまま。
      */
-    public static final java.util.Set<String> LOCKED_BY_DEFAULT = java.util.Set.of("placeholder", "h", "f");
+    public static final java.util.Set<String> LOCKED_BY_DEFAULT = java.util.Set.of("placeholder", "r", "h", "f");
 
     public static boolean isLockedByDefault(String id) { return LOCKED_BY_DEFAULT.contains(canonical(id)); }
 
@@ -315,7 +343,7 @@ public final class Sections {
      * 進行順。最初のセクション（V）はロビー（部屋 0）から始まる。最後のセクションの後は、そのセクションがそのまま続く。
      * H・F は既定でロック（ロック中は進行表で飛ばす＝V → B → U → S → A）。
      */
-    public static final List<String> ORDER = List.of("v", "b", "u", "s", "h", "f", "a");
+    public static final List<String> ORDER = List.of("v", "b", "u", "s", "r", "h", "f", "a");
     /** H を足す前の進行順（旧仕様の 500 長の表の判定用）。 */
     private static final List<String> LEGACY_ORDER = List.of("v", "b", "u", "s", "a");
 
@@ -456,6 +484,8 @@ public final class Sections {
             Map.entry("V-100", "v"), Map.entry("V25-BUFFED", "v"),
             // F：音を立てない（F-5）
             Map.entry("F-5", "f"),
+            // R：インターホン（ロッカーに隠れる）・覗く人（見つめない）
+            Map.entry("R-5", "r"), Map.entry("R-35", "r"),
             // A：縦穴専用の敵は全部 A だけ（3!3!2 の召喚でもほかのセクションには出さない）
             Map.entry("A-25", "a"), Map.entry("A-50", "a"), Map.entry("A-90", "a"), Map.entry("A-130", "a"), Map.entry("A-180", "a"),
             Map.entry("A-200", "a"), Map.entry("A-250", "a"), Map.entry("A-300", "a"), Map.entry("A-350", "a"), Map.entry("A-450", "a"),

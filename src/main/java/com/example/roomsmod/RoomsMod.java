@@ -240,6 +240,7 @@ public class RoomsMod {
         NeoForge.EVENT_BUS.register(com.example.roomsmod.event.SectionTransition.class);
         com.example.roomsmod.hiding.HidingRules.addHidingCheck(com.example.roomsmod.hiding.LockerManager::isUnderTable);
         com.example.roomsmod.hiding.HidingRules.addExposure(com.example.roomsmod.entity.f.FUndertowEntity::floodsTable); // F-200：テーブルの下は水に浸かる
+        com.example.roomsmod.hiding.HidingRules.addExposure(com.example.roomsmod.entity.r.RFamilyEntity::findsUnderTable); // R-100 / R-200：ベッドの下（テーブル）は覗き込まれる
         modEventBus.addListener((net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent e) -> {
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.FUNCTIONAL_BLOCKS) { e.accept(LOCKER_ITEM.get()); e.accept(HIDING_TABLE_ITEM.get()); }
             if (e.getTabKey() == net.minecraft.world.item.CreativeModeTabs.TOOLS_AND_UTILITIES) { e.accept(com.example.roomsmod.item.FlashlightHandler.newFlashlight(com.example.roomsmod.item.FlashlightItem.BATTERY_TICKS)); e.accept(BATTERY.get()); e.accept(BANDAGE.get()); }
@@ -408,12 +409,30 @@ public class RoomsMod {
             () -> EntityType.Builder.of(com.example.roomsmod.entity.f.FUndertowEntity::new, MobCategory.MONSTER)
                     .sized(1.6f, 2.0f).clientTrackingRange(12).updateInterval(1).build("f200"));
 
+    // R（Residence、住宅）区画
+    public static final DeferredHolder<SoundEvent, SoundEvent> R5_INTERCOM = SOUND_EVENTS.register("r5_intercom", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "r5_intercom")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> R35_BREATH = SOUND_EVENTS.register("r35_breath", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "r35_breath")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> R100_STATIC = SOUND_EVENTS.register("r100_static", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "r100_static")));
+    public static final DeferredHolder<SoundEvent, SoundEvent> R200_STEPS = SOUND_EVENTS.register("r200_steps", () -> SoundEvent.createVariableRangeEvent(ResourceLocation.fromNamespaceAndPath(MOD_ID, "r200_steps")));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.r.RIntercomEntity>> R5 = ENTITIES.register("r5",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.r.RIntercomEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.9f).clientTrackingRange(12).updateInterval(1).build("r5"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.r.RPeeperEntity>> R35 = ENTITIES.register("r35",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.r.RPeeperEntity::new, MobCategory.MONSTER)
+                    .sized(0.8f, 1.9f).clientTrackingRange(12).updateInterval(1).build("r35"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.r.RFamilyEntity>> R100 = ENTITIES.register("r100",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.r.RFamilyEntity::new, MobCategory.MONSTER)
+                    .sized(1.4f, 1.9f).clientTrackingRange(12).updateInterval(1).build("r100"));
+    public static final DeferredHolder<EntityType<?>, EntityType<com.example.roomsmod.entity.r.RFatherEntity>> R200 = ENTITIES.register("r200",
+            () -> EntityType.Builder.of(com.example.roomsmod.entity.r.RFatherEntity::new, MobCategory.MONSTER)
+                    .sized(1.0f, 2.4f).clientTrackingRange(12).updateInterval(1).build("r200"));
+
     private static void onEntityAttributeCreation(EntityAttributeCreationEvent event) {
         event.put(A20.get(), A20Entity.createAttributes().build());
         event.put(A40.get(), com.example.roomsmod.entity.A40Entity.createAttributes().build());
         for (var t : java.util.List.of(V10, V25T, V25L, V25_BUFFED, V100, V50, GK_CHIME, GK_MIMIC, GK_MOTH, GK_STARE, GK_WHISPER, GK_DETENTION, GK_SUBSTITUTE, GK_ERASER, GK_QUIZ, GK_PA, GK_JANITOR, GK_MIRROR, GK_07, GK_BELL2, GK_REWIND,
                 B_GRIN, B_MASK, B_EYE, B_CHORUS, B_STATIC, B_ERROR, B_ARGUS, B_MAW, B_SCATTER, B_REACH, B_SMILE, B_VOID, B_17,
-                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, A525, A600, A666, A750, A800, A1000, A1050, A1100, A1111, A1180, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
+                U20, U60, U120, U200, U300, H30, H90, H150, H260, F5, F35, F100, F200, R5, R35, R100, R200, A25, A90, A180, A50, A130, A250, A350, A200, A300, A450, A525, A600, A666, A750, A800, A1000, A1050, A1100, A1111, A1180, PLACEHOLDER_32767, PLACEHOLDER_65535, PLACEHOLDER_2147483648, E332, EXTRABOX))
             event.put(t.get(), com.example.roomsmod.entity.v.VEntity.createAttributes().build());
     }
 

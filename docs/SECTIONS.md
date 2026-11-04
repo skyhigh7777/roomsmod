@@ -334,3 +334,21 @@ Longest streak (`Mode.streak`, any start): the most rooms in one run (`runFurthe
 Older saves have no `fromOne` / `streak` keys; those start empty and the existing records are kept.
 Commands: `/rooms record`, `/rooms record <player>`, `/rooms record top`, `/rooms record top <v|b|u|s|h|f|a>` (from-001 ranking),
 `/rooms record top streak` (streak ranking), `/rooms admin record reset <player>`.
+
+## R (Residence), as registered
+- Rooms (`world/ResidenceRooms.java`): straight house rooms like H (inner width 13, walls x=3/x=17, entrance and exit at x=10, aisle x=8..12 kept clear).
+  Kinds: HALLWAY (narrow, walls x=7/x=13, shoe barrel, door mat), LIVING (sofa, low table, TV, bookshelf, rug), KITCHEN (counter with cauldron/smoker, fridge, dining table),
+  BEDROOM (bed, nightstand, desk/bookshelf), WASHITSU (tatami floor, tokonoma, cushions, lantern). Overlap fallback narrows a side like H.
+- Hiding: lockers 0.5 / tables 0.5, every 6–9 blocks alternating sides, at least 2, at least one locker, last gap ≤ 14. 1–2 non-functional wall doors (closets) per room.
+- Order: `v, b, u, s, r, h, f, a`. **Locked by default** (`LOCKED_BY_DEFAULT`): skipped in the chain while locked, so existing saves keep their tables.
+  Unlock: `/rooms admin section r unlock`, then the lobby panel or `/rooms admin tp r <n>`. Saved record depths are recomputed on load (`RoomsRecords.Best.load`) since `absoluteDepth` of H/F/A grew by 500.
+- Spawns (normal mode, same curve as H/F): R-5 (5, .22), R-35 (35, .25), R-100 (100, .30), R-200 (200, .40); R-100 and R-200 share exclusion group `r_family`. Hard mode: combined table; R-5 / R-35 are home-only gimmicks.
+
+### R entities (`entity/r`)
+- **R-5** (`RIntercomEntity`, intercom): rings twice in the opened room, then cracks open a closet door (not the exit) with a figure behind it. Within 6 s (hard 4.25 s) every player
+  in that room / the room before / within 16 blocks must be **in a locker** (tables don't count). Otherwise the next spawn roll's chances are ×2 once (`RoomsState.nextRollChanceMul`, not saved).
+  The ringing door can't be opened/closed (`GKDoorTricks.intercomDoor` / `onDoorClick`). No damage.
+- **R-35** (`RPeeperEntity`, peeper): `GKStareEntity` rules (don't look at it), shorter watch. Home-only.
+- **R-100** (`RFamilyEntity`, family): `URusher`, TV static + footsteps loop, from 4 rooms behind to 1 ahead, 1.25 b/t. **Tables don't protect** within 7 blocks (`HidingRules` exposure `findsUnderTable`). HIDE_REQUIRED.
+- **R-200** (`RFatherEntity`, father): heavier R-100: 5 rooms behind, 1.45 b/t, bounces once back 3 rooms (hard +1). Same table rule. HIDE_REQUIRED.
+- `/rooms admin spawn r5|r35|r100|r200`.

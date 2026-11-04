@@ -226,5 +226,17 @@
   "subtitles.roomsmod.f200_wave": "Rushing water",
   "message.roomsmod.f5_listen": "Something is listening to the water.",
   "message.roomsmod.f35_bubbles": "The water bubbles at your feet.",
-  "message.roomsmod.f100_drag": "The water drags at your feet."
+  "message.roomsmod.f100_drag": "The water drags at your feet.",
+  "entity.roomsmod.r5": "R-5",
+  "entity.roomsmod.r35": "R-35",
+  "entity.roomsmod.r100": "R-100",
+  "entity.roomsmod.r200": "R-200",
+  "subtitles.roomsmod.r5_intercom": "Intercom chimes",
+  "subtitles.roomsmod.r35_breath": "Someone breathing",
+  "subtitles.roomsmod.r100_static": "TV static and footsteps",
+  "subtitles.roomsmod.r200_steps": "Heavy footsteps",
+  "message.roomsmod.r5_ring": "The intercom rang. A door is ajar... hide in a locker.",
+  "message.roomsmod.r5_fail": "Someone came into the house.",
+  "message.roomsmod.r5_safe": "The footsteps fade away.",
+  "message.roomsmod.r5_knock": "Someone is standing behind the door."
 }

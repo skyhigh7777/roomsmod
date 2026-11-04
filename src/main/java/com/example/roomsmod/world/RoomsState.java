@@ -26,6 +26,8 @@ public class RoomsState extends SavedData {
     /** 現在の部屋の出口扉（下半分）。これを開けたときだけ次の部屋を生成する。 */
     public BlockPos expectedExitDoor = null;
     public final Set<BlockPos> generatedDoors = new HashSet<>();
+    /** 次の出現抽選1回だけの確率の倍率（R-5 インターホンで隠れなかった時）。保存しない。 */
+    public float nextRollChanceMul = 1f;
     /** 部屋ごとのバウンディングボックス（index 0 = ロビー）。 */
     public final List<List<BoundingBox>> generatedRooms = new ArrayList<>();
     /** 部屋ごとの経路（入口→折れ点→出口扉、床+1）。generatedRoomsと同じindex。 */

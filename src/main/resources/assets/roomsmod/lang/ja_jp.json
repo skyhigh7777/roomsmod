@@ -211,5 +211,17 @@
   "subtitles.roomsmod.f200_wave": "押し寄せる水の音",
   "message.roomsmod.f5_listen": "何かが水音に耳をすましている。",
   "message.roomsmod.f35_bubbles": "足元の水が泡立っている。",
-  "message.roomsmod.f100_drag": "水に足を取られる。"
+  "message.roomsmod.f100_drag": "水に足を取られる。",
+  "entity.roomsmod.r5": "R-5",
+  "entity.roomsmod.r35": "R-35",
+  "entity.roomsmod.r100": "R-100",
+  "entity.roomsmod.r200": "R-200",
+  "subtitles.roomsmod.r5_intercom": "インターホンが鳴る",
+  "subtitles.roomsmod.r35_breath": "誰かの息づかい",
+  "subtitles.roomsmod.r100_static": "テレビの砂嵐と足音",
+  "subtitles.roomsmod.r200_steps": "重い足音",
+  "message.roomsmod.r5_ring": "インターホンが鳴った。扉が少し開いている……ロッカーに隠れて。",
+  "message.roomsmod.r5_fail": "誰かが家に入ってきた。",
+  "message.roomsmod.r5_safe": "足音が遠ざかった。",
+  "message.roomsmod.r5_knock": "扉の向こうに誰かが立っている。"
 }

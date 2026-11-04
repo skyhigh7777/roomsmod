@@ -91,6 +91,10 @@ public class E332Entity extends VEntity {
         SOUNDS.put("F-35", RoomsMod.F35_BUBBLE::get);
         SOUNDS.put("F-100", RoomsMod.F100_GURGLE::get);
         SOUNDS.put("F-200", RoomsMod.F200_WAVE::get);
+        SOUNDS.put("R-5", RoomsMod.R5_INTERCOM::get);
+        SOUNDS.put("R-35", RoomsMod.R35_BREATH::get);
+        SOUNDS.put("R-100", RoomsMod.R100_STATIC::get);
+        SOUNDS.put("R-200", RoomsMod.R200_STEPS::get);
     }
 
     /** 0=出現直後, 1=待ち, 2=バー進行中, 3=満タン後 */
