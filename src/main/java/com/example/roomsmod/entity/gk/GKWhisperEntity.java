@@ -53,8 +53,10 @@ public class GKWhisperEntity extends GKTimedEntity {
         if (phase % 20 == 0) GKUtil.actionbar(ps, Component.translatable(phase <= TELEGRAPH ? "message.roomsmod.gk_whisper_go" : "message.roomsmod.gk_whisper_stay", (TELEGRAPH + WATCH - phase) / 20));
         if (phase <= TELEGRAPH) return;
         if (phase > TELEGRAPH + WATCH) { leave("whisper over"); return; }
+        // ワールドを読み直すと speaker は保存されていないので null になる → 自分の足元を基準にする
+        net.minecraft.world.phys.Vec3 center = speaker != null ? net.minecraft.world.phys.Vec3.atBottomCenterOf(speaker) : position().subtract(0, 1, 0);
         for (Player p : ps) {
-            if (p.position().distanceTo(net.minecraft.world.phys.Vec3.atBottomCenterOf(speaker)) <= NEAR) continue;
+            if (p.position().distanceTo(center) <= NEAR) continue;
             int n = away.merge(p.getUUID(), 1, Integer::sum);
             if (n == 1 || n % 10 == 0) RoomsDebug.log(p, "S-45: スピーカーから離れている " + n + "/" + LIMIT, "S-45 away player={} count={}/{}", p.getGameProfile().getName(), n, LIMIT);
             if (n >= LIMIT) {
