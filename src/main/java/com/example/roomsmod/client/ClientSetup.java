@@ -76,6 +76,9 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.H90.get(), c -> new VRenderer<>(c, "h90", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.H150.get(), c -> new VRenderer<>(c, "h150", 2.2f, 0.12f)); // 気づいた時だけ描く（isRevealed）
         event.registerEntityRenderer(RoomsMod.H260.get(), c -> new VRenderer<>(c, "h260", 1.8f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.H70.get(), c -> new VRenderer<>(c, "h70", 1.6f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.H175.get(), c -> new VRenderer<>(c, "h175", 2.2f, 0.08f));
+        event.registerEntityRenderer(RoomsMod.H230.get(), c -> new VRenderer<>(c, "h230", 2.0f, 0.05f));
         event.registerEntityRenderer(RoomsMod.F5.get(), c -> new VRenderer<>(c, "f5", 1.8f, 0.05f));
         event.registerEntityRenderer(RoomsMod.F35.get(), c -> new VRenderer<>(c, "f35", 2.2f, 0.08f)); // 水上に出た時だけ描く（isRevealed）
         event.registerEntityRenderer(RoomsMod.F100.get(), c -> new VRenderer<>(c, "f100", 2.1f, 0.03f));

@@ -242,17 +242,18 @@ Entities `PLACEHOLDER-32767`, `PLACEHOLDER-65535`, `PLACEHOLDER-2147483648` (`en
 - Hiding: wall-niche lockers next to the bed (foot side) or a hiding table in place of a bed, alternating sides every 2–3 bays;
   gap ≤ 16 blocks, at least 2 per room, at least one locker. If the ward would overlap an older room, the bed row on that side is dropped (wall at x=7 / x=13).
 - Items: bandages lie in 30% of H rooms (`RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE`, 12% elsewhere). Batteries as usual.
-- Spawns (normal mode): **only the 4 H entities** (`entity/h`, below). The number in an entity's name is not its start room here.
-  Table (minRoom, chance): H-30 (5, .22), H-90 (35, .25), H-150 (100, .30), H-260 (200, .40).
-  P(at least one) by depth: H-1..4 0, H-5 0.22, H-35 0.42, H-100 0.59, H-200 and deeper 0.75
-  (measured with 400 natural rolls each: H-5 0.24, H-35 0.44, H-100 0.61, H-200 0.72, H-300 0.76, H-450 0.75).
-  Per-roll cap `GK_MAX_PER_ROLL` (2); H-90 and H-150 share the exclusion group `h_ward` (at most one of them).
-  Hard mode: like every non-A section, H rolls the combined `Sections.hardTable()` (all sections' entities incl. the H ones with the minRooms above, chance x1.2, cap 2),
-  so B / S / U / V entities do appear in H in hard mode only. The H entities can also appear in other sections in hard mode (`homeSection` is `h`); 3!3!2 can imitate their sounds.
+- Spawns (normal mode): **only the 7 H entities** (`entity/h`, below). H-30 still starts at H-5 (its name is not its start room); the newer three start at the number in their name.
+  Table (minRoom, chance): H-30 (5, .22), H-90 (35, .25), H-70 (70, .14), H-150 (100, .30), H-175 (175, .16), H-260 (200, .40), H-230 (230, .18).
+  Approximate P(at least one): H-1..4 0, H-5 0.22, H-35 0.42, H-70 0.50, H-100 0.65, H-175 0.70, H-200 0.82, H-230 and deeper 0.85
+  (older 4-entity measurements at H-5 / H-35 / H-100 / H-200 were 0.22 / 0.42 / 0.59 / 0.75).
+  Per-roll cap `GK_MAX_PER_ROLL` (2); H-90 and H-150 share `h_ward`, H-150 and H-175 share `h_xray` (H-90 and H-175 may appear together).
+  Hard mode: like every non-A section, H rolls the combined `Sections.hardTable()` (chance x1.2, cap 2).
+  H-175 is home-only (curtain gimmick); the others can appear in other sections in hard mode (`homeSection` is `h`); 3!3!2 can imitate their sounds.
 
 ### H entities (`entity/h`)
-All are `VEntity` (no physics, invulnerable, max 100 s like S), billboard textures `textures/entity/h30|h90|h150|h260.png`, sounds `h30_drag`, `h90_step`, `h90_check`,
-`h150_rustle`, `h260_rattle`. Radar / scanner list them like every other MONSTER of this mod (name = `vName()`). `/rooms admin spawn h30|h90|h150|h260`.
+All are `VEntity` (no physics, invulnerable, max 100 s like S), billboard textures `textures/entity/h30|h70|h90|h150|h175|h230|h260.png`.
+H-30 / H-90 / H-150 / H-260 keep their custom sounds; H-70 / H-175 / H-230 reuse vanilla sounds (warden heartbeat, firework blast, bottle fill).
+Radar / scanner list them like every other MONSTER of this mod (name = `vName()`). `/rooms admin spawn h30|h70|h90|h150|h175|h230|h260`.
 - **H-30** (`HPatientEntity`, wandering patient): bandaged patient in a pale blue gown with an IV stand. `VPathWalker` from one room behind the player to the newest room
   (follows into new rooms), 0.15 blocks/tick (slower than walking), sometimes stops for 2 s (no movement, no hits). Hits (25) players it can see within 5 blocks
   (`RusherHits`: hiding or cover saves you). Get ahead of it or hide until it has passed. Category HIDE_REQUIRED. Hard: speed / grace like other walkers.
@@ -261,12 +262,21 @@ All are `VEntity` (no physics, invulnerable, max 100 s like S), billboard textur
   Hidden players within 9 blocks who keep looking at her (view vector within ~16°) build up a gaze counter (actionbar "The nurse notices your gaze.");
   at 30 ticks (hard 20) she pulls them out of the hiding spot (`LockerManager.exit`) and hits (30), then leaves. Looking away lowers the counter.
   Hide and look away. Category HIDE_REQUIRED, exclusion group `h_ward` (never together with H-150).
+- **H-70** (`HMonitorEntity`, ECG / heart monitor): appears in the opened room (`GKRoomWatcher`). Heartbeat for 2 s (hard 1.4 s), then watches 8 s
+  (actionbar "The heart monitor is on. Don't run."). Sprinting counts every tick; taking a hit adds 10 ticks of alarm. Walking, crouching, standing still, or hiding does not count.
+  At 30 alarm (hard 20) it strikes (25) and leaves (≈ 1.5 s of sprint, or one hit plus a short sprint). Uncategorized.
 - **H-150** (`HCurtainEntity`, behind the curtain): lurks inside a curtain (white / light gray wool, 2 high, open on one side, within 3 blocks of the path) of the newest room
   (or the player's room); outside H, on a free floor spot near the path. Invisible until it notices you; the curtain rustles now and then.
   A player who is not hiding within 3 blocks: sprinting = noticed at once, walking = noticed after 0.5 s, crouching = never.
   Once noticed it shows itself (actionbar "The curtain moves.") and lunges after 1 s (hard 0.7 s): hit (35) + slowness for players within 4.5 blocks it can see from the curtain's open side,
   unless they are hiding. Players hiding within 2.5 blocks of it are dragged out after 3 s (rustling) and hit (35). Crouch past rustling curtains and do not hide next to them.
-  Uncategorized, exclusion group `h_ward`. 60 s lifetime.
+  Uncategorized, exclusion group `h_ward` and `h_xray` (never together with H-90 or H-175). 60 s lifetime.
+- **H-175** (`HXrayEntity`, x-ray): appears in the opened room. A 2.5 s warning (hard 1.75 s, actionbar "X-ray incoming. Get behind a curtain or into a locker.") then the corridor flashes white
+  (white title + end-rod particles + firework blast). Anyone in that room or the room before it (or within 16 blocks) who is not **in a locker** or within 2 blocks of a curtain
+  (white / light gray wool) is hit (30). Tables / beds do not protect. Home-only. Uncategorized, exclusion group `h_xray`.
+- **H-230** (`HInfectionEntity`, infection): `VPathWalker` like H-30 (from one room behind to the newest room), 0.13 blocks/tick. The floor cells it walks stay contaminated for 4 s
+  (green spore particles). Standing on a contaminated cell deals 8 damage and Weakness I every 0.75 s, even if hiding — step off the trail or wait it out. No body hit.
+  After it finishes the path it lingers until the trail fades. Uncategorized.
 - **H-260** (`HGurneyEntity`, runaway gurney): sheet-covered stretcher. `URusher` (home section `h`): starts 4 rooms behind with a rattling wheel loop,
   1.3 blocks/tick with acceleration, bounces once 1 room ahead and runs 3 rooms back (hard +1 bounce). Hide (hit range 20, damage 40). Category HIDE_REQUIRED.
 - Start it: `/rooms admin section h unlock`, then the lobby panel (`H-001` … `H-500`, GO) or `/rooms admin tp h <n>`.

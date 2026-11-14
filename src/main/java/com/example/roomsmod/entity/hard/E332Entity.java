@@ -87,6 +87,9 @@ public class E332Entity extends VEntity {
         SOUNDS.put("H-90", RoomsMod.H90_CHECK::get);
         SOUNDS.put("H-150", RoomsMod.H150_RUSTLE::get);
         SOUNDS.put("H-260", RoomsMod.H260_RATTLE::get);
+        SOUNDS.put("H-70", () -> net.minecraft.sounds.SoundEvents.WARDEN_HEARTBEAT);
+        SOUNDS.put("H-175", () -> net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_BLAST);
+        SOUNDS.put("H-230", () -> net.minecraft.sounds.SoundEvents.BOTTLE_FILL);
         SOUNDS.put("F-5", RoomsMod.F5_HUM::get);
         SOUNDS.put("F-35", RoomsMod.F35_BUBBLE::get);
         SOUNDS.put("F-100", RoomsMod.F100_GURGLE::get);

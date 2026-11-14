@@ -238,5 +238,11 @@
   "message.roomsmod.r5_ring": "The intercom rang. A door is ajar... hide in a locker.",
   "message.roomsmod.r5_fail": "Someone came into the house.",
   "message.roomsmod.r5_safe": "The footsteps fade away.",
-  "message.roomsmod.r5_knock": "Someone is standing behind the door."
+  "message.roomsmod.r5_knock": "Someone is standing behind the door.",
+  "entity.roomsmod.h70": "H-70",
+  "entity.roomsmod.h175": "H-175",
+  "entity.roomsmod.h230": "H-230",
+  "message.roomsmod.h70_watch": "The heart monitor is on. Don't run.",
+  "message.roomsmod.h175_warn": "X-ray incoming. Get behind a curtain or into a locker.",
+  "message.roomsmod.h230_infect": "The floor is contaminated."
 }

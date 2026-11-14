@@ -61,10 +61,13 @@ public final class VSpawns {
         U120("U-120", "u120", null, RoomsMod.U120),
         U200("U-200", "u200", null, RoomsMod.U200),
         U300("U-300", "u300", null, RoomsMod.U300),
-        // H（Hospital、病棟）区画。H-90 と H-150 は同時に出さない（隠れる／そばに隠れない：要求がぶつかる）
+        // H（Hospital、病棟）区画。H-90 と H-150 は h_ward、H-150 と H-175 は h_xray で同時に出さない
         H30("H-30", "h30", null, RoomsMod.H30),
         H90("H-90", "h90", "h_ward", RoomsMod.H90),
-        H150("H-150", "h150", "h_ward", RoomsMod.H150),
+        H70("H-70", "h70", null, RoomsMod.H70),
+        H150("H-150", "h150", "h_ward,h_xray", RoomsMod.H150),
+        H175("H-175", "h175", "h_xray", RoomsMod.H175),
+        H230("H-230", "h230", null, RoomsMod.H230),
         H260("H-260", "h260", null, RoomsMod.H260),
         // F（Flooded、水没）区画。F-5 と F-35 は同時に出さない（止まる／動き続ける：要求がぶつかる）
         F5("F-5", "f5", "f_water", RoomsMod.F5),

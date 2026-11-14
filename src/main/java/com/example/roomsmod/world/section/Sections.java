@@ -225,7 +225,7 @@ public final class Sections {
      * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（S の次は A のまま）。/rooms admin section h unlock で解放すると進行表に入る。
      * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
      * 床の包帯がほかより多い（RoomGenerator.HOSPITAL_BANDAGE_ROOM_CHANCE）。
-     * 敵は H 専用の 4 体だけ（entity/h：H-30 徘徊する患者 / H-90 夜勤の看護師 / H-150 カーテンの陰 / H-260 暴走するストレッチャー。
+     * 敵は H 専用（entity/h：H-30 徘徊する患者 / H-70 心電図 / H-90 夜勤の看護師 / H-150 カーテンの陰 / H-175 レントゲン / H-230 感染 / H-260 暴走するストレッチャー。
      * 1回の抽選の上限は GK_MAX_PER_ROLL のまま）。ハードモードでは全セクション共通の合同表（Sections.hardTable）になる。
      */
     public static final SectionTheme H = register(new SectionTheme(
@@ -240,12 +240,15 @@ public final class Sections {
                     new SectionTheme.Weighted<>(SectionTheme.HidingType.TABLE, 0.45f)),
             2, 2,
             List.of(
-                    // H: H 専用の敵だけ（通常モード。ハードは合同表）。名前の番号と出現開始は別（H-30 は H-5 から）。
-                    // P(1体以上)：H-5 0.22 / H-35 0.42 / H-100 0.59 / H-200〜 0.75（1回の上限 2、H-90 と H-150 は排他）
+                    // H: H 専用の敵だけ（通常モード。ハードは合同表）。H-30 だけ名前の番号と出現開始が別（H-5 から）。
+                    // 1回の上限 2。H-90 と H-150 は h_ward、H-150 と H-175 は h_xray で排他。
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H30, 5, 0.22f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H90, 35, 0.25f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H70, 70, 0.14f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H150, 100, 0.30f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H260, 200, 0.40f)),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H175, 175, 0.16f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H260, 200, 0.40f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.H230, 230, 0.18f)),
             new SectionTheme.SignStyle(() -> Blocks.BIRCH_WALL_SIGN, DyeColor.RED, false),
             1, 8));
 
@@ -484,6 +487,8 @@ public final class Sections {
             Map.entry("V-100", "v"), Map.entry("V25-BUFFED", "v"),
             // F：音を立てない（F-5）
             Map.entry("F-5", "f"),
+            // H：レントゲン（カーテンの陰かロッカー）
+            Map.entry("H-175", "h"),
             // R：インターホン（ロッカーに隠れる）・覗く人（見つめない）
             Map.entry("R-5", "r"), Map.entry("R-35", "r"),
             // A：縦穴専用の敵は全部 A だけ（3!3!2 の召喚でもほかのセクションには出さない）

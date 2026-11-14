@@ -223,5 +223,11 @@
   "message.roomsmod.r5_ring": "インターホンが鳴った。扉が少し開いている……ロッカーに隠れて。",
   "message.roomsmod.r5_fail": "誰かが家に入ってきた。",
   "message.roomsmod.r5_safe": "足音が遠ざかった。",
-  "message.roomsmod.r5_knock": "扉の向こうに誰かが立っている。"
+  "message.roomsmod.r5_knock": "扉の向こうに誰かが立っている。",
+  "entity.roomsmod.h70": "H-70",
+  "entity.roomsmod.h175": "H-175",
+  "entity.roomsmod.h230": "H-230",
+  "message.roomsmod.h70_watch": "心電図が反応している。走るな。",
+  "message.roomsmod.h175_warn": "レントゲンを撮ります。カーテンの陰かロッカーへ。",
+  "message.roomsmod.h230_infect": "床が汚染されている。"
 }
