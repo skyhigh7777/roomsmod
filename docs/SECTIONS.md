@@ -105,6 +105,13 @@ layouts SINGLE / TWO_ROOM (front+back, inner door) / SIDE_ROOM (side room via in
 TWO_STORY (~22%, stairs; ascending at base height -> exit on 2nd floor, descending when already raised
 -> enter 2nd floor, exit ground floor, so floor height alternates base / base+4). The next room origin
 is the exit door's floor (door y - 1). Path waypoints include every stair step (rise, then advance).
+- Added village gimmicks (besides V-10 / V-25-T/L / V25-BUFFED / V-50 / V-100): V-70 (70, .12) and V-160 (160, .10).
+  Approximate P(at least one) rises after V-70 / V-160; V is not capped by `GK_MAX_PER_ROLL` in normal mode (historical). Hard mode uses the combined table.
+  Billboard textures `textures/entity/v70|v160.png`. Vanilla sounds. `/rooms admin spawn v70|v160`.
+- **V-70** (`VCurfewEntity`, curfew): appears in the opened room. Three bell rings (1.5 s apart) after an actionbar warning, then a 1 s grace.
+  Players still on the room path (within 1.6 of a path segment) who are not hiding take 25. Get off the path into a house, or hide. Floor type cannot be used to detect indoors (village floors are dirt path). Uncategorized, not home-only.
+- **V-160** (`VScarecrowEntity`, scarecrow): `GKRoomWatcher` in the opened room. 1.75 s telegraph (hard 1.2 s), then watches 9 s. If it has line of sight and you move (horizontal speed > 0.06, sprint, or jump) it accumulates; at 20 (hard 12) it strikes (30) and leaves.
+  Unlike B-30 (never move) and V-100 (crouch/stop while peeked through a window), you may move once you break line of sight (step into a house). Uncategorized, not home-only.
 
 ## Lobby
 `RoomGenerator.buildLobbyInterior` holds the lobby interior (skylights, sea lanterns). Keep the centre path x=9..11 clear.
@@ -190,9 +197,16 @@ entrance and exit always on the centre line x=10 (exit on the max-Z wall), so ro
 - Hiding: lockers set into the wall (niche) or tables against the wall; the centre 3 lanes (x=9..11) stay clear.
   Spacing ≤ 16 blocks (`MAX_HIDE_GAP`, also to the exit), at least 2 per room (`MIN_HIDES`), at least one locker.
 - Light fade: from U-001, one tier every 10 rooms.
-U has 5 entities in `entity/u` (U-20, U-60, U-120, U-200, U-300). They are movement types (no gimmicks) built on `URusher`
-(`VPathWalker` with acceleration/deceleration). When one spawns outside U (hard mode's combined table) it is softened
+U has 7 entities in `entity/u`: five rushers (U-20, U-60, U-120, U-200, U-300) built on `URusher`
+(`VPathWalker` with acceleration/deceleration), plus two non-rusher gimmicks (U-80, U-160). When a rusher spawns outside U (hard mode's combined table) it is softened
 (speed x0.85, grace x1.25, higher minimum speed so it never crawls through corners).
+  Table (minRoom, chance): U-20 (20, .30), U-60 (60, .15), U-80 (80, .12), U-120 (120, .10), U-160 (160, .10), U-200 (200, .08), U-300 (300, .07).
+  Per-roll cap `GK_MAX_PER_ROLL` (2). Approximate P(at least one): U-20 0.30, U-60 0.41, U-80 0.48, U-120 0.53, U-160 0.58, U-200 0.61, U-300 0.64.
+  Billboard textures `textures/entity/u80|u160.png` (gimmicks use `VRenderer`; rushers keep `BRenderer`). Vanilla sounds. `/rooms admin spawn u20|u60|u80|u120|u160|u200|u300`.
+- **U-80** (`UFlareEntity`, emergency lights): appears in the opened room. A 2 s warning (actionbar "Emergency lights are coming on. Get to the wall."), then 4 red flashes every 1.75 s.
+  During a flash, players in that room / the room before / within 16 blocks who are not hiding and not hugging a wall (within 1.15 of a room-box wall, or a solid block beside them) take 20 damage.
+  Hide or stand against the wall. Uncategorized, not home-only.
+- **U-160** (`ULookbackEntity`, don't look back): `GKRoomWatcher` in the opened room. 1.75 s telegraph (hard 1.2 s), then watches 8 s. Looking back toward the room's entrance (view dot > 0.72, unless standing on the entrance itself) accumulates; at 24 (hard 16) it strikes (25) and leaves. Keep facing forward. Unlike S-205 / R-35 this is not "don't look at the entity." Uncategorized, not home-only.
 
 ## Movement: acceleration / deceleration
 `VPathWalker` supports optional `accel()` / `decel()` (blocks/tick²; default 0 = constant speed as before).
@@ -207,8 +221,8 @@ finishes its run there is a 25% chance of another roll on the next tick (`HardMo
 (`hardSpawn`, saved). Category/exclusion rules (`SpawnCategories`, e.g. S-270 KEEP_MOVING) are unchanged.
 Gimmick types stay in their home section even in hard mode (`Sections.HOME_ONLY`, checked in the door roll and in `VSpawns.spawn`,
 so 3!3!2 summons obey it too; `/rooms admin spawn` is not restricted): S-10, S-25, S-45, S-65, S-85, S-105, S-125, S-145, S-165,
-S-185, S-205, S-270 (S); B-30, B-70, B-110, B-155, B-205 (B); V-100, V25-BUFFED (V); F-5 (F); and every A enemy (A-25 … A-1180) is home-restricted to A. Chasers / rushers / path walkers
-(B-20, B-40, the B rushers, B-260, B-290, S-225, S-245, S-300, V-10, V-25-T/L, V-50, all U, H, F-35, F-100, F-200) still mix.
+S-185, S-205, S-270 (S); B-30, B-70, B-110, B-155, B-205 (B); V-100, V25-BUFFED (V); F-5, F-70, F-150 (F); H-175 (H); R-5, R-35, R-70, R-150 (R); and every A enemy (A-25 … A-1180) is home-restricted to A. Chasers / rushers / path walkers
+(B-20, B-40, the B rushers, B-260, B-290, S-225, S-245, S-300, V-10, V-25-T/L, V-50, V-70, V-160, U rushers, H except H-175, F-35, F-100, F-200, F-230, R-100, R-200, R-230, U-80, U-160) still mix.
 
 ## PLACEHOLDER (test only)
 `Sections.PLACEHOLDER` (id `placeholder`, rooms `PLACEHOLDER-001`) is listed in `Sections.TEST_ONLY`: it is not in `ORDER`
@@ -297,17 +311,17 @@ Radar / scanner list them like every other MONSTER of this mod (name = `vName()`
 - Lengths: SHORT 20, STD 30, LONG 42, VLONG 56 (only from `F-250`).
 - Hiding: lockers 0.65 / tables 0.35 (tables are never waterlogged), U-style spacing, at least 2 per room, at least one locker.
 - Items: bandages and batteries as usual.
-- Spawns (normal mode): **only the 4 F entities** (`entity/f`, below). The number in an F entity's name is its start room.
-  Table (minRoom, chance): F-5 (5, .22), F-35 (35, .25), F-100 (100, .30), F-200 (200, .40) — the same curve as H.
-  P(at least one) by depth: F-1..4 0, F-5 0.22, F-35 0.42, F-100 0.59, F-200 and deeper 0.75
-  (measured with 400 natural rolls each: F-5 0.21, F-20 0.22, F-35 0.44, F-60 0.38, F-100 0.61, F-150 0.60, F-200 0.76, F-300 0.75, F-450 0.76).
-  Per-roll cap `GK_MAX_PER_ROLL` (2); F-5 and F-35 share the exclusion group `f_water` (stand still vs keep moving: at most one of them).
-  Hard mode: like every non-A section, F rolls the combined `Sections.hardTable()` (so B / S / U / V / H entities appear in F in hard mode only),
-  and the F entities can appear in other sections (`homeSection` is `f`); 3!3!2 can imitate their sounds.
+- Spawns (normal mode): **only the 7 F entities** (`entity/f`, below). The number in an F entity's name is its start room.
+  Table (minRoom, chance): F-5 (5, .22), F-35 (35, .25), F-70 (70, .14), F-100 (100, .30), F-150 (150, .16), F-200 (200, .40), F-230 (230, .18) — the same gap-fill curve as H.
+  Approximate P(at least one): F-1..4 0, F-5 0.22, F-35 0.42, F-70 0.50, F-100 0.65, F-150 0.70, F-200 0.82, F-230 and deeper 0.85.
+  Per-roll cap `GK_MAX_PER_ROLL` (2); F-5 and F-35 share `f_water` (stand still vs keep moving); F-150 and F-200 share `f_tide` (two water-level threats).
+  Hard mode: like every non-A section, F rolls the combined `Sections.hardTable()` (so B / S / U / V / H entities appear in F in hard mode only).
+  F-5 / F-70 / F-150 are home-only; the others can appear in other sections (`homeSection` is `f`); 3!3!2 can imitate their sounds.
 
 ### F entities (`entity/f`)
-All are `VEntity` (no physics, invulnerable, max 100 s), billboard textures `textures/entity/f5|f35|f100|f200.png`, sounds `f5_hum`, `f35_bubble`,
-`f100_gurgle`, `f200_wave`. Radar / scanner list them like every other MONSTER of this mod (name = `vName()`). `/rooms admin spawn f5|f35|f100|f200`.
+All are `VEntity` (no physics, invulnerable, max 100 s), billboard textures `textures/entity/f5|f35|f70|f100|f150|f200|f230.png`.
+F-5 / F-35 / F-100 / F-200 keep their custom sounds; F-70 / F-150 / F-230 reuse vanilla sounds (redstone burnout, splash, bubble column).
+Radar / scanner list them like every other MONSTER of this mod (name = `vName()`). `/rooms admin spawn f5|f35|f70|f100|f150|f200|f230`.
 - **F-5** (`FListenerEntity`, the listener): a grey bald head with huge ears sticking out of the water. `GKRoomWatcher` in the opened room:
   low hum for 2.5 s (hard 1.75 s), then listens for 7 s (actionbar "Something is listening to the water."), then sinks.
   While it listens, players in that room or the room before it (or within 16 blocks) who are not hiding make noise:
@@ -324,6 +338,11 @@ All are `VEntity` (no physics, invulnerable, max 100 s), billboard textures `tex
   rushing-water loop, 1.5 blocks/tick with acceleration, runs to 1 room ahead (no bounce). Hit range 22, damage 40.
   **Tables do not protect** from it: water floods under them (`HidingRules` exposure `FUndertowEntity.floodsTable`, within 6 blocks even without line of sight). Hide in a locker.
   Category HIDE_REQUIRED.
+- **F-70** (`FShockEntity`, live water / 漏電): appears in the opened room. 2 s telegraph (hard 1.4 s, distant thunder, actionbar "The water is live. Get out of it, or hide."), then 4 pulses every 1.5 s (redstone burnout + sparks).
+  Players standing in water (waterlogged slabs or a water fluid) who are not in a locker or under a table take 12 and slowness II (2 s). Get out of the water or hide. Home-only. Uncategorized.
+- **F-150** (`FTideEntity`, high tide / 満潮): appears in the opened room. 2 s telegraph (hard 1.4 s), then fills the room interior with source water at path height for 5 s (hard 4 s). Door-adjacent cells are skipped; `setBlock` uses flag 2 to limit neighbour updates. Water is drained when the tide ends, the entity leaves, or it is removed.
+  Existing `FloodedRooms.onPlayerTick` still keeps air full (no drowning). Exclusive with F-200 (`f_tide`). Home-only. Uncategorized.
+- **F-230** (`FVortexEntity`, whirlpool / 渦): sits mid-path in the opened room. After a 2 s telegraph (hard 1.4 s) it is active for 4 s (radius 2.2). Players in the vortex who are not in a locker are pulled back 1 room (`SafeSpot.find`) and take 10 (tables do not protect). Unlike S-145 this is a location-based rewind, not a failed-homework gimmick. Not home-only. Uncategorized.
 - Start it: `/rooms admin section f unlock`, then the lobby panel (`F-001` … `F-500`, GO) or `/rooms admin tp f <n>`.
 
 ## Player records (`economy/RoomsRecords.java`)
@@ -352,7 +371,9 @@ Commands: `/rooms record`, `/rooms record <player>`, `/rooms record top`, `/room
 - Hiding: lockers 0.5 / tables 0.5, every 6–9 blocks alternating sides, at least 2, at least one locker, last gap ≤ 14. 1–2 non-functional wall doors (closets) per room.
 - Order: `v, b, u, s, r, h, f, a`. **Locked by default** (`LOCKED_BY_DEFAULT`): skipped in the chain while locked, so existing saves keep their tables.
   Unlock: `/rooms admin section r unlock`, then the lobby panel or `/rooms admin tp r <n>`. Saved record depths are recomputed on load (`RoomsRecords.Best.load`) since `absoluteDepth` of H/F/A grew by 500.
-- Spawns (normal mode, same curve as H/F): R-5 (5, .22), R-35 (35, .25), R-100 (100, .30), R-200 (200, .40); R-100 and R-200 share exclusion group `r_family`. Hard mode: combined table; R-5 / R-35 are home-only gimmicks.
+- Spawns (normal mode, same gap-fill curve as H/F): R-5 (5, .22), R-35 (35, .25), R-70 (70, .14), R-100 (100, .30), R-150 (150, .16), R-200 (200, .40), R-230 (230, .18).
+  Approximate P(at least one): R-5 0.22, R-35 0.42, R-70 0.50, R-100 0.65, R-150 0.70, R-200 0.82, R-230 and deeper 0.85.
+  Per-roll cap `GK_MAX_PER_ROLL` (2); R-5 and R-70 share `r_door`; R-100, R-200 and R-230 share `r_family`. Hard mode: combined table; R-5 / R-35 / R-70 / R-150 are home-only gimmicks.
 
 ### R entities (`entity/r`)
 - **R-5** (`RIntercomEntity`, intercom): rings twice in the opened room, then cracks open a closet door (not the exit) with a figure behind it. Within 6 s (hard 4.25 s) every player
@@ -361,4 +382,7 @@ Commands: `/rooms record`, `/rooms record <player>`, `/rooms record top`, `/room
 - **R-35** (`RPeeperEntity`, peeper): `GKStareEntity` rules (don't look at it), shorter watch. Home-only.
 - **R-100** (`RFamilyEntity`, family): `URusher`, TV static + footsteps loop, from 4 rooms behind to 1 ahead, 1.25 b/t. **Tables don't protect** within 7 blocks (`HidingRules` exposure `findsUnderTable`). HIDE_REQUIRED.
 - **R-200** (`RFatherEntity`, father): heavier R-100: 5 rooms behind, 1.45 b/t, bounces once back 3 rooms (hard +1). Same table rule. HIDE_REQUIRED.
-- `/rooms admin spawn r5|r35|r100|r200`.
+- **R-70** (`RVisitorEntity`, visitor / 来客): inverse of R-5. Knocks and opens a closet door in the opened room. If someone is visible in the aisle, or the closet is closed, the visitor leaves politely. If anyone is hiding, it searches for 4 s and pulls people out of lockers (30). Come out and be seen, or close the door. Exclusive with R-5 (`r_door`). Home-only.
+- **R-150** (`RBroadcastEntity`, late-night broadcast / 深夜放送): finds the living-room TV (black concrete + grey stained glass pane). Skips spawn if the opened room has no TV (~25% of rooms are living rooms). Looking at the screen (view dot > 0.82) accumulates; at 25 (hard 16) it strikes (25). Don't watch the TV. Home-only. Not exclusive with R-35.
+- **R-230** (`RSleepwalkEntity`, sleepwalker / 寝歩き): `VPathWalker` like H-30, from 1 room behind, 0.12 b/t. Standing still in the hallway is safe; moving while visible can be hit (25, range 5). Tables (and beds used as tables) are peeked under within 6 blocks (`HidingRules` exposure `findsUnderTable`). Lockers are safe. Exclusive with R-100 / R-200 (`r_family`). Not home-only.
+- `/rooms admin spawn r5|r35|r70|r100|r150|r200|r230`.

@@ -92,12 +92,22 @@ public class E332Entity extends VEntity {
         SOUNDS.put("H-230", () -> net.minecraft.sounds.SoundEvents.BOTTLE_FILL);
         SOUNDS.put("F-5", RoomsMod.F5_HUM::get);
         SOUNDS.put("F-35", RoomsMod.F35_BUBBLE::get);
+        SOUNDS.put("F-70", () -> net.minecraft.sounds.SoundEvents.REDSTONE_TORCH_BURNOUT);
         SOUNDS.put("F-100", RoomsMod.F100_GURGLE::get);
+        SOUNDS.put("F-150", () -> net.minecraft.sounds.SoundEvents.GENERIC_SPLASH);
         SOUNDS.put("F-200", RoomsMod.F200_WAVE::get);
+        SOUNDS.put("F-230", () -> net.minecraft.sounds.SoundEvents.BUBBLE_COLUMN_WHIRLPOOL_AMBIENT);
         SOUNDS.put("R-5", RoomsMod.R5_INTERCOM::get);
         SOUNDS.put("R-35", RoomsMod.R35_BREATH::get);
+        SOUNDS.put("R-70", () -> net.minecraft.sounds.SoundEvents.WOODEN_DOOR_OPEN);
         SOUNDS.put("R-100", RoomsMod.R100_STATIC::get);
+        SOUNDS.put("R-150", () -> net.minecraft.sounds.SoundEvents.NOTE_BLOCK_BIT.value());
         SOUNDS.put("R-200", RoomsMod.R200_STEPS::get);
+        SOUNDS.put("R-230", () -> net.minecraft.sounds.SoundEvents.WOOL_STEP);
+        SOUNDS.put("U-80", () -> net.minecraft.sounds.SoundEvents.NOTE_BLOCK_PLING.value());
+        SOUNDS.put("U-160", () -> net.minecraft.sounds.SoundEvents.AMBIENT_CAVE.value());
+        SOUNDS.put("V-70", () -> net.minecraft.sounds.SoundEvents.BELL_BLOCK);
+        SOUNDS.put("V-160", () -> net.minecraft.sounds.SoundEvents.VILLAGER_NO);
     }
 
     /** 0=出現直後, 1=待ち, 2=バー進行中, 3=満タン後 */

@@ -25,6 +25,7 @@ public final class VSpawns {
         V25T("V-25-T", "v25t", "searcher", RoomsMod.V25T), V25L("V-25-L", "v25l", "searcher", RoomsMod.V25L),
         V25_BUFFED("V25-BUFFED", "v25buffed", "searcher,buffed_v100", RoomsMod.V25_BUFFED),
         V100("V-100", "v100", "buffed_v100", RoomsMod.V100), V50("V-50", "v50", "err_v50", RoomsMod.V50),
+        V70("V-70", "v70", null, RoomsMod.V70), V160("V-160", "v160", null, RoomsMod.V160),
         // S（School、旧 GK）区画
         GK_CHIME("S-25", "schime", null, RoomsMod.GK_CHIME),
         GK_MIMIC("S-165", "smimic", "searcher", RoomsMod.GK_MIMIC),
@@ -61,6 +62,8 @@ public final class VSpawns {
         U120("U-120", "u120", null, RoomsMod.U120),
         U200("U-200", "u200", null, RoomsMod.U200),
         U300("U-300", "u300", null, RoomsMod.U300),
+        U80("U-80", "u80", null, RoomsMod.U80),
+        U160("U-160", "u160", null, RoomsMod.U160),
         // H（Hospital、病棟）区画。H-90 と H-150 は h_ward、H-150 と H-175 は h_xray で同時に出さない
         H30("H-30", "h30", null, RoomsMod.H30),
         H90("H-90", "h90", "h_ward", RoomsMod.H90),
@@ -69,16 +72,22 @@ public final class VSpawns {
         H175("H-175", "h175", "h_xray", RoomsMod.H175),
         H230("H-230", "h230", null, RoomsMod.H230),
         H260("H-260", "h260", null, RoomsMod.H260),
-        // F（Flooded、水没）区画。F-5 と F-35 は同時に出さない（止まる／動き続ける：要求がぶつかる）
+        // F（Flooded、水没）区画。F-5 と F-35 は f_water、F-150 と F-200 は f_tide で同時に出さない
         F5("F-5", "f5", "f_water", RoomsMod.F5),
         F35("F-35", "f35", "f_water", RoomsMod.F35),
+        F70("F-70", "f70", null, RoomsMod.F70),
         F100("F-100", "f100", null, RoomsMod.F100),
-        F200("F-200", "f200", null, RoomsMod.F200),
-        // R（Residence、住宅）区画。R-100 と R-200 は同時に出さない（家族の駆け抜け）
+        F150("F-150", "f150", "f_tide", RoomsMod.F150),
+        F200("F-200", "f200", "f_tide", RoomsMod.F200),
+        F230("F-230", "f230", null, RoomsMod.F230),
+        // R（Residence、住宅）区画。R-5 と R-70 は r_door、R-100 / R-200 / R-230 は r_family で同時に出さない
         R5("R-5", "r5", "r_door", RoomsMod.R5),
         R35("R-35", "r35", null, RoomsMod.R35),
+        R70("R-70", "r70", "r_door", RoomsMod.R70),
         R100("R-100", "r100", "r_family", RoomsMod.R100),
+        R150("R-150", "r150", null, RoomsMod.R150),
         R200("R-200", "r200", "r_family", RoomsMod.R200),
+        R230("R-230", "r230", "r_family", RoomsMod.R230),
         // A（Abyss）専用（縦穴でだけ出る）
         A25("A-25", "a25", null, RoomsMod.A25),
         A90("A-90", "a90", null, RoomsMod.A90),

@@ -39,6 +39,8 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.V25_BUFFED.get(), c -> new VRenderer<>(c, "v25_buffed", 2.6f, 0.15f));
         event.registerEntityRenderer(RoomsMod.V100.get(), c -> new VRenderer<>(c, "v100", 1.1f, 0.05f).withEyes("v100_eyes"));
         event.registerEntityRenderer(RoomsMod.V50.get(), c -> new VRenderer<>(c, "v50", 2.8f, 0.08f));
+        event.registerEntityRenderer(RoomsMod.V70.get(), c -> new VRenderer<>(c, "v70", 1.6f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.V160.get(), c -> new VRenderer<>(c, "v160", 2.0f, 0.05f));
         event.registerEntityRenderer(RoomsMod.GK_CHIME.get(), c -> new VRenderer<>(c, "gk_chime", 2.0f, 0.4f));
         event.registerEntityRenderer(RoomsMod.GK_MIMIC.get(), c -> new VRenderer<>(c, "gk_mimic", 2.4f, 0.1f));
         event.registerEntityRenderer(RoomsMod.GK_MOTH.get(), c -> new VRenderer<>(c, "gk_moth", 1.4f, 0.3f));
@@ -72,6 +74,8 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.U120.get(), c -> new BRenderer<>(c, "u120", 2.2f));
         event.registerEntityRenderer(RoomsMod.U200.get(), c -> new BRenderer<>(c, "u200", 2.0f));
         event.registerEntityRenderer(RoomsMod.U300.get(), c -> new BRenderer<>(c, "u300", 2.2f));
+        event.registerEntityRenderer(RoomsMod.U80.get(), c -> new VRenderer<>(c, "u80", 1.8f, 0.06f));
+        event.registerEntityRenderer(RoomsMod.U160.get(), c -> new VRenderer<>(c, "u160", 1.8f, 0.05f));
         event.registerEntityRenderer(RoomsMod.H30.get(), c -> new VRenderer<>(c, "h30", 2.0f, 0.06f));
         event.registerEntityRenderer(RoomsMod.H90.get(), c -> new VRenderer<>(c, "h90", 2.2f, 0.02f));
         event.registerEntityRenderer(RoomsMod.H150.get(), c -> new VRenderer<>(c, "h150", 2.2f, 0.12f)); // 気づいた時だけ描く（isRevealed）
@@ -83,10 +87,16 @@ public class ClientSetup {
         event.registerEntityRenderer(RoomsMod.F35.get(), c -> new VRenderer<>(c, "f35", 2.2f, 0.08f)); // 水上に出た時だけ描く（isRevealed）
         event.registerEntityRenderer(RoomsMod.F100.get(), c -> new VRenderer<>(c, "f100", 2.1f, 0.03f));
         event.registerEntityRenderer(RoomsMod.F200.get(), c -> new VRenderer<>(c, "f200", 2.8f, 0.10f));
+        event.registerEntityRenderer(RoomsMod.F70.get(), c -> new VRenderer<>(c, "f70", 1.6f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.F150.get(), c -> new VRenderer<>(c, "f150", 2.0f, 0.08f));
+        event.registerEntityRenderer(RoomsMod.F230.get(), c -> new VRenderer<>(c, "f230", 1.8f, 0.06f));
         event.registerEntityRenderer(RoomsMod.R5.get(), c -> new VRenderer<>(c, "r5", 2.0f, 0.02f));
         event.registerEntityRenderer(RoomsMod.R35.get(), c -> new VRenderer<>(c, "r35", 1.6f, 0.05f));
         event.registerEntityRenderer(RoomsMod.R100.get(), c -> new VRenderer<>(c, "r100", 2.2f, 0.08f));
         event.registerEntityRenderer(RoomsMod.R200.get(), c -> new VRenderer<>(c, "r200", 2.6f, 0.08f));
+        event.registerEntityRenderer(RoomsMod.R70.get(), c -> new VRenderer<>(c, "r70", 1.9f, 0.04f));
+        event.registerEntityRenderer(RoomsMod.R150.get(), c -> new VRenderer<>(c, "r150", 1.6f, 0.05f));
+        event.registerEntityRenderer(RoomsMod.R230.get(), c -> new VRenderer<>(c, "r230", 2.0f, 0.04f));
         event.registerEntityRenderer(RoomsMod.A25.get(), c -> new BRenderer<>(c, "a25", 2.0f));
         event.registerEntityRenderer(RoomsMod.A90.get(), c -> new BRenderer<>(c, "a90", 1.9f));
         event.registerEntityRenderer(RoomsMod.A180.get(), c -> new BRenderer<>(c, "a180", 1.8f));

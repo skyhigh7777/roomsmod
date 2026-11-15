@@ -83,9 +83,11 @@ public final class Sections {
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V10, 10, 0.35f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25T, 25, 0.12f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25L, 25, 0.12f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25_BUFFED, 125, 0.10f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V50, 50, 0.12f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V70, 70, 0.12f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V100, 100, 0.08f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V50, 50, 0.12f)),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V25_BUFFED, 125, 0.10f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.V160, 160, 0.10f)),
             new SectionTheme.SignStyle(() -> Blocks.SPRUCE_WALL_SIGN, DyeColor.BLACK, false),
             1, 7));
 
@@ -145,7 +147,9 @@ public final class Sections {
                     // U: セクション内番号 U-20〜U-300 にかけて易しい順に解禁。1回の抽選で最大 GK_MAX_PER_ROLL 体
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U20, 20, 0.30f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U60, 60, 0.15f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U80, 80, 0.12f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U120, 120, 0.10f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U160, 160, 0.10f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U200, 200, 0.08f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.U300, 300, 0.07f)),
             new SectionTheme.SignStyle(() -> Blocks.DARK_OAK_WALL_SIGN, DyeColor.WHITE, true),
@@ -196,7 +200,7 @@ public final class Sections {
      * R（Residence、住宅）区画。家の1区画ずつ：玄関・廊下 / リビング / キッチン / 寝室 / 和室（world/ResidenceRooms.java）。進行上は S の後、H の前。
      * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（S の次は H / A のまま）。/rooms admin section r unlock で解放。
      * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
-     * 敵は R 専用の 4 体だけ（entity/r：R-5 インターホン / R-35 覗く人 / R-100 家族 / R-200 父。1回の上限は GK_MAX_PER_ROLL）。
+     * 敵は R 専用の 7 体（entity/r：R-5 インターホン / R-35 覗く人 / R-70 来客 / R-100 家族 / R-150 深夜放送 / R-200 父 / R-230 寝歩き。1回の上限は GK_MAX_PER_ROLL）。
      * ハードモードでは全セクション共通の合同表（Sections.hardTable）になる。
      */
     public static final SectionTheme R = register(new SectionTheme(
@@ -212,11 +216,14 @@ public final class Sections {
             2, 2,
             List.of(
                     // R: R 専用の敵だけ（通常モード。ハードは合同表）。名前の番号＝出現開始。
-                    // P(1体以上)：R-5 0.22 / R-35 0.42 / R-100 0.59 / R-200〜 0.75（H・F と同じ曲線。1回の上限 2、R-100 と R-200 は排他）
+                    // P(1体以上) 概算：R-5 0.22 / R-35 0.42 / R-70 0.50 / R-100 0.65 / R-150 0.70 / R-200 0.82 / R-230〜 0.85（H と同じ。1回の上限 2、R-5/R-70 は r_door、R-100/R-200/R-230 は r_family）
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R5, 5, 0.22f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R35, 35, 0.25f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R70, 70, 0.14f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R100, 100, 0.30f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R200, 200, 0.40f)),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R150, 150, 0.16f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R200, 200, 0.40f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.R230, 230, 0.18f)),
             new SectionTheme.SignStyle(() -> Blocks.CHERRY_WALL_SIGN, DyeColor.BROWN, false),
             1, 8));
 
@@ -257,7 +264,7 @@ public final class Sections {
      * 既定はロック（Sections.LOCKED_BY_DEFAULT）。ロック中は進行表に入らない（H と同じ扱い）。/rooms admin section f unlock で解放。
      * この区画の中ではダッシュのスタミナ消費が FloodedRooms.STAMINA_DRAIN_MUL 倍（Stamina）。溺れない（FloodedRooms.onPlayerTick で空気を満タンに保つ）。
      * palette・hidingMix・sign・lightFade を使う（shapeWeights/furniture/cover は未使用）。
-     * 敵は F 専用の 4 体だけ（entity/f：F-5 聞き耳 / F-35 浮かび上がるもの / F-100 溺れた人影 / F-200 引き波。1回の上限は GK_MAX_PER_ROLL）。
+     * 敵は F 専用の 7 体（entity/f：F-5 聞き耳 / F-35 浮かび上がるもの / F-70 漏電 / F-100 溺れた人影 / F-150 満潮 / F-200 引き波 / F-230 渦。1回の上限は GK_MAX_PER_ROLL）。
      * ハードモードでは全セクション共通の合同表（Sections.hardTable）になる。
      */
     public static final SectionTheme F = register(new SectionTheme(
@@ -273,11 +280,14 @@ public final class Sections {
             2, 2,
             List.of(
                     // F: F 専用の敵だけ（通常モード。ハードは合同表）。名前の番号＝出現開始（F-5 は F-5 から）。
-                    // P(1体以上)：F-5 0.22 / F-35 0.42 / F-100 0.59 / F-200〜 0.75（H と同じ曲線。1回の上限 2、F-5 と F-35 は排他）
+                    // P(1体以上) 概算：F-5 0.22 / F-35 0.42 / F-70 0.50 / F-100 0.65 / F-150 0.70 / F-200 0.82 / F-230〜 0.85（H と同じ。1回の上限 2、F-5/F-35 は f_water、F-150/F-200 は f_tide）
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F5, 5, 0.22f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F35, 35, 0.25f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F70, 70, 0.14f),
                     vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F100, 100, 0.30f),
-                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F200, 200, 0.40f)),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F150, 150, 0.16f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F200, 200, 0.40f),
+                    vSpawn(com.example.roomsmod.entity.v.VSpawns.Kind.F230, 230, 0.18f)),
             new SectionTheme.SignStyle(() -> Blocks.MANGROVE_WALL_SIGN, DyeColor.LIGHT_BLUE, true),
             1, 8));
 
@@ -485,12 +495,12 @@ public final class Sections {
             Map.entry("B-30", "b"), Map.entry("B-70", "b"), Map.entry("B-110", "b"), Map.entry("B-155", "b"), Map.entry("B-205", "b"),
             // V：窓の覗き魔（しゃがむ・止まる）・指示どおりの隠れ場所（V25-BUFFED）
             Map.entry("V-100", "v"), Map.entry("V25-BUFFED", "v"),
-            // F：音を立てない（F-5）
-            Map.entry("F-5", "f"),
+            // F：音を立てない（F-5）・漏電（水にいると感電）・満潮（満水の部屋）
+            Map.entry("F-5", "f"), Map.entry("F-70", "f"), Map.entry("F-150", "f"),
             // H：レントゲン（カーテンの陰かロッカー）
             Map.entry("H-175", "h"),
-            // R：インターホン（ロッカーに隠れる）・覗く人（見つめない）
-            Map.entry("R-5", "r"), Map.entry("R-35", "r"),
+            // R：インターホン・来客（姿を見せる／戸を閉める）・覗く人（見つめない）・深夜放送（テレビを見ない）
+            Map.entry("R-5", "r"), Map.entry("R-35", "r"), Map.entry("R-70", "r"), Map.entry("R-150", "r"),
             // A：縦穴専用の敵は全部 A だけ（3!3!2 の召喚でもほかのセクションには出さない）
             Map.entry("A-25", "a"), Map.entry("A-50", "a"), Map.entry("A-90", "a"), Map.entry("A-130", "a"), Map.entry("A-180", "a"),
             Map.entry("A-200", "a"), Map.entry("A-250", "a"), Map.entry("A-300", "a"), Map.entry("A-350", "a"), Map.entry("A-450", "a"),
